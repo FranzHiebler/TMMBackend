@@ -3,6 +3,7 @@ using TabletopMatchMaker.Dtos;
 using TabletopMatchMaker.Repositories;
 using TabletopMatchMaker.Repositories.Interfaces;
 using TabletopMatchMaker.Services.Interfaces;
+using TMMBackend.Dtos;
 
 namespace TabletopMatchMaker.Services;
 

@@ -21,6 +21,10 @@ public class LocationRepository
 	{
 		return await _locations.Find(FilterDefinition<Location>.Empty).ToListAsync();
 	}
+	public async Task CreateAsync(Location location)
+	{
+		await _locations.InsertOneAsync(location);
+	}
 
 	public async Task<List<NearbyLocationResult>> FindNearbyAsync(
 		double lat,
@@ -48,9 +52,9 @@ public class LocationRepository
 		return docs.Select(d => new NearbyLocationResult
 		{
 			LocationId = d["_id"].ToString(),
+			Name = d["name"].AsString,
+			City = d["city"].AsString,
 			DistanceInMeters = d["distanceInMeters"].ToDouble()
 		}).ToList();
-
-
 	}
 }

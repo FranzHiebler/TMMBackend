@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using TabletopMatchMaker.Dtos;
 using TabletopMatchMaker.Services.Interfaces;
+using TMMBackend.Dtos;
 
 namespace TabletopMatchMaker.Controllers;
 

@@ -1,4 +1,5 @@
 ﻿using TabletopMatchMaker.Dtos;
+using TMMBackend.Dtos;
 
 namespace TabletopMatchMaker.Services.Interfaces;
 

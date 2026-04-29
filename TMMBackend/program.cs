@@ -3,6 +3,7 @@ using TabletopMatchMaker.Repositories;
 using TabletopMatchMaker.Repositories.Interfaces;
 using TabletopMatchMaker.Services;
 using TabletopMatchMaker.Services.Interfaces;
+using TMMBackend.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,6 +31,7 @@ builder.Services.AddScoped<IGameRepository, GameRepository>();
 builder.Services.AddScoped<IGameService, GameService>();
 builder.Services.AddScoped<LocationRepository>();
 builder.Services.AddScoped<SystemRepository>();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
 // Controller + Swagger
 builder.Services.AddControllers();
