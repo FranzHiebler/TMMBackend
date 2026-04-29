@@ -37,9 +37,9 @@ public class GamesController : ControllerBase
 	}
 
 	[HttpPost("{id}/join")]
-	public async Task<IActionResult> Join(string id, JoinGameRequest request)
+	public async Task<IActionResult> Join(string id)
 	{
-		var success = await _service.JoinAsync(id, request.UserId, request.DisplayName);
+		var success = await _service.JoinAsync(id);
 
 		return success ? NoContent() : BadRequest("Join failed");
 	}

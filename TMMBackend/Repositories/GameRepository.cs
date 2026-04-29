@@ -4,6 +4,7 @@ using TabletopMatchMaker.Domain;
 using TabletopMatchMaker.Dtos;
 using TabletopMatchMaker.Infrastructure;
 using TabletopMatchMaker.Repositories.Interfaces;
+using TMMBackend.Domain;
 
 namespace TabletopMatchMaker.Repositories;
 
@@ -39,7 +40,7 @@ public class GameRepository : IGameRepository
 			f &= Builders<GameSession>.Filter.Eq(x => x.LocationSnapshot.City, r.City);
 
 		if (r.OnlyOpen)
-			f &= Builders<GameSession>.Filter.Eq(x => x.Status, "Open");
+			f &= Builders<GameSession>.Filter.Eq(x => x.Status, GameSessionState.Open);
 
 		if (r.FromUtc.HasValue)
 			f &= Builders<GameSession>.Filter.Gte(x => x.StartTimeUtc, r.FromUtc.Value);
@@ -76,7 +77,7 @@ public async Task<List<GameSession>> SearchNearbyAsync(SearchNearbyGamesRequest 
 		f &= Builders<GameSession>.Filter.Eq(x => x.System.Key, r.SystemKey);
 
 	if (r.OnlyOpen)
-		f &= Builders<GameSession>.Filter.Eq(x => x.Status, "Open");
+		f &= Builders<GameSession>.Filter.Eq(x => x.Status, GameSessionState.Open);
 
 	if (r.FromUtc.HasValue)
 		f &= Builders<GameSession>.Filter.Gte(x => x.StartTimeUtc, r.FromUtc.Value);

@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using MongoDB.Driver;
 using MongoDB.Driver.GeoJsonObjectModel;
 using TabletopMatchMaker.Domain;
 using TabletopMatchMaker.Dtos;
@@ -66,5 +67,21 @@ public class LocationsController : ControllerBase
 			address = location.Address,
 			role = LocationRole.Owner.ToString()
 		});
+	}
+
+	[HttpGet("mine")]
+	public async Task<IActionResult> GetMine()
+	{
+		var locations = await _repository.GetForUserAsync(_currentUser.UserId);
+
+		return Ok(locations.Select(x => new
+		{
+			id = x.Id,
+			name = x.Name,
+			city = x.City,
+			address = x.Address,
+			role = x.Members.FirstOrDefault(m => m.UserId == _currentUser.UserId)?.Role.ToString(),
+			isOpen = x.AccessMode == LocationAccessMode.Open
+		}));
 	}
 }

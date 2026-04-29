@@ -1,4 +1,6 @@
-﻿namespace TabletopMatchMaker.Dtos;
+﻿using TMMBackend.Domain;
+
+namespace TabletopMatchMaker.Dtos;
 
 public class GameResponse
 {
@@ -16,7 +18,7 @@ public class GameResponse
 
 	public int OpenSlots => MaxPlayers - Participants.Count;
 
-	public string Status { get; set; } = default!;
+	public GameSessionState Status { get; set; } = default!;
 
 	public string LocationId { get; set; } = default!;
 

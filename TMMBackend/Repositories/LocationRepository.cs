@@ -3,6 +3,7 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using TabletopMatchMaker.Domain;
 using TabletopMatchMaker.Infrastructure;
+using TMMBackend.Domain;
 
 namespace TabletopMatchMaker.Repositories;
 
@@ -56,5 +57,29 @@ public class LocationRepository
 			City = d["city"].AsString,
 			DistanceInMeters = d["distanceInMeters"].ToDouble()
 		}).ToList();
+	}
+
+	public async Task<List<Location>> GetForUserAsync(string userId)
+	{
+		var memberFilter = Builders<Location>.Filter.ElemMatch(
+			x => x.Members,
+			m => m.UserId == userId
+		);
+
+		var openFilter = Builders<Location>.Filter.Eq(
+			x => x.AccessMode,
+			LocationAccessMode.Open
+		);
+
+		var filter = Builders<Location>.Filter.Or(memberFilter, openFilter);
+
+		return await _locations.Find(filter).ToListAsync();
+	}
+
+	public async Task<Location?> GetByIdAsync(string id)
+	{
+		return await _locations
+			.Find(x => x.Id == id)
+			.FirstOrDefaultAsync();
 	}
 }

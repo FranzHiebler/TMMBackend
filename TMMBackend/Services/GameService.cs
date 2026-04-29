@@ -3,21 +3,44 @@ using TabletopMatchMaker.Dtos;
 using TabletopMatchMaker.Repositories;
 using TabletopMatchMaker.Repositories.Interfaces;
 using TabletopMatchMaker.Services.Interfaces;
+using TMMBackend.Domain;
 using TMMBackend.Dtos;
+using TMMBackend.Services.Interfaces;
 
 namespace TabletopMatchMaker.Services;
 
 public class GameService : IGameService
 {
 	private readonly IGameRepository _repository;
+	private readonly LocationRepository _locationRepository;
+	private readonly ICurrentUserService _currentUser;
 
-	public GameService(IGameRepository repository)
+	public GameService(
+		IGameRepository repository,
+		LocationRepository locationRepository,
+		ICurrentUserService currentUser)
 	{
 		_repository = repository;
+		_locationRepository = locationRepository;
+		_currentUser = currentUser;
 	}
 
 	public async Task<GameResponse> CreateAsync(CreateGameRequest request)
 	{
+		var location = await _locationRepository.GetByIdAsync(request.LocationId);
+
+		if (location == null)
+			throw new Exception("Location not found");
+
+		var isMember = location.Members.Any(m => m.UserId == _currentUser.UserId);
+
+		var allowed =
+			location.AccessMode == LocationAccessMode.Open ||
+			isMember;
+
+		if (!allowed)
+			throw new Exception("Not allowed to create game at this location");
+
 		var gameSession = new GameSession
 		{
 			Title = request.Title,
@@ -28,24 +51,24 @@ public class GameService : IGameService
 			},
 			Host = new ParticipantInfo
 			{
-				UserId = request.HostUserId,
-				DisplayName = request.HostDisplayName
+				UserId = _currentUser.UserId,
+				DisplayName = _currentUser.DisplayName
 			},
 			Participants = new List<ParticipantInfo>
 		{
 			new ParticipantInfo
 			{
-				UserId = request.HostUserId,
-				DisplayName = request.HostDisplayName
+				UserId = _currentUser.UserId,
+				DisplayName = _currentUser.DisplayName
 			}
 		},
 			MaxPlayers = request.MaxPlayers,
-			Status = "Open",
+			Status = GameSessionState.Open,
 			LocationId = request.LocationId,
 			LocationSnapshot = new LocationSnapshot
 			{
-				Name = request.LocationName,
-				City = request.LocationCity
+				Name = location.Name,
+				City = location.City
 			},
 			ClubId = request.ClubId,
 			StartTimeUtc = request.StartTimeUtc,
@@ -64,23 +87,23 @@ public class GameService : IGameService
 		return gameSession == null ? null : Map(gameSession);
 	}
 
-	public async Task<bool> JoinAsync(string gameId, string userId, string displayName)
+	public async Task<bool> JoinAsync(string gameId)
 	{
 		var game = await _repository.GetByIdAsync(gameId);
 		if (game == null) return false;
 
-		if (game.Status != "Open") return false;
-		if (game.Participants.Any(p => p.UserId == userId)) return true;
+		if (game.Status != GameSessionState.Open) return false;
+		if (game.Participants.Any(p => p.UserId == _currentUser.UserId)) return true;
 		if (game.Participants.Count >= game.MaxPlayers) return false;
 
 		game.Participants.Add(new ParticipantInfo
 		{
-			UserId = userId,
-			DisplayName = displayName
+			UserId = _currentUser.UserId,
+			DisplayName = _currentUser.DisplayName,
 		});
 
 		if (game.Participants.Count >= game.MaxPlayers)
-			game.Status = "Full";
+			game.Status = GameSessionState.Full;
 
 		game.UpdatedAt = DateTime.UtcNow;
 
@@ -134,16 +157,7 @@ public class GameService : IGameService
 			Description = game.Description
 		};
 	}
-
-	private readonly LocationRepository _locationRepository;
-
-	public GameService(IGameRepository repository, LocationRepository locationRepository)
-	{
-		_repository = repository;
-		_locationRepository = locationRepository;
-	}
-
-	public async Task<List<GameResponse>> SearchNearbyAsync(SearchNearbyGamesRequest request)
+		public async Task<List<GameResponse>> SearchNearbyAsync(SearchNearbyGamesRequest request)
 	{
 		var nearbyLocations = await _locationRepository.FindNearbyAsync(
 		request.Latitude,

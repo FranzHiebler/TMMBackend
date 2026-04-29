@@ -1,5 +1,6 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using TMMBackend.Domain;
 
 namespace TabletopMatchMaker.Domain;
 
@@ -26,7 +27,7 @@ public class GameSession
 	public int MaxPlayers { get; set; }
 
 	[BsonElement("status")]
-	public string Status { get; set; } = "Open";
+	public GameSessionState Status { get; set; } = GameSessionState.Open;
 
 	[BsonElement("locationId")]
 	[BsonRepresentation(BsonType.ObjectId)]

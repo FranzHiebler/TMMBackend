@@ -8,7 +8,7 @@ public interface IGameService
 	Task<GameResponse> CreateAsync(CreateGameRequest request);
 	Task<GameResponse?> GetByIdAsync(string id);
 
-	Task<bool> JoinAsync(string gameId, string userId, string displayName);
+	Task<bool> JoinAsync(string gameId);
 
 	Task<List<GameResponse>> SearchAsync(SearchGamesRequest request);
 

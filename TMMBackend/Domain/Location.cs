@@ -29,13 +29,7 @@ public class Location
 
 	[BsonElement("members")]
 	public List<LocationMember> Members { get; set; } = new();
-}
 
-public class GeoPoint
-{
-	[BsonElement("type")]
-	public string Type { get; set; } = "Point";
-
-	[BsonElement("coordinates")]
-	public List<double> Coordinates { get; set; } = new();
+	[BsonElement("accessMode")]
+	public LocationAccessMode AccessMode { get; set; } = LocationAccessMode.MembersOnly;
 }
