@@ -1,196 +1,108 @@
 import { useEffect, useState } from "react";
-import { useUser } from "../context/UserContext";
+import type { CreateGameRequest, LocationResponse } from "../types/game";
+import { createGame, getMyLocations } from "../api/gamesService";
 
-import type {
-  CreateGameRequest,
-  LocationOption,
-  SystemOption,
-} from "../types/game";
-import { getLocations, getSystems } from "../api/gamesService";
+export default function CreateGamePage() {
+  const [locations, setLocations] = useState<LocationResponse[]>([]);
+  const [locationId, setLocationId] = useState("");
 
-type Props = {
-  onCreate: (request: CreateGameRequest) => void;
-};
-
-export default function CreateGameForm({ onCreate }: Props) {
   const [title, setTitle] = useState("");
+  const [systemKey, setSystemKey] = useState("warhammer-old-world");
+  const [systemName, setSystemName] = useState("Warhammer: The Old World");
   const [maxPlayers, setMaxPlayers] = useState(2);
-  const [selectedLocationId, setSelectedLocationId] = useState("");
-  const [selectedSystemKey, setSelectedSystemKey] = useState("");
-  const [startTimeUtc, setStartTimeUtc] = useState("");
+  const [startTime, setStartTime] = useState("");
   const [description, setDescription] = useState("");
 
-  const [locations, setLocations] = useState<LocationOption[]>([]);
-  const [systems, setSystems] = useState<SystemOption[]>([]);
-
-  const [loadingLocations, setLoadingLocations] = useState(true);
-  const [loadingSystems, setLoadingSystems] = useState(true);
-
-  const [locationError, setLocationError] = useState("");
-  const [systemError, setSystemError] = useState("");
-
-  const user = useUser();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    async function loadLocations() {
-      try {
-        setLoadingLocations(true);
-        setLocationError("");
-        const data = await getLocations();
-        setLocations(data);
-      } catch (err) {
-        setLocationError(
-          err instanceof Error
-            ? err.message
-            : "Locations konnten nicht geladen werden"
-        );
-      } finally {
-        setLoadingLocations(false);
-      }
-    }
-
-    async function loadSystems() {
-      try {
-        setLoadingSystems(true);
-        setSystemError("");
-        const data = await getSystems();
-        setSystems(data);
-
-        if (data.length > 0) {
-          setSelectedSystemKey(data[0].key);
-        }
-      } catch (err) {
-        setSystemError(
-          err instanceof Error
-            ? err.message
-            : "Systeme konnten nicht geladen werden"
-        );
-      } finally {
-        setLoadingSystems(false);
-      }
-    }
-
     loadLocations();
-    loadSystems();
   }, []);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function loadLocations() {
+    try {
+      setError("");
+      const data = await getMyLocations();
+      setLocations(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Locations konnten nicht geladen werden");
+    }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    const selectedLocation = locations.find((x) => x.id === selectedLocationId);
-    const selectedSystem = systems.find((x) => x.key === selectedSystemKey);
-
-    if (
-      !title ||
-      !user ||
-      !startTimeUtc ||
-      !selectedLocation ||
-      !selectedSystem
-    ) {
-      alert("Bitte Pflichtfelder ausfüllen");
+    if (!title || !systemKey || !systemName || !locationId || !startTime) {
+      setError("Bitte alle Pflichtfelder ausfüllen.");
       return;
     }
 
-    onCreate({
+    const request: CreateGameRequest = {
       title,
-      systemKey: selectedSystem.key,
-      systemName: selectedSystem.name,
-      hostUserId: user.userId,
-      hostDisplayName: user.displayName,
+      systemKey,
+      systemName,
+      locationId,
       maxPlayers,
-      locationId: selectedLocation.id,
-      locationName: selectedLocation.name,
-      locationCity: selectedLocation.city,
-      startTimeUtc: new Date(startTimeUtc).toISOString(),
-      description,
-    });
+      startTimeUtc: new Date(startTime).toISOString(),
+      description: description || null,
+    };
+
+    try {
+      setLoading(true);
+      setError("");
+      await createGame(request);
+      alert("Game wurde erstellt.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Game konnte nicht erstellt werden");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="form">
-      <h2>Neues Game erstellen</h2>
+    <div className="container">
+      <h1>Neues Game erstellen</h1>
 
-      <div className="form-group">
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Titel"
-        />
-      </div>
+      {error && <div className="message message-error">{error}</div>}
 
-      <div className="form-group">
+      <form onSubmit={handleSubmit} className="form">
+        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Titel" />
+
+        <input value={systemKey} onChange={(e) => setSystemKey(e.target.value)} placeholder="System Key" />
+
+        <input value={systemName} onChange={(e) => setSystemName(e.target.value)} placeholder="System Name" />
+
+        <select value={locationId} onChange={(e) => setLocationId(e.target.value)}>
+          <option value="">Location wählen</option>
+          {locations.map((loc) => (
+            <option key={loc.id} value={loc.id}>
+              {loc.name} ({loc.city}) {loc.role ? `- ${loc.role}` : loc.isOpen ? "- Open" : ""}
+            </option>
+          ))}
+        </select>
+
         <input
           type="number"
+          min={2}
           value={maxPlayers}
           onChange={(e) => setMaxPlayers(Number(e.target.value))}
-          placeholder="Max Players"
-          min={2}
         />
-      </div>
 
-      <div className="form-group">
-        {loadingSystems ? (
-          <div>Lade Systeme...</div>
-        ) : systemError ? (
-          <div style={{ color: "red" }}>Fehler bei Systemen: {systemError}</div>
-        ) : (
-          <select
-            value={selectedSystemKey}
-            onChange={(e) => setSelectedSystemKey(e.target.value)}
-          >
-            <option value="">Bitte System wählen</option>
-            {systems.map((system) => (
-              <option key={system.key} value={system.key}>
-                {system.name}
-              </option>
-            ))}
-          </select>
-        )}
-      </div>
-
-      <div className="form-group">
-        {loadingLocations ? (
-          <div>Lade Locations...</div>
-        ) : locationError ? (
-          <div style={{ color: "red" }}>
-            Fehler bei Locations: {locationError}
-          </div>
-        ) : (
-          <select
-            value={selectedLocationId}
-            onChange={(e) => setSelectedLocationId(e.target.value)}
-          >
-            <option value="">Bitte Location wählen</option>
-            {locations.map((location) => (
-              <option key={location.id} value={location.id}>
-                {location.name} ({location.city})
-              </option>
-            ))}
-          </select>
-        )}
-      </div>
-
-      <div className="form-group">
         <input
           type="datetime-local"
-          value={startTimeUtc}
-          onChange={(e) => setStartTimeUtc(e.target.value)}
+          value={startTime}
+          onChange={(e) => setStartTime(e.target.value)}
         />
-      </div>
 
-      <div className="form-group">
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Beschreibung"
-          rows={4}
         />
-      </div>
 
-      <button type="submit" disabled={loadingLocations || loadingSystems}>
-        Game erstellen
-      </button>
-    </form>
+        <button disabled={loading}>{loading ? "Speichert..." : "Game erstellen"}</button>
+      </form>
+    </div>
   );
 }

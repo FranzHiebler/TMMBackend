@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { createGame, getAllGames } from "../api/gamesService";
 import type { CreateGameRequest } from "../types/game";
 import GameFeedPage from "./GameFeedPage";
-import CreateGameForm from "../components/CreateGameForm";
 
 function Message({ text, type }: { text: string; type: "success" | "error" }) {
   if (!text) return null;
@@ -40,9 +39,6 @@ export default function GamesPage() {
     <div className="container">
       <Message text={createMessage} type="success" />
       <Message text={createError} type="error" />
-
-      <CreateGameForm onCreate={handleCreate} />
-
       <GameFeedPage
         title="Alle GameSessions"
         loadGamesFn={getAllGames}

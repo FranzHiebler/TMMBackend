@@ -1,4 +1,13 @@
-import type { JoinGameRequest, GameResponse, CreateGameRequest, LocationOption, SystemOption, SearchNearbyGamesRequest } from "../types/game";
+import type { 
+  JoinGameRequest, 
+  GameResponse, 
+  CreateGameRequest, 
+  LocationOption, 
+  SystemOption, 
+  CreateLocationRequest, 
+  LocationResponse, 
+  SearchNearbyGamesRequest 
+} from "../types/game";
 
 const API = import.meta.env.VITE_API_BASE_URL;
 
@@ -28,7 +37,6 @@ export async function getLocations(): Promise<LocationOption[]> {
   return res.json();
 }
 
-
 export async function getSystems(): Promise<SystemOption[]> {
   const res = await fetch(`${API}/Systems`);
   if (!res.ok) throw new Error(`Systems fehlgeschlagen: HTTP ${res.status}`);
@@ -53,7 +61,6 @@ export async function searchNearbyGames(
   return res.json();
 }
 
-
 export async function joinGame(gameId: string, request: JoinGameRequest) {
   const res = await fetch(`/api/Games/${gameId}/join`, {
     method: "POST",
@@ -66,3 +73,23 @@ export async function joinGame(gameId: string, request: JoinGameRequest) {
     throw new Error(text || "Join fehlgeschlagen");
   }
 }
+
+export async function getMyLocations(): Promise<LocationResponse[]> {
+  const res = await fetch(`${API}/locations/mine`);
+  if (!res.ok) throw new Error(`Locations fehlgeschlagen: HTTP ${res.status}`);
+  return res.json();
+}
+
+export async function createLocation(
+  request: CreateLocationRequest
+): Promise<LocationResponse> {
+  const res = await fetch(`${API}/locations`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+
+  if (!res.ok) throw new Error(`Location erstellen fehlgeschlagen: HTTP ${res.status}`);
+  return res.json();
+}
+

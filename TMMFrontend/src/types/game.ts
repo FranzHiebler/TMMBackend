@@ -38,13 +38,8 @@ export interface CreateGameRequest {
   title: string;
   systemKey: string;
   systemName: string;
-  hostUserId: string;
-  hostDisplayName: string;
-  maxPlayers: number;
   locationId: string;
-  locationName: string;
-  locationCity: string;
-  clubId?: string | null;
+  maxPlayers: number;
   startTimeUtc: string;
   description?: string | null;
 }
@@ -67,8 +62,19 @@ export interface SearchNearbyGamesRequest {
   systemKey?: string;
 }
 
-export type LocationResponse = {
+export interface LocationResponse {
   id: string;
   name: string;
   city: string;
-};
+  address?: string | null;
+  role?: "Owner" | "Admin" | "Member" | null;
+  isOpen?: boolean;
+}
+
+export interface CreateLocationRequest {
+  name: string;
+  city: string;
+  address?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+}
