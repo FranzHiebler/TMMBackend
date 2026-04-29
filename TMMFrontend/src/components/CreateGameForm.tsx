@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import type { CreateGameRequest, LocationResponse } from "../types/game";
 import { createGame, getMyLocations } from "../api/gamesService";
+import LocationSelect from "./LocationSelect";
+import LocationModal from "./LocationModal";
 
 export default function CreateGamePage() {
   const [locations, setLocations] = useState<LocationResponse[]>([]);
   const [locationId, setLocationId] = useState("");
+  const [showLocationModal, setShowLocationModal] = useState(false);
 
   const [title, setTitle] = useState("");
   const [systemKey, setSystemKey] = useState("warhammer-old-world");
@@ -15,6 +18,7 @@ export default function CreateGamePage() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
 
   useEffect(() => {
     loadLocations();
@@ -73,14 +77,14 @@ export default function CreateGamePage() {
 
         <input value={systemName} onChange={(e) => setSystemName(e.target.value)} placeholder="System Name" />
 
-        <select value={locationId} onChange={(e) => setLocationId(e.target.value)}>
-          <option value="">Location wählen</option>
-          {locations.map((loc) => (
-            <option key={loc.id} value={loc.id}>
-              {loc.name} ({loc.city}) {loc.role ? `- ${loc.role}` : loc.isOpen ? "- Open" : ""}
-            </option>
-          ))}
-        </select>
+      
+         <LocationSelect
+        locations={locations}
+        value={locationId}
+        onChange={setLocationId}
+        onCreateClick={() => setShowLocationModal(true)}
+      />
+  
 
         <input
           type="number"
@@ -103,6 +107,15 @@ export default function CreateGamePage() {
 
         <button disabled={loading}>{loading ? "Speichert..." : "Game erstellen"}</button>
       </form>
+      {showLocationModal && (
+        <LocationModal
+          onClose={() => setShowLocationModal(false)}
+          onCreated={(loc) => {
+            setLocations((prev) => [...prev, loc]); // 🔥 Liste erweitern
+            setLocationId(loc.id); // 🔥 direkt auswählen
+          }}
+        />
+      )}
     </div>
   );
 }
