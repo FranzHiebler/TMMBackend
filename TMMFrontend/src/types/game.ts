@@ -1,7 +1,5 @@
-export interface SystemDto {
-  key: string;
-  name: string;
-}
+export type GameJoinMode = 0 | 1; // 0 ApprovalRequired, 1 FirstComeFirstServe
+export type ApplicationStatus = 0 | 1 | 2 | 3;
 
 export interface ParticipantDto {
   userId: string;
@@ -13,41 +11,79 @@ export interface LocationSnapshotDto {
   city: string;
 }
 
-export interface JoinGameRequest {
-  userId: string;
-  displayName: string;
+export interface TableApplicationDto {
+  id: string;
+  tableId?: string | null;
+  player: ParticipantDto;
+  systemKey?: string | null;
+  message?: string | null;
+  status: ApplicationStatus;
+  createdAt: string;
+}
+
+export interface GameTableDto {
+  id: string;
+  name: string;
+  maxPlayers: number;
+  systems: string[];
+  scenario?: string | null;
+  points?: number | null;
+  notes?: string | null;
+  assignedPlayers: ParticipantDto[];
+  applications: TableApplicationDto[];
+  openSlots: number;
 }
 
 export interface GameResponse {
   id: string;
   title: string;
-  system: SystemDto;
   host: ParticipantDto;
-  participants: ParticipantDto[];
-  maxPlayers: number;
-  openSlots: number;
-  status: string;
+  status: string | number;
+  joinMode: GameJoinMode;
   locationId: string;
   location: LocationSnapshotDto;
   clubId?: string | null;
   startTimeUtc: string;
   description?: string | null;
+  tables: GameTableDto[];
+  maxPlayers: number;
+  assignedPlayers: number;
+  openSlots: number;
+}
+
+export interface CreateGameTableRequest {
+  name: string;
+  maxPlayers: number;
+  systems: string[];
+  scenario?: string | null;
+  points?: number | null;
+  notes?: string | null;
 }
 
 export interface CreateGameRequest {
   title: string;
-  systemKey: string;
-  systemName: string;
   locationId: string;
-  maxPlayers: number;
+  clubId?: string | null;
   startTimeUtc: string;
   description?: string | null;
+  joinMode: GameJoinMode;
+  tables: CreateGameTableRequest[];
 }
 
-export interface LocationOption { 
-  id: string; 
-  name: string; 
-  city: string; 
+export interface JoinTableRequest {
+  systemKey?: string | null;
+}
+
+export interface ApplyToGameRequest {
+  tableId?: string | null;
+  systemKey?: string | null;
+  message?: string | null;
+}
+
+export interface LocationOption {
+  id: string;
+  name: string;
+  city: string;
 }
 
 export interface SystemOption {
@@ -69,7 +105,7 @@ export interface LocationResponse {
   address?: string | null;
   latitude?: number | null;
   longitude?: number | null;
-  role?: "Owner" | "Admin" | "Member" | null;
+  role?: "Owner" | "Manager" | "Admin" | "Member" | null;
   isOpen?: boolean;
 }
 

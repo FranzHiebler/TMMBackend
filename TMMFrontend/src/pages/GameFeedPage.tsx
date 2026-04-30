@@ -1,28 +1,20 @@
 import { useEffect, useState } from "react";
 import type { GameResponse } from "../types/game";
 import GameList from "../components/GameList";
-import { useJoinGame } from "../api/usejoinGame";
+import { useJoinGame } from "../api/useJoinGame";
 
-type GameFeedPageProps = {
+type Props = {
   title: string;
   loadGamesFn: () => Promise<GameResponse[]>;
-  refreshkey?: number;
-};
-type MessageProps = {
-  text: string;
-  type: "success" | "error" | "info";
+  refreshKey?: number;
 };
 
-function Message({ text, type }: MessageProps) {
+function Message({ text, type }: { text: string; type: "success" | "error" | "info" }) {
   if (!text) return null;
   return <div className={`message message-${type}`}>{text}</div>;
 }
 
-export default function GameFeedPage({
-  title,
-  loadGamesFn,
-  refreshkey,
-}: GameFeedPageProps) {
+export default function GameFeedPage({ title, loadGamesFn, refreshKey }: Props) {
   const [games, setGames] = useState<GameResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -31,8 +23,7 @@ export default function GameFeedPage({
     try {
       setLoading(true);
       setError("");
-      const data = await loadGamesFn();
-      setGames(data);
+      setGames(await loadGamesFn());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unbekannter Fehler");
     } finally {
@@ -40,16 +31,11 @@ export default function GameFeedPage({
     }
   }
 
-useEffect(() => {
-  loadGames();
-}, [refreshkey]);
+  useEffect(() => {
+    loadGames();
+  }, [refreshKey]);
 
-  const { join, joiningGameId, errorMessage, successMessage } =
-    useJoinGame(loadGames);
-
-  function handleJoin(gameId: string) {
-    join(gameId);
-  }
+  const { join, joiningKey, errorMessage, successMessage } = useJoinGame(loadGames);
 
   return (
     <div className="container">
@@ -63,8 +49,8 @@ useEffect(() => {
       {!loading && !error && (
         <GameList
           games={games}
-          joiningGameId={joiningGameId}
-          onJoin={handleJoin}
+          joiningKey={joiningKey}
+          onJoin={join}
         />
       )}
     </div>

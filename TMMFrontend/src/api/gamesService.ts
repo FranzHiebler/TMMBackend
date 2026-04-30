@@ -1,12 +1,13 @@
-import type { 
-  JoinGameRequest, 
-  GameResponse, 
-  CreateGameRequest, 
-  LocationOption, 
-  SystemOption, 
-  CreateLocationRequest, 
-  LocationResponse, 
-  SearchNearbyGamesRequest 
+import type {
+  ApplyToGameRequest,
+  CreateGameRequest,
+  CreateLocationRequest,
+  GameResponse,
+  JoinTableRequest,
+  LocationOption,
+  LocationResponse,
+  SearchNearbyGamesRequest,
+  SystemOption,
 } from "../types/game";
 
 const API = import.meta.env.VITE_API_BASE_URL;
@@ -17,22 +18,25 @@ export async function getAllGames(): Promise<GameResponse[]> {
   return res.json();
 }
 
-export async function createGame(request: CreateGameRequest): Promise<void> {
+export async function createGame(request: CreateGameRequest): Promise<GameResponse> {
   const res = await fetch(`${API}/Games`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(request),
   });
 
-  if (!res.ok) {
-    throw new Error(`Create fehlgeschlagen: HTTP ${res.status}`);
-  }
+  if (!res.ok) throw new Error(await res.text() || `HTTP ${res.status}`);
+  return res.json();
 }
 
 export async function getLocations(): Promise<LocationOption[]> {
   const res = await fetch(`${API}/Locations`);
+  if (!res.ok) throw new Error(`Locations fehlgeschlagen: HTTP ${res.status}`);
+  return res.json();
+}
+
+export async function getMyLocations(): Promise<LocationResponse[]> {
+  const res = await fetch(`${API}/Locations/mine`);
   if (!res.ok) throw new Error(`Locations fehlgeschlagen: HTTP ${res.status}`);
   return res.json();
 }
@@ -43,47 +47,53 @@ export async function getSystems(): Promise<SystemOption[]> {
   return res.json();
 }
 
+export async function joinTable(
+  gameId: string,
+  tableId: string,
+  request: JoinTableRequest
+): Promise<void> {
+  const res = await fetch(`${API}/Games/${gameId}/tables/${tableId}/join`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+
+  if (!res.ok) throw new Error(await res.text() || "Join fehlgeschlagen");
+}
+
+export async function applyToGame(
+  gameId: string,
+  request: ApplyToGameRequest
+): Promise<void> {
+  const res = await fetch(`${API}/Games/${gameId}/apply`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+
+  if (!res.ok) throw new Error(await res.text() || "Bewerbung fehlgeschlagen");
+}
+
 export async function searchNearbyGames(
   request: SearchNearbyGamesRequest
 ): Promise<GameResponse[]> {
   const params = new URLSearchParams({
     latitude: request.latitude.toString(),
     longitude: request.longitude.toString(),
-    radiusKm: request.radiusKm.toString(),
+    radiusInMeters: (request.radiusKm * 1000).toString(),
   });
 
-  if (request.systemKey) {
-    params.append("systemKey", request.systemKey);
-  }
+  if (request.systemKey) params.append("systemKey", request.systemKey);
 
   const res = await fetch(`${API}/Games/nearby?${params.toString()}`);
   if (!res.ok) throw new Error(`Nearby fehlgeschlagen: HTTP ${res.status}`);
   return res.json();
 }
 
-export async function joinGame(gameId: string, request: JoinGameRequest) {
-  const res = await fetch(`/api/Games/${gameId}/join`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(request),
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || "Join fehlgeschlagen");
-  }
-}
-
-export async function getMyLocations(): Promise<LocationResponse[]> {
-  const res = await fetch(`${API}/locations/mine`);
-  if (!res.ok) throw new Error(`Locations fehlgeschlagen: HTTP ${res.status}`);
-  return res.json();
-}
-
 export async function createLocation(
   request: CreateLocationRequest
 ): Promise<LocationResponse> {
-  const res = await fetch(`${API}/locations`, {
+  const res = await fetch(`${API}/Locations`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(request),
@@ -94,10 +104,11 @@ export async function createLocation(
 }
 
 export async function updateLocation(id: string, request: CreateLocationRequest) {
-  await fetch(`${API}/locations/${id}`, {
+  const res = await fetch(`${API}/Locations/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(request),
   });
-}
 
+  if (!res.ok) throw new Error(`Location aktualisieren fehlgeschlagen: HTTP ${res.status}`);
+}

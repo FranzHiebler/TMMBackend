@@ -3,14 +3,12 @@ import GameCard from "./GameCard";
 
 type Props = {
   games: GameResponse[];
-  joiningGameId: string | null;
-  onJoin: (gameId: string) => void;
+  joiningKey: string | null;
+  onJoin: (gameId: string, tableId: string, systemKey?: string) => void;
 };
 
-export default function GameList({ games, joiningGameId, onJoin }: Props) {
-  if (games.length === 0) {
-    return <p>Keine Spiele gefunden.</p>;
-  }
+export default function GameList({ games, joiningKey, onJoin }: Props) {
+  if (games.length === 0) return <p>Keine Spiele gefunden.</p>;
 
   return (
     <>
@@ -18,7 +16,7 @@ export default function GameList({ games, joiningGameId, onJoin }: Props) {
         <GameCard
           key={game.id}
           game={game}
-          isJoining={joiningGameId === game.id}
+          joiningKey={joiningKey}
           onJoin={onJoin}
         />
       ))}
