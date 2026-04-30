@@ -14,20 +14,14 @@ public class GameSession
 	[BsonElement("title")]
 	public string Title { get; set; } = default!;
 
-	[BsonElement("system")]
-	public GameSystemInfo System { get; set; } = new();
-
 	[BsonElement("host")]
 	public ParticipantInfo Host { get; set; } = new();
 
-	[BsonElement("participants")]
-	public List<ParticipantInfo> Participants { get; set; } = new();
-
-	[BsonElement("maxPlayers")]
-	public int MaxPlayers { get; set; }
-
 	[BsonElement("status")]
 	public GameSessionState Status { get; set; } = GameSessionState.Open;
+
+	[BsonElement("joinMode")]
+	public GameJoinMode JoinMode { get; set; } = GameJoinMode.ApprovalRequired;
 
 	[BsonElement("locationId")]
 	[BsonRepresentation(BsonType.ObjectId)]
@@ -46,6 +40,9 @@ public class GameSession
 	[BsonElement("description")]
 	public string? Description { get; set; }
 
+	[BsonElement("tables")]
+	public List<GameTable> Tables { get; set; } = new();
+
 	[BsonElement("createdAt")]
 	public DateTime CreatedAt { get; set; }
 
@@ -53,13 +50,60 @@ public class GameSession
 	public DateTime UpdatedAt { get; set; }
 }
 
-public class GameSystemInfo
+[BsonIgnoreExtraElements]
+public class GameTable
 {
-	[BsonElement("key")]
-	public string Key { get; set; } = default!;
+	[BsonElement("id")]
+	public string Id { get; set; } = Guid.NewGuid().ToString("N");
 
 	[BsonElement("name")]
 	public string Name { get; set; } = default!;
+
+	[BsonElement("maxPlayers")]
+	public int MaxPlayers { get; set; }
+
+	[BsonElement("systems")]
+	public List<string> Systems { get; set; } = new();
+
+	[BsonElement("scenario")]
+	public string? Scenario { get; set; }
+
+	[BsonElement("points")]
+	public int? Points { get; set; }
+
+	[BsonElement("notes")]
+	public string? Notes { get; set; }
+
+	[BsonElement("assignedPlayers")]
+	public List<ParticipantInfo> AssignedPlayers { get; set; } = new();
+
+	[BsonElement("applications")]
+	public List<TableApplication> Applications { get; set; } = new();
+}
+
+[BsonIgnoreExtraElements]
+public class TableApplication
+{
+	[BsonElement("id")]
+	public string Id { get; set; } = Guid.NewGuid().ToString("N");
+
+	[BsonElement("tableId")]
+	public string? TableId { get; set; }
+
+	[BsonElement("player")]
+	public ParticipantInfo Player { get; set; } = new();
+
+	[BsonElement("systemKey")]
+	public string? SystemKey { get; set; }
+
+	[BsonElement("message")]
+	public string? Message { get; set; }
+
+	[BsonElement("status")]
+	public ApplicationStatus Status { get; set; } = ApplicationStatus.Pending;
+
+	[BsonElement("createdAt")]
+	public DateTime CreatedAt { get; set; }
 }
 
 public class ParticipantInfo

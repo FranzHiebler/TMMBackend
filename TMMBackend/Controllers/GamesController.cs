@@ -16,7 +16,6 @@ public class GamesController : ControllerBase
 		_service = service;
 	}
 
-	// POST api/games
 	[HttpPost]
 	public async Task<ActionResult<GameResponse>> Create(CreateGameRequest request)
 	{
@@ -24,7 +23,6 @@ public class GamesController : ControllerBase
 		return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
 	}
 
-	// GET api/games/{id}
 	[HttpGet("{id}")]
 	public async Task<ActionResult<GameResponse>> GetById(string id)
 	{
@@ -36,18 +34,39 @@ public class GamesController : ControllerBase
 		return Ok(game);
 	}
 
-	[HttpPost("{id}/join")]
-	public async Task<IActionResult> Join(string id)
+	[HttpPost("{id}/tables/{tableId}/join")]
+	public async Task<IActionResult> JoinTable(
+		string id,
+		string tableId,
+		[FromBody] JoinTableRequest request)
 	{
-		var success = await _service.JoinAsync(id);
-
+		var success = await _service.JoinTableAsync(id, tableId, request);
 		return success ? NoContent() : BadRequest("Join failed");
 	}
 
-	[HttpGet("search")]
-	public async Task<ActionResult<List<GameResponse>>> Search([FromQuery] SearchGamesRequest r)
+	[HttpPost("{id}/apply")]
+	public async Task<IActionResult> Apply(
+		string id,
+		[FromBody] ApplyToGameRequest request)
 	{
-		return Ok(await _service.SearchAsync(r));
+		var success = await _service.ApplyAsync(id, request);
+		return success ? NoContent() : BadRequest("Apply failed");
+	}
+
+	[HttpPost("{id}/tables/{tableId}/assign")]
+	public async Task<IActionResult> AssignPlayerToTable(
+		string id,
+		string tableId,
+		[FromBody] AssignPlayerToTableRequest request)
+	{
+		var success = await _service.AssignPlayerToTableAsync(id, tableId, request);
+		return success ? NoContent() : BadRequest("Assign failed");
+	}
+
+	[HttpGet("search")]
+	public async Task<ActionResult<List<GameResponse>>> Search([FromQuery] SearchGamesRequest request)
+	{
+		return Ok(await _service.SearchAsync(request));
 	}
 
 	[HttpGet("nearby")]

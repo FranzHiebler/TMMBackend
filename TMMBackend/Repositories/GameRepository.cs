@@ -33,9 +33,6 @@ public class GameRepository : IGameRepository
 	{
 		var f = Builders<GameSession>.Filter.Empty;
 
-		if (!string.IsNullOrWhiteSpace(r.SystemKey))
-			f &= Builders<GameSession>.Filter.Eq(x => x.System.Key, r.SystemKey);
-
 		if (!string.IsNullOrWhiteSpace(r.City))
 			f &= Builders<GameSession>.Filter.Eq(x => x.LocationSnapshot.City, r.City);
 
@@ -45,45 +42,59 @@ public class GameRepository : IGameRepository
 		if (r.FromUtc.HasValue)
 			f &= Builders<GameSession>.Filter.Gte(x => x.StartTimeUtc, r.FromUtc.Value);
 
+		var games = await _games.Find(f).SortBy(x => x.StartTimeUtc).ToListAsync();
+
+		if (!string.IsNullOrWhiteSpace(r.SystemKey))
+		{
+			games = games
+				.Where(g => g.Tables.Any(t => SystemMatches(t.Systems, r.SystemKey)))
+				.ToList();
+		}
+
 		if (r.OnlyJoinable)
 		{
-			f &= new MongoDB.Bson.BsonDocument("$expr",
-				new MongoDB.Bson.BsonDocument("$lt", new MongoDB.Bson.BsonArray
-				{
-			new MongoDB.Bson.BsonDocument("$size", "$participants"),
-			"$maxPlayers"
-				}));
+			games = games
+				.Where(g => g.Tables.Any(t => t.AssignedPlayers.Count < t.MaxPlayers))
+				.ToList();
 		}
-		return await _games
-			.Find(f)
-			.SortBy(x => x.StartTimeUtc)
-			.ToListAsync();
+
+		return games;
 	}
-	public async Task UpdateAsync(GameSession gameSessions)
+
+	public async Task<List<GameSession>> SearchNearbyAsync(SearchNearbyGamesRequest r, List<string> locationIds)
 	{
-		await _games.ReplaceOneAsync(x => x.Id == gameSessions.Id, gameSessions);
+		if (locationIds.Count == 0)
+			return new List<GameSession>();
+
+		var f = Builders<GameSession>.Filter.In(x => x.LocationId, locationIds);
+
+		if (r.OnlyOpen)
+			f &= Builders<GameSession>.Filter.Eq(x => x.Status, GameSessionState.Open);
+
+		if (r.FromUtc.HasValue)
+			f &= Builders<GameSession>.Filter.Gte(x => x.StartTimeUtc, r.FromUtc.Value);
+
+		var games = await _games.Find(f).SortBy(x => x.StartTimeUtc).ToListAsync();
+
+		if (!string.IsNullOrWhiteSpace(r.SystemKey))
+		{
+			games = games
+				.Where(g => g.Tables.Any(t => SystemMatches(t.Systems, r.SystemKey)))
+				.ToList();
+		}
+
+		return games;
 	}
 
-public async Task<List<GameSession>> SearchNearbyAsync(SearchNearbyGamesRequest r, List<string> locationIds)
-{
-	var f = Builders<GameSession>.Filter.Empty;
+	public async Task UpdateAsync(GameSession game)
+	{
+		await _games.ReplaceOneAsync(x => x.Id == game.Id, game);
+	}
 
-	if (locationIds.Count == 0)
-		return new List<GameSession>();
-
-	f &= Builders<GameSession>.Filter.In(x => x.LocationId, locationIds);
-
-	if (!string.IsNullOrWhiteSpace(r.SystemKey))
-		f &= Builders<GameSession>.Filter.Eq(x => x.System.Key, r.SystemKey);
-
-	if (r.OnlyOpen)
-		f &= Builders<GameSession>.Filter.Eq(x => x.Status, GameSessionState.Open);
-
-	if (r.FromUtc.HasValue)
-		f &= Builders<GameSession>.Filter.Gte(x => x.StartTimeUtc, r.FromUtc.Value);
-
-	return await _games.Find(f)
-		.SortBy(x => x.StartTimeUtc)
-		.ToListAsync();
-}
+	private static bool SystemMatches(List<string> systems, string systemKey)
+	{
+		return systems.Count == 0
+			|| systems.Contains("egal", StringComparer.OrdinalIgnoreCase)
+			|| systems.Contains(systemKey, StringComparer.OrdinalIgnoreCase);
+	}
 }

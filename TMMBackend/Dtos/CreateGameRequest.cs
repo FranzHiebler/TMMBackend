@@ -1,20 +1,24 @@
-﻿namespace TMMBackend.Dtos
+﻿using TMMBackend.Domain;
+
+namespace TMMBackend.Dtos;
+
+public class CreateGameRequest
 {
-	public class CreateGameRequest
-	{
-		public string Title { get; set; } = default!;
+	public string Title { get; set; } = default!;
+	public string LocationId { get; set; } = default!;
+	public string? ClubId { get; set; }
+	public DateTime StartTimeUtc { get; set; }
+	public string? Description { get; set; }
+	public GameJoinMode JoinMode { get; set; } = GameJoinMode.ApprovalRequired;
+	public List<CreateGameTableRequest> Tables { get; set; } = new();
+}
 
-		public string SystemKey { get; set; } = default!;
-		public string SystemName { get; set; } = default!;
-
-		public int MaxPlayers { get; set; }
-
-		public string LocationId { get; set; } = default!;
-
-		public string? ClubId { get; set; }
-
-		public DateTime StartTimeUtc { get; set; }
-
-		public string? Description { get; set; }
-	}
+public class CreateGameTableRequest
+{
+	public string Name { get; set; } = default!;
+	public int MaxPlayers { get; set; }
+	public List<string> Systems { get; set; } = new();
+	public string? Scenario { get; set; }
+	public int? Points { get; set; }
+	public string? Notes { get; set; }
 }
