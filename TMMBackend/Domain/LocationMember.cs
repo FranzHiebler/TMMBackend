@@ -1,8 +1,15 @@
-﻿namespace TMMBackend.Domain
+﻿using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
+
+namespace TMMBackend.Domain;
+
+[BsonIgnoreExtraElements]
+public class LocationMember
 {
-	public class LocationMember
-	{
-		public string? UserId { get; set; } = default!;
-		public LocationRole Role { get; set; }
-	}
+	[BsonElement("userId")]
+	[BsonRepresentation(BsonType.ObjectId)]
+	public string? UserId { get; set; }
+
+	[BsonElement("role")]
+	public LocationRole Role { get; set; }
 }

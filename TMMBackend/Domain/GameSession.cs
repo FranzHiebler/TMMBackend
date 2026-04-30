@@ -72,6 +72,7 @@ public class ParticipantInfo
 	public string DisplayName { get; set; } = default!;
 }
 
+[BsonIgnoreExtraElements]
 public class LocationSnapshot
 {
 	[BsonElement("name")]
