@@ -67,6 +67,8 @@ export interface LocationResponse {
   name: string;
   city: string;
   address?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   role?: "Owner" | "Admin" | "Member" | null;
   isOpen?: boolean;
 }

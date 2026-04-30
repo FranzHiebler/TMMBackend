@@ -93,3 +93,11 @@ export async function createLocation(
   return res.json();
 }
 
+export async function updateLocation(id: string, request: CreateLocationRequest) {
+  await fetch(`${API}/locations/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+}
+
