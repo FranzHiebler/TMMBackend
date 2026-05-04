@@ -2,7 +2,7 @@ import { useState } from "react";
 import { searchNearbyGames } from "../api/gamesService";
 import type { GameResponse } from "../types/game";
 import GameList from "../components/GameList";
-
+import { useJoinGame } from "../api/useJoinGame";
 
 export default function NearbyPage() {
   const [latitude, setLatitude] = useState("50.5558");
@@ -14,48 +14,47 @@ export default function NearbyPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  
+  async function loadNearbyGames() {
+    const data = await searchNearbyGames({
+      latitude: Number(latitude),
+      longitude: Number(longitude),
+      radiusKm: Number(radiusKm),
+      systemKey: systemKey || undefined,
+    });
+
+    setGames(data);
+  }
+
+  const { join, joiningKey, errorMessage, successMessage } =
+    useJoinGame(loadNearbyGames);
+
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
 
     try {
       setLoading(true);
       setError("");
-
-      const data = await searchNearbyGames({
-        latitude: Number(latitude),
-        longitude: Number(longitude),
-        radiusKm: Number(radiusKm),
-        systemKey: systemKey || undefined,
-      });
-
-      setGames(data);
+      await loadNearbyGames();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Fehler bei Nearby Search");
     } finally {
       setLoading(false);
     }
   }
-  
-
 
   return (
     <div className="container">
       <h1>Nearby Games</h1>
 
+      {successMessage && <div className="message message-success">{successMessage}</div>}
+      {errorMessage && <div className="message message-error">{errorMessage}</div>}
+
       <form onSubmit={handleSearch} className="form">
-        <div className="form-group">
-          <input value={latitude} onChange={(e) => setLatitude(e.target.value)} placeholder="Latitude" />
-        </div>
-        <div className="form-group">
-          <input value={longitude} onChange={(e) => setLongitude(e.target.value)} placeholder="Longitude" />
-        </div>
-        <div className="form-group">
-          <input value={radiusKm} onChange={(e) => setRadiusKm(e.target.value)} placeholder="Radius km" />
-        </div>
-        <div className="form-group">
-          <input value={systemKey} onChange={(e) => setSystemKey(e.target.value)} placeholder="System Key optional" />
-        </div>
+        <input value={latitude} onChange={(e) => setLatitude(e.target.value)} placeholder="Latitude" />
+        <input value={longitude} onChange={(e) => setLongitude(e.target.value)} placeholder="Longitude" />
+        <input value={radiusKm} onChange={(e) => setRadiusKm(e.target.value)} placeholder="Radius km" />
+        <input value={systemKey} onChange={(e) => setSystemKey(e.target.value)} placeholder="System Key optional" />
+
         <button type="submit" disabled={loading}>
           {loading ? "Suche..." : "Suchen"}
         </button>
@@ -64,8 +63,8 @@ export default function NearbyPage() {
       {error && <div className="message message-error">{error}</div>}
 
       {!loading && !error && (
-        <GameList games={games} joiningKey={null} onJoin={() => {}} />
+        <GameList games={games} joiningKey={joiningKey} onJoin={join} />
       )}
     </div>
   );
-} 
+}

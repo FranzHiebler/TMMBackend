@@ -3,7 +3,7 @@ import { type GameResponse, type GameTableDto, GameJoinMode } from "../types/gam
 type Props = {
   game: GameResponse;
   joiningKey: string | null;
-  onJoin: (gameId: string, tableId: string, systemKey?: string) => void;
+  onJoin: (gameId: string, tableId: string, joinMode: GameJoinMode, systemKey?: string) => void;
 };
 
 function systemText(table: GameTableDto) {
@@ -57,7 +57,7 @@ export default function GameCard({ game, joiningKey, onJoin }: Props) {
               <button
                 style={{ marginTop: 8 }}
                 disabled={isFull || isJoining}
-                onClick={() => onJoin(game.id, table.id, systemKey)}
+                onClick={() => onJoin(game.id, table.id, game.joinMode, systemKey)}
               >
                 {isJoining
                   ? "Bitte warten..."

@@ -1,10 +1,10 @@
-import type { GameResponse } from "../types/game";
+import type { GameJoinMode, GameResponse } from "../types/game";
 import GameCard from "./GameCard";
 
 type Props = {
   games: GameResponse[];
   joiningKey: string | null;
-  onJoin: (gameId: string, tableId: string, systemKey?: string) => void;
+  onJoin: (gameId: string, tableId: string, joinMode: GameJoinMode, systemKey?: string) => void;
 };
 
 export default function GameList({ games, joiningKey, onJoin }: Props) {
