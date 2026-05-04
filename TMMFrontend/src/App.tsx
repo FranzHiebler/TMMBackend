@@ -11,13 +11,11 @@ export default function App() {
         <Link to="/games">Games</Link>
         <Link to="/nearby">Nearby</Link>
         <Link to="/locations">Locations</Link>
-        <Link to="/feed">Feed</Link>
         <Link to="/games/create">Game erstellen</Link>
       </nav>
 
       <Routes>
         <Route path="/" element={<GamesPage />} />
-
         <Route path="/games" element={<GamesPage />} />
         <Route path="/nearby" element={<NearbyPage />} />
         <Route path="/locations" element={<LocationsPage />} />

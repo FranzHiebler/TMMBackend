@@ -7,7 +7,7 @@ import LocationPicker from "./LocationPicker";
 type Props = {
   onClose: () => void;
   onCreated: (location: LocationResponse) => void;
-  location?: LocationResponse; // 👉 optional = Edit Mode
+  location?: LocationResponse; 
 };
 
 export default function LocationModal({ onClose, onCreated, location }: Props) {

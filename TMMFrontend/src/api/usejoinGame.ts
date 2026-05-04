@@ -2,12 +2,22 @@ import { useState } from "react";
 import { applyToGame, joinTable } from "./gamesService";
 import { GameJoinMode } from "../types/game";
 
-export function useJoinGame(loadGames: () => Promise<void>) {
+type UseJoinGameOptions = {
+  onJoined?: (gameId: string, tableId: string, systemKey?: string) => void;
+  onApplied?: (gameId: string, tableId: string, systemKey?: string) => void;
+};
+
+export function useJoinGame(options: UseJoinGameOptions = {}) {
   const [joiningKey, setJoiningKey] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  async function join(gameId: string, tableId: string, joinMode: GameJoinMode, systemKey?: string) {
+  async function join(
+    gameId: string,
+    tableId: string,
+    joinMode: GameJoinMode,
+    systemKey?: string
+  ) {
     const key = `${gameId}_${tableId}`;
 
     try {
@@ -17,13 +27,13 @@ export function useJoinGame(loadGames: () => Promise<void>) {
 
       if (joinMode === GameJoinMode.FirstComeFirstServe) {
         await joinTable(gameId, tableId, { systemKey: systemKey || null });
+        options.onJoined?.(gameId, tableId, systemKey);
         setSuccessMessage("Erfolgreich beigetreten");
       } else {
         await applyToGame(gameId, { tableId, systemKey: systemKey || null });
+        options.onApplied?.(gameId, tableId, systemKey);
         setSuccessMessage("Bewerbung gesendet");
       }
-
-      await loadGames();
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "Aktion fehlgeschlagen");
     } finally {
