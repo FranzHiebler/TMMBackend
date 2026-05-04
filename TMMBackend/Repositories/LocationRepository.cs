@@ -82,4 +82,9 @@ public class LocationRepository
 			.Find(x => x.Id == id)
 			.FirstOrDefaultAsync();
 	}
+
+	public async Task UpdateAsync(Location location)
+	{
+		await _locations.ReplaceOneAsync(x => x.Id == location.Id, location);
+	}
 }

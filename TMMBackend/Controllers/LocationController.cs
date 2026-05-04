@@ -65,7 +65,10 @@ public class LocationsController : ControllerBase
 			name = location.Name,
 			city = location.City,
 			address = location.Address,
-			role = LocationRole.Owner.ToString()
+			latitude = location.Geo.Coordinates.Latitude,
+			longitude = location.Geo.Coordinates.Longitude,
+			role = LocationRole.Owner.ToString(),
+			isOpen = location.AccessMode == LocationAccessMode.Open
 		});
 	}
 
@@ -74,15 +77,50 @@ public class LocationsController : ControllerBase
 	{
 		var locations = await _repository.GetForUserAsync(_currentUser.UserId);
 
+
 		return Ok(locations.Select(x => new
 		{
 			id = x.Id,
 			name = x.Name,
 			city = x.City,
 			address = x.Address,
+			latitude = x.Geo?.Coordinates.Latitude,
+			longitude = x.Geo?.Coordinates.Longitude,
 			role = x.Members.FirstOrDefault(m => m.UserId == _currentUser.UserId)?.Role.ToString(),
 			isOpen = x.AccessMode == LocationAccessMode.Open
 		}));
+	}
+
+	[HttpPut("{id}")]
+	public async Task<IActionResult> Update(
+	string id,
+	[FromBody] CreateLocationRequest request)
+	{
+		var location = await _repository.GetByIdAsync(id);
+
+		if (location == null)
+			return NotFound();
+
+		var isOwnerOrManager = location.Members.Any(m =>
+			m.UserId == _currentUser.UserId &&
+			(m.Role == LocationRole.Owner || m.Role == LocationRole.Manager));
+
+		if (!isOwnerOrManager)
+			return Forbid();
+
+		location.Name = request.Name;
+		location.City = request.City;
+		location.Address = request.Address;
+		location.Geo = new GeoJsonPoint<GeoJson2DGeographicCoordinates>(
+			new GeoJson2DGeographicCoordinates(
+				request.Longitude,
+				request.Latitude
+			)
+		);
+
+		await _repository.UpdateAsync(location);
+
+		return NoContent();
 	}
 
 }

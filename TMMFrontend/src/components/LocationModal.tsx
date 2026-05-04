@@ -103,7 +103,7 @@ async function searchAddress() {
   return (
     <div className="modal-backdrop">
       <div className="modal">
-        <h2>Neue Location</h2>
+        <h2>{location ? "Location bearbeiten" : "Neue Location"}</h2>
 
         {error && <div className="error">{error}</div>}
 
@@ -127,16 +127,12 @@ async function searchAddress() {
               setLatitude(lat);
               setLongitude(lng);
             }}
-          />
-          <div>
-  Lat: {latitude ?? "leer"} / Lng: {longitude ?? "leer"}
-</div>
+          />          
 
           <div className="modal-actions">
             <button type="button" onClick={onClose}>
               Abbrechen
             </button>
-
 
             <button type="submit" disabled={loading || !isValid}>
               {loading ? "Speichert..." : "Speichern"}

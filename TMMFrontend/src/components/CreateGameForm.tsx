@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import type {
-  CreateGameRequest,
-  CreateGameTableRequest,
+import {
   GameJoinMode,
-  LocationResponse,
-  SystemOption,
+  type CreateGameRequest,
+  type CreateGameTableRequest,
+  type LocationResponse,
+  type SystemOption,
 } from "../types/game";
 import { createGame, getMyLocations, getSystems } from "../api/gamesService";
 import LocationSelect from "./LocationSelect";
@@ -29,13 +29,14 @@ export default function CreateGameForm() {
   const [showLocationModal, setShowLocationModal] = useState(false);
 
   const [title, setTitle] = useState("");
-  const [joinMode, setJoinMode] = useState<GameJoinMode>(1);
   const [startTime, setStartTime] = useState("");
   const [description, setDescription] = useState("");
   const [tables, setTables] = useState<CreateGameTableRequest[]>([newTable(1)]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const [joinMode, setJoinMode] = useState<GameJoinMode>(GameJoinMode.FirstComeFirstServe)
 
   useEffect(() => {
     loadInitialData();
@@ -148,8 +149,8 @@ export default function CreateGameForm() {
         />
 
         <select value={joinMode} onChange={(e) => setJoinMode(Number(e.target.value) as GameJoinMode)}>
-          <option value={1}>First Come First Serve</option>
-          <option value={0}>Approval Required</option>
+          <option value={GameJoinMode.FirstComeFirstServe}>First Come First Serve</option>
+          <option value={GameJoinMode.ApprovalRequired}>Approval Required</option>
         </select>
 
         <input

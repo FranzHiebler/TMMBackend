@@ -19,8 +19,24 @@ public class GamesController : ControllerBase
 	[HttpPost]
 	public async Task<ActionResult<GameResponse>> Create(CreateGameRequest request)
 	{
-		var result = await _service.CreateAsync(request);
-		return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+		try
+		{
+			var result = await _service.CreateAsync(request);
+			return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+		}
+		catch (Exception ex) when (ex.Message == "Location not found")
+		{
+			return NotFound(ex.Message);
+		}
+		catch (Exception ex) when (
+			ex.Message == "Not allowed to create game at this location")
+		{
+			return Forbid();
+		}
+		catch (Exception ex)
+		{
+			return BadRequest(ex.Message);
+		}
 	}
 
 	[HttpGet("{id}")]

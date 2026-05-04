@@ -42,7 +42,7 @@ export default function GamesPage() {
       <GameFeedPage
         title="Alle GameSessions"
         loadGamesFn={getAllGames}
-        refreshkey={refreshKey}
+        refreshKey={refreshKey}
       />
     </div>
   );

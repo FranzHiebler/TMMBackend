@@ -1,4 +1,3 @@
-export type GameJoinMode = 0 | 1; // 0 ApprovalRequired, 1 FirstComeFirstServe
 export type ApplicationStatus = 0 | 1 | 2 | 3;
 
 export interface ParticipantDto {
@@ -105,7 +104,7 @@ export interface LocationResponse {
   address?: string | null;
   latitude?: number | null;
   longitude?: number | null;
-  role?: "Owner" | "Manager" | "Admin" | "Member" | null;
+  role?: "Owner" | "Manager" | "Member" | null;
   isOpen?: boolean;
 }
 
@@ -116,3 +115,11 @@ export interface CreateLocationRequest {
   latitude?: number | null;
   longitude?: number | null;
 }
+
+export const GameJoinMode = {
+  ApprovalRequired: 0,
+  FirstComeFirstServe: 1,
+} as const;
+
+export type GameJoinMode =
+  typeof GameJoinMode[keyof typeof GameJoinMode];

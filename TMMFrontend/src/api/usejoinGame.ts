@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { applyToGame, joinTable } from "./gamesService";
-import type { GameJoinMode } from "../types/game";
+import { GameJoinMode } from "../types/game";
 
 export function useJoinGame(loadGames: () => Promise<void>) {
   const [joiningKey, setJoiningKey] = useState<string | null>(null);
@@ -15,7 +15,7 @@ export function useJoinGame(loadGames: () => Promise<void>) {
       setSuccessMessage("");
       setJoiningKey(key);
 
-      if (joinMode === 1) {
+      if (joinMode === GameJoinMode.FirstComeFirstServe) {
         await joinTable(gameId, tableId, { systemKey: systemKey || null });
         setSuccessMessage("Erfolgreich beigetreten");
       } else {

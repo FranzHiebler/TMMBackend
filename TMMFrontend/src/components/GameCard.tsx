@@ -1,4 +1,4 @@
-import type { GameResponse, GameTableDto } from "../types/game";
+import { type GameResponse, type GameTableDto, GameJoinMode } from "../types/game";
 
 type Props = {
   game: GameResponse;
@@ -13,7 +13,7 @@ function systemText(table: GameTableDto) {
 }
 
 export default function GameCard({ game, joiningKey, onJoin }: Props) {
-  const isApproval = game.joinMode === 0;
+  const isApproval = game.joinMode === GameJoinMode.ApprovalRequired;
 
   return (
     <div className="card">
@@ -32,7 +32,10 @@ export default function GameCard({ game, joiningKey, onJoin }: Props) {
           const key = `${game.id}_${table.id}`;
           const isFull = table.openSlots <= 0;
           const isJoining = joiningKey === key;
-
+          const systemKey =
+            !table.systems.length || table.systems.some(x => x.toLowerCase() === "egal")
+              ? undefined
+              : table.systems[0];
           return (
             <div key={table.id} className="card" style={{ marginTop: 10 }}>
               <h4>{table.name}</h4>
@@ -54,7 +57,7 @@ export default function GameCard({ game, joiningKey, onJoin }: Props) {
               <button
                 style={{ marginTop: 8 }}
                 disabled={isFull || isJoining}
-                onClick={() => onJoin(game.id, table.id, table.systems[0])}
+                onClick={() => onJoin(game.id, table.id, systemKey)}
               >
                 {isJoining
                   ? "Bitte warten..."

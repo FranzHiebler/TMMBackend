@@ -64,7 +64,7 @@ export default function NearbyPage() {
       {error && <div className="message message-error">{error}</div>}
 
       {!loading && !error && (
-        <GameList games={games} joiningGameId={null} onJoin={() => {}} />
+        <GameList games={games} joiningKey={null} onJoin={() => {}} />
       )}
     </div>
   );
