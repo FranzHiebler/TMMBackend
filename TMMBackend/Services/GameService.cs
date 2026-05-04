@@ -95,7 +95,7 @@ public class GameService : IGameService
 		if (game.JoinMode != GameJoinMode.FirstComeFirstServe) return false;
 
 		if (IsUserAlreadyAssigned(game, _currentUser.UserId))
-			return true;
+			return false;
 
 		var table = game.Tables.FirstOrDefault(x => x.Id == tableId);
 		if (table == null) return false;

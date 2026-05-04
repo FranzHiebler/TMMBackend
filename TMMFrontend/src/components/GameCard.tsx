@@ -3,6 +3,8 @@ import { type GameResponse, type GameTableDto, GameJoinMode } from "../types/gam
 type Props = {
   game: GameResponse;
   joiningKey: string | null;
+  messageByKey: Record<string, string>;
+  currentUserId: string;
   onJoin: (gameId: string, tableId: string, joinMode: GameJoinMode, systemKey?: string) => void;
 };
 
@@ -12,8 +14,11 @@ function systemText(table: GameTableDto) {
   return table.systems.join(", ");
 }
 
-export default function GameCard({ game, joiningKey, onJoin }: Props) {
+export default function GameCard({ game, joiningKey, currentUserId, messageByKey, onJoin }: Props) {
   const isApproval = game.joinMode === GameJoinMode.ApprovalRequired;
+  const alreadyInGame = game.tables.some((t) =>
+    t.assignedPlayers.some((p) => p.userId === currentUserId)
+  );
 
   return (
     <div className="card">
@@ -56,17 +61,25 @@ export default function GameCard({ game, joiningKey, onJoin }: Props) {
 
               <button
                 style={{ marginTop: 8 }}
-                disabled={isFull || isJoining}
+                disabled={isFull || isJoining || alreadyInGame}
                 onClick={() => onJoin(game.id, table.id, game.joinMode, systemKey)}
               >
                 {isJoining
                   ? "Bitte warten..."
                   : isFull
                     ? "Voll"
-                    : isApproval
-                      ? "Bewerben"
-                      : "Beitreten"}
+                    : alreadyInGame
+                      ? "Bereits angemeldet"
+                      : isApproval
+                        ? "Bewerben"
+                        : "Beitreten"}
               </button>
+              {messageByKey[key] && (
+                <div className="message message-info" style={{ marginTop: 8 }}>
+                  {messageByKey[key]}
+                </div>
+              )}
+
             </div>
           );
         })}

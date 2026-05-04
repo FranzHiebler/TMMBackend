@@ -3,6 +3,7 @@ import { searchNearbyGames } from "../api/gamesService";
 import type { GameResponse } from "../types/game";
 import GameList from "../components/GameList";
 import { useJoinGame } from "../api/useJoinGame";
+import { useUser } from "../context/UserContext";
 
 export default function NearbyPage() {
   const [latitude, setLatitude] = useState("50.5558");
@@ -24,9 +25,9 @@ export default function NearbyPage() {
 
     setGames(data);
   }
-
-  const { join, joiningKey, errorMessage, successMessage } =
-    useJoinGame(loadNearbyGames);
+  const user = useUser();
+  const { join, joiningKey, errorMessage, successMessage, messageByKey  } =
+    useJoinGame();
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -63,7 +64,12 @@ export default function NearbyPage() {
       {error && <div className="message message-error">{error}</div>}
 
       {!loading && !error && (
-        <GameList games={games} joiningKey={joiningKey} onJoin={join} />
+        <GameList
+          games={games}
+          joiningKey={joiningKey}
+          messageByKey={messageByKey}
+          currentUserId={user.userId}
+          onJoin={join} />
       )}
     </div>
   );

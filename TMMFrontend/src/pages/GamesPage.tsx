@@ -139,7 +139,7 @@ export default function GamesPage() {
     );
   }
 
-  const { join, joiningKey, errorMessage, successMessage } = useJoinGame({
+  const { join, joiningKey, errorMessage, successMessage,messageByKey  } = useJoinGame({
     onJoined: handleJoined,
     onApplied: handleApplied,
   });
@@ -217,6 +217,8 @@ export default function GamesPage() {
         <GameList
           games={filteredGames}
           joiningKey={joiningKey}
+          messageByKey={messageByKey}
+          currentUserId={user.userId}
           onJoin={join}
         />
       )}

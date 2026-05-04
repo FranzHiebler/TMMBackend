@@ -11,6 +11,7 @@ export function useJoinGame(options: UseJoinGameOptions = {}) {
   const [joiningKey, setJoiningKey] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [messageByKey, setMessageByKey] = useState<Record<string, string>>({});
 
   async function join(
     gameId: string,
@@ -24,10 +25,17 @@ export function useJoinGame(options: UseJoinGameOptions = {}) {
       setErrorMessage("");
       setSuccessMessage("");
       setJoiningKey(key);
+      setMessageByKey((prev) => ({ ...prev, [key]: "" }));
 
       if (joinMode === GameJoinMode.FirstComeFirstServe) {
         await joinTable(gameId, tableId, { systemKey: systemKey || null });
         options.onJoined?.(gameId, tableId, systemKey);
+        setMessageByKey((prev) => ({
+          ...prev,
+          [key]: joinMode === GameJoinMode.FirstComeFirstServe
+            ? "Erfolgreich beigetreten"
+            : "Bewerbung gesendet",
+        }));
         setSuccessMessage("Erfolgreich beigetreten");
       } else {
         await applyToGame(gameId, { tableId, systemKey: systemKey || null });
@@ -36,10 +44,13 @@ export function useJoinGame(options: UseJoinGameOptions = {}) {
       }
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "Aktion fehlgeschlagen");
+      setMessageByKey((prev) => ({
+        ...prev,
+        [key]: err instanceof Error ? err.message : "Aktion fehlgeschlagen",
+      }));
     } finally {
       setJoiningKey(null);
     }
   }
-
-  return { join, joiningKey, errorMessage, successMessage };
+  return { join, joiningKey, errorMessage, successMessage, messageByKey };
 }
