@@ -74,6 +74,8 @@ export default function GameCard({ game, joiningKey, currentUserId, messageByKey
                         ? "Bewerben"
                         : "Beitreten"}
               </button>
+              {table.id}-
+              {key}
               {messageByKey[key] && (
                 <div className="message message-info" style={{ marginTop: 8 }}>
                   {messageByKey[key]}

@@ -53,8 +53,8 @@ public class GameSession
 [BsonIgnoreExtraElements]
 public class GameTable
 {
-	[BsonElement("id")]
-	public string Id { get; set; } = Guid.NewGuid().ToString("N");
+	[BsonElement("tableId")]
+	public string TableId { get; set; } = default!;
 
 	[BsonElement("name")]
 	public string Name { get; set; } = default!;
@@ -84,8 +84,8 @@ public class GameTable
 [BsonIgnoreExtraElements]
 public class TableApplication
 {
-	[BsonElement("id")]
-	public string Id { get; set; } = Guid.NewGuid().ToString("N");
+	[BsonElement("applicationId")]
+	public string ApplicationId { get; set; } = default!;
 
 	[BsonElement("tableId")]
 	public string? TableId { get; set; }

@@ -65,7 +65,7 @@ public class GameService : IGameService
 			Description = request.Description,
 			Tables = request.Tables.Select(t => new GameTable
 			{
-				Id = Guid.NewGuid().ToString("N"),
+				TableId = Guid.NewGuid().ToString("N"),
 				Name = t.Name,
 				MaxPlayers = t.MaxPlayers,
 				Systems = t.Systems ?? new List<string>(),
@@ -98,7 +98,7 @@ public class GameService : IGameService
 		if (IsUserAlreadyAssigned(game, _currentUser.UserId))
 			throw new GameActionException("Du bist bereits in dieser Session angemeldet.");
 
-		var table = game.Tables.FirstOrDefault(x => x.Id == tableId);
+		var table = game.Tables.FirstOrDefault(x => x.TableId == tableId);
 		if (table == null) throw new GameActionException("Tisch nicht gefunden.");
 
 		if (table.AssignedPlayers.Count >= table.MaxPlayers)
@@ -133,7 +133,7 @@ public class GameService : IGameService
 
 		if (!string.IsNullOrWhiteSpace(request.TableId))
 		{
-			table = game.Tables.FirstOrDefault(x => x.Id == request.TableId);
+			table = game.Tables.FirstOrDefault(x => x.TableId == request.TableId);
 			if (table == null) throw new GameActionException("Tisch nicht gefunden.");
 
 			if (!SystemMatches(table.Systems, request.SystemKey))
@@ -154,7 +154,7 @@ public class GameService : IGameService
 
 		table.Applications.Add(new TableApplication
 		{
-			Id = Guid.NewGuid().ToString("N"),
+			ApplicationId = Guid.NewGuid().ToString("N"),
 			TableId = request.TableId,
 			Player = new ParticipantInfo
 			{
@@ -180,7 +180,7 @@ public class GameService : IGameService
 		if (!await CanManageSession(game))
 			return false;
 
-		var table = game.Tables.FirstOrDefault(x => x.Id == tableId);
+		var table = game.Tables.FirstOrDefault(x => x.TableId == tableId);
 		if (table == null) return false;
 
 		if (table.AssignedPlayers.Count >= table.MaxPlayers)
@@ -199,8 +199,8 @@ public class GameService : IGameService
 		{
 			var app = game.Tables
 				.SelectMany(t => t.Applications)
-				.FirstOrDefault(a => a.Id == request.ApplicationId);
-
+				.FirstOrDefault(a => a.ApplicationId == request.ApplicationId);
+				
 			if (app != null)
 				app.Status = ApplicationStatus.Accepted;
 		}
@@ -293,7 +293,7 @@ public class GameService : IGameService
 			Description = game.Description,
 			Tables = game.Tables.Select(t => new GameTableDto
 			{
-				Id = t.Id,
+				Id = t.TableId,
 				Name = t.Name,
 				MaxPlayers = t.MaxPlayers,
 				Systems = t.Systems,
@@ -307,7 +307,7 @@ public class GameService : IGameService
 				}).ToList(),
 				Applications = t.Applications.Select(a => new TableApplicationDto
 				{
-					Id = a.Id,
+					Id = a.ApplicationId,
 					TableId = a.TableId,
 					Player = new ParticipantDto
 					{
