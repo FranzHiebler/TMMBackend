@@ -7,8 +7,8 @@ public interface IGameService
 {
 	Task<GameResponse> CreateAsync(CreateGameRequest request);
 	Task<GameResponse?> GetByIdAsync(string id);
-	Task<bool> JoinTableAsync(string gameId, string tableId, JoinTableRequest request);
-	Task<bool> ApplyAsync(string gameId, ApplyToGameRequest request);
+	Task JoinTableAsync(string gameId, string tableId, JoinTableRequest request);
+	Task ApplyAsync(string gameId, ApplyToGameRequest request);
 	Task<bool> AssignPlayerToTableAsync(string gameId, string tableId, AssignPlayerToTableRequest request);
 	Task<List<GameResponse>> SearchAsync(SearchGamesRequest request);
 	Task<List<GameResponse>> SearchNearbyAsync(SearchNearbyGamesRequest request);

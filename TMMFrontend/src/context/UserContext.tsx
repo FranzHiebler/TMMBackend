@@ -1,24 +1,33 @@
-import { createContext, useContext } from "react";
+import { createContext, useContext, useState } from "react";
 
-type User = {
+export type User = {
   userId: string;
   displayName: string;
 };
 
-const fakeUser: User = {
+type UserContextValue = User & {
+  setUser: (user: User) => void;
+};
+
+const defaultUser: User = {
   userId: "64f1a2b3c4d5e6f7890abc12",
   displayName: "Franz",
 };
 
-export const UserContext = createContext<User>(fakeUser);
+const UserContext = createContext<UserContextValue>({
+  ...defaultUser,
+  setUser: () => {},
+});
 
 type Props = {
   children: React.ReactNode;
 };
 
 export function UserProvider({ children }: Props) {
+  const [user, setUser] = useState<User>(defaultUser);
+
   return (
-    <UserContext.Provider value={fakeUser}>
+    <UserContext.Provider value={{ ...user, setUser }}>
       {children}
     </UserContext.Provider>
   );

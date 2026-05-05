@@ -87,24 +87,25 @@ public class GameService : IGameService
 		return gameSession == null ? null : Map(gameSession);
 	}
 
-	public async Task<bool> JoinTableAsync(string gameId, string tableId, JoinTableRequest request)
+
+	public async Task JoinTableAsync(string gameId, string tableId, JoinTableRequest request)
 	{
 		var game = await _repository.GetByIdAsync(gameId);
-		if (game == null) return false;
-		if (game.Status != GameSessionState.Open) return false;
-		if (game.JoinMode != GameJoinMode.FirstComeFirstServe) return false;
+		if (game == null) throw new GameActionException("Session nicht gefunden.");
+		if (game.Status != GameSessionState.Open) throw new GameActionException("Diese Session ist nicht offen.");
+		if (game.JoinMode != GameJoinMode.FirstComeFirstServe) throw new GameActionException("Direkter Beitritt ist für diese Session nicht aktiviert.");
 
 		if (IsUserAlreadyAssigned(game, _currentUser.UserId))
-			return false;
+			throw new GameActionException("Du bist bereits in dieser Session angemeldet.");
 
 		var table = game.Tables.FirstOrDefault(x => x.Id == tableId);
-		if (table == null) return false;
+		if (table == null) throw new GameActionException("Tisch nicht gefunden.");
 
 		if (table.AssignedPlayers.Count >= table.MaxPlayers)
-			return false;
+			throw new GameActionException("Der Tisch ist voll.");
 
 		if (!SystemMatches(table.Systems, request.SystemKey))
-			return false;
+			throw new GameActionException("Das gewählte System passt nicht zu diesem Tisch.");
 
 		table.AssignedPlayers.Add(new ParticipantInfo
 		{
@@ -116,28 +117,27 @@ public class GameService : IGameService
 		game.UpdatedAt = DateTime.UtcNow;
 
 		await _repository.UpdateAsync(game);
-		return true;
 	}
 
-	public async Task<bool> ApplyAsync(string gameId, ApplyToGameRequest request)
+	public async Task ApplyAsync(string gameId, ApplyToGameRequest request)
 	{
 		var game = await _repository.GetByIdAsync(gameId);
-		if (game == null) return false;
-		if (game.Status != GameSessionState.Open) return false;
-		if (game.JoinMode != GameJoinMode.ApprovalRequired) return false;
+		if (game == null) throw new GameActionException("Session nicht gefunden.");
+		if (game.Status != GameSessionState.Open) throw new GameActionException("Diese Session ist nicht offen.");
+		if (game.JoinMode != GameJoinMode.ApprovalRequired) throw new GameActionException("Bewerbungen sind für diese Session nicht aktiviert.")	;
 
 		if (IsUserAlreadyAssigned(game, _currentUser.UserId))
-			return false;
+			throw new GameActionException("Du bist bereits in dieser Session angemeldet.");
 
 		GameTable? table = null;
 
 		if (!string.IsNullOrWhiteSpace(request.TableId))
 		{
 			table = game.Tables.FirstOrDefault(x => x.Id == request.TableId);
-			if (table == null) return false;
+			if (table == null) throw new GameActionException("Tisch nicht gefunden.");
 
 			if (!SystemMatches(table.Systems, request.SystemKey))
-				return false;
+				throw new GameActionException("Das gewählte System passt nicht zu diesem Tisch.");
 		}
 		else
 		{
@@ -150,7 +150,7 @@ public class GameService : IGameService
 				a.Status == ApplicationStatus.Pending));
 
 		if (alreadyApplied)
-			return true;
+			return;
 
 		table.Applications.Add(new TableApplication
 		{
@@ -170,7 +170,6 @@ public class GameService : IGameService
 		game.UpdatedAt = DateTime.UtcNow;
 
 		await _repository.UpdateAsync(game);
-		return true;
 	}
 
 	public async Task<bool> AssignPlayerToTableAsync(string gameId, string tableId, AssignPlayerToTableRequest request)

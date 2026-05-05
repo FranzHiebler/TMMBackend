@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { applyToGame, joinTable } from "./gamesService";
 import { GameJoinMode } from "../types/game";
+import { useUser } from "../context/UserContext";
 
 type UseJoinGameOptions = {
   onJoined?: (gameId: string, tableId: string, systemKey?: string) => void;
@@ -12,6 +13,7 @@ export function useJoinGame(options: UseJoinGameOptions = {}) {
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [messageByKey, setMessageByKey] = useState<Record<string, string>>({});
+  const user = useUser();
 
   async function join(
     gameId: string,
@@ -28,7 +30,7 @@ export function useJoinGame(options: UseJoinGameOptions = {}) {
       setMessageByKey((prev) => ({ ...prev, [key]: "" }));
 
       if (joinMode === GameJoinMode.FirstComeFirstServe) {
-        await joinTable(gameId, tableId, { systemKey: systemKey || null });
+        await joinTable(gameId, tableId, { systemKey: systemKey || null }, user);
         options.onJoined?.(gameId, tableId, systemKey);
         setMessageByKey((prev) => ({
           ...prev,
@@ -38,8 +40,14 @@ export function useJoinGame(options: UseJoinGameOptions = {}) {
         }));
         setSuccessMessage("Erfolgreich beigetreten");
       } else {
-        await applyToGame(gameId, { tableId, systemKey: systemKey || null });
+        await applyToGame(gameId, { tableId, systemKey: systemKey || null }, user);
         options.onApplied?.(gameId, tableId, systemKey);
+
+        setMessageByKey((prev) => ({
+          ...prev,
+          [key]: "Bewerbung gesendet",
+        }));
+
         setSuccessMessage("Bewerbung gesendet");
       }
     } catch (err) {

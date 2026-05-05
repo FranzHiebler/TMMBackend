@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using TabletopMatchMaker.Dtos;
+using TabletopMatchMaker.Services;
 using TabletopMatchMaker.Services.Interfaces;
 using TMMBackend.Dtos;
+using TMMBackend.Services;
 
 namespace TabletopMatchMaker.Controllers;
 
@@ -56,8 +58,15 @@ public class GamesController : ControllerBase
 		string tableId,
 		[FromBody] JoinTableRequest request)
 	{
-		var success = await _service.JoinTableAsync(id, tableId, request);
-		return success ? NoContent() : BadRequest("Join failed");
+		try
+		{
+			await _service.JoinTableAsync(id, tableId, request);
+			return NoContent();
+		}
+		catch (GameActionException ex)
+		{
+			return BadRequest(ex.Message);
+		}
 	}
 
 	[HttpPost("{id}/apply")]
@@ -65,8 +74,15 @@ public class GamesController : ControllerBase
 		string id,
 		[FromBody] ApplyToGameRequest request)
 	{
-		var success = await _service.ApplyAsync(id, request);
-		return success ? NoContent() : BadRequest("Apply failed");
+		try
+		{
+			await _service.ApplyAsync(id, request);
+			return NoContent();
+		}
+		catch (GameActionException ex)
+		{
+			return BadRequest(ex.Message);
+		}
 	}
 
 	[HttpPost("{id}/tables/{tableId}/assign")]

@@ -9,6 +9,7 @@ import type {
   SearchNearbyGamesRequest,
   SystemOption,
 } from "../types/game";
+import type { User } from "../context/UserContext";
 
 const API = import.meta.env.VITE_API_BASE_URL;
 
@@ -16,6 +17,18 @@ export async function getAllGames(): Promise<GameResponse[]> {
   const res = await fetch(`${API}/Games/search?OnlyOpen=false`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
+}
+
+function authHeaders(user?: User): HeadersInit {
+  return {
+    "Content-Type": "application/json",
+    ...(user
+      ? {
+          "x-user-id": user.userId,
+          "x-display-name": user.displayName,
+        }
+      : {}),
+  };
 }
 
 export async function createGame(request: CreateGameRequest): Promise<GameResponse> {
@@ -50,11 +63,12 @@ export async function getSystems(): Promise<SystemOption[]> {
 export async function joinTable(
   gameId: string,
   tableId: string,
-  request: JoinTableRequest
+  request: JoinTableRequest,
+  user: User
 ): Promise<void> {
   const res = await fetch(`${API}/Games/${gameId}/tables/${tableId}/join`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(user),
     body: JSON.stringify(request),
   });
 
@@ -63,11 +77,12 @@ export async function joinTable(
 
 export async function applyToGame(
   gameId: string,
-  request: ApplyToGameRequest
+  request: ApplyToGameRequest,
+  user: User
 ): Promise<void> {
   const res = await fetch(`${API}/Games/${gameId}/apply`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(user),
     body: JSON.stringify(request),
   });
 
