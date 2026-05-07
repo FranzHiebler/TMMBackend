@@ -43,11 +43,48 @@ public class GameSession
 	[BsonElement("tables")]
 	public List<GameTable> Tables { get; set; } = new();
 
+	[BsonElement("changeProposals")]
+	public List<GameChangeProposal> ChangeProposals { get; set; } = new();
+
 	[BsonElement("createdAt")]
 	public DateTime CreatedAt { get; set; }
 
 	[BsonElement("updatedAt")]
 	public DateTime UpdatedAt { get; set; }
+}
+
+[BsonIgnoreExtraElements]
+public class GameChangeProposal
+{
+	[BsonElement("proposalId")]
+	public string ProposalId { get; set; } = default!;
+
+	[BsonElement("tableId")]
+	public string? TableId { get; set; }
+
+	[BsonElement("proposedBy")]
+	public ParticipantInfo ProposedBy { get; set; } = new();
+
+	[BsonElement("proposedStartTimeUtc")]
+	public DateTime? ProposedStartTimeUtc { get; set; }
+
+	[BsonElement("proposedSystems")]
+	public List<string>? ProposedSystems { get; set; }
+
+	[BsonElement("proposedPoints")]
+	public int? ProposedPoints { get; set; }
+
+	[BsonElement("message")]
+	public string? Message { get; set; }
+
+	[BsonElement("status")]
+	public ChangeProposalStatus Status { get; set; } = ChangeProposalStatus.Pending;
+
+	[BsonElement("createdAt")]
+	public DateTime CreatedAt { get; set; }
+
+	[BsonElement("resolvedAt")]
+	public DateTime? ResolvedAt { get; set; }
 }
 
 [BsonIgnoreExtraElements]
@@ -70,6 +107,9 @@ public class GameTable
 
 	[BsonElement("points")]
 	public int? Points { get; set; }
+
+	[BsonElement("startTimeUtc")]
+	public DateTime? StartTimeUtc { get; set; }
 
 	[BsonElement("notes")]
 	public string? Notes { get; set; }

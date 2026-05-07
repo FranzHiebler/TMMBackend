@@ -1,4 +1,5 @@
 export type ApplicationStatus = "Pending" | "Accepted" | "Rejected" | "Withdrawn";
+export type ChangeProposalStatus = "Pending" | "Accepted" | "Rejected";
 export type LocationRole = "Owner" | "Admin" | "Manager" | "Member" | "Applicant";
 
 export interface ParticipantDto {
@@ -40,6 +41,7 @@ export interface GameTableDto {
   systems: string[];
   scenario?: string | null;
   points?: number | null;
+  startTimeUtc?: string | null;
   notes?: string | null;
   assignedPlayers: ParticipantDto[];
   applications: TableApplicationDto[];
@@ -58,9 +60,23 @@ export interface GameResponse {
   startTimeUtc: string;
   description?: string | null;
   tables: GameTableDto[];
+  changeProposals: GameChangeProposalDto[];
   maxPlayers: number;
   assignedPlayers: number;
   openSlots: number;
+}
+
+export interface GameChangeProposalDto {
+  id: string;
+  tableId?: string | null;
+  proposedBy: ParticipantDto;
+  proposedStartTimeUtc?: string | null;
+  proposedSystems?: string[] | null;
+  proposedPoints?: number | null;
+  message?: string | null;
+  status: ChangeProposalStatus;
+  createdAt: string;
+  resolvedAt?: string | null;
 }
 
 export interface CreateGameTableRequest {
@@ -69,6 +85,7 @@ export interface CreateGameTableRequest {
   systems: string[];
   scenario?: string | null;
   points?: number | null;
+  startTimeUtc?: string | null;
   notes?: string | null;
 }
 
@@ -92,6 +109,14 @@ export interface ApplyToGameRequest {
   message?: string | null;
 }
 
+export interface CreateChangeProposalRequest {
+  tableId?: string | null;
+  proposedStartTimeUtc?: string | null;
+  proposedSystems?: string[] | null;
+  proposedPoints?: number | null;
+  message?: string | null;
+}
+
 export interface LocationOption {
   id: string;
   name: string;
@@ -110,6 +135,13 @@ export interface SearchNearbyGamesRequest {
   systemKey?: string;
 }
 
+export interface SearchNearbyLocationsRequest {
+  latitude: number;
+  longitude: number;
+  radiusKm: number;
+  systemKey?: string;
+}
+
 export interface LocationResponse {
   id: string;
   name: string;
@@ -119,6 +151,8 @@ export interface LocationResponse {
   longitude?: number | null;
   role?: LocationRole | null;
   isOpen?: boolean;
+  systemKeys: string[];
+  hasPendingJoinRequest?: boolean;
 }
 
 export interface CreateLocationRequest {
@@ -127,6 +161,7 @@ export interface CreateLocationRequest {
   address?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+  systemKeys: string[];
 }
 
 export const GameJoinMode = {

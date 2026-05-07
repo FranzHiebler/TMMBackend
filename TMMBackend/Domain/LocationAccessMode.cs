@@ -5,4 +5,11 @@
 		MembersOnly,
 		Open
 	}
+
+	public enum LocationJoinRequestStatus
+	{
+		Pending,
+		Accepted,
+		Rejected
+	}
 }

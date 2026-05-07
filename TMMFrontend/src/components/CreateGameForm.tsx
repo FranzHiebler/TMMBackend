@@ -36,6 +36,9 @@ export default function CreateGameForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [joinMode, setJoinMode] = useState<GameJoinMode>(GameJoinMode.FirstComeFirstServe);
+  const selectedLocation = locations.find((location) => location.id === locationId);
+  const locationSystemKeys = selectedLocation?.systemKeys ?? [];
+  const locationSystems = systems.filter((system) => locationSystemKeys.includes(system.key));
 
   const loadInitialData = useCallback(async () => {
     try {
@@ -83,6 +86,21 @@ export default function CreateGameForm() {
     updateTable(index, { systems: next });
   }
 
+  function updateCustomSystems(index: number, value: string) {
+    const table = tables[index];
+    const selectedKnownSystems = table.systems.filter((key) =>
+      key === "egal" || locationSystemKeys.includes(key)
+    );
+    const customSystems = value
+      .split(",")
+      .map((system) => system.trim())
+      .filter(Boolean);
+
+    updateTable(index, {
+      systems: [...selectedKnownSystems.filter((key) => key !== "egal"), ...customSystems],
+    });
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
@@ -108,6 +126,7 @@ export default function CreateGameForm() {
         scenario: t.scenario || null,
         notes: t.notes || null,
         points: t.points || null,
+        startTimeUtc: t.startTimeUtc || null,
       })),
     };
 
@@ -175,7 +194,7 @@ export default function CreateGameForm() {
                 Egal
               </label>
 
-              {systems.map((s) => (
+              {locationSystems.map((s) => (
                 <label key={s.key}>
                   <input
                     type="checkbox"
@@ -186,7 +205,31 @@ export default function CreateGameForm() {
                   {s.name}
                 </label>
               ))}
+
+              {locationSystems.length === 0 && (
+                <div className="message message-info">
+                  Für diese Location sind noch keine Systeme ausgewählt.
+                </div>
+              )}
             </div>
+
+            <input
+              value={table.systems
+                .filter((key) => key !== "egal" && !locationSystemKeys.includes(key))
+                .join(", ")}
+              onChange={(e) => updateCustomSystems(index, e.target.value)}
+              placeholder="Freitext-Systeme, z.B. Mordheim"
+              disabled={table.systems.includes("egal")}
+            />
+
+            <input
+              type="datetime-local"
+              value={table.startTimeUtc ? table.startTimeUtc.slice(0, 16) : ""}
+              onChange={(e) => updateTable(index, {
+                startTimeUtc: e.target.value ? new Date(e.target.value).toISOString() : null,
+              })}
+              placeholder="Abweichende Tisch-Startzeit"
+            />
 
             <input value={table.scenario ?? ""} onChange={(e) => updateTable(index, { scenario: e.target.value })} placeholder="Szenario optional" />
 

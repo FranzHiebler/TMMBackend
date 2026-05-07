@@ -48,15 +48,19 @@ export default function LocationsPage() {
         <LocationList
           locations={locations}
           onEdit={(loc) => setEditLocation(loc)}
+          editLocation={editLocation}
+          onEditCancel={() => setEditLocation(null)}
+          onEditDone={(loc) => {
+            setLocations((prev) => prev.map((location) => (location.id === loc.id ? loc : location)));
+            setEditLocation(null);
+          }}
         />
       )}
 
-      {(showModal || editLocation) && (
+      {showModal && (
         <LocationModal
-          location={editLocation ?? undefined}
           onClose={() => {
             setShowModal(false);
-            setEditLocation(null);
           }}
           onCreated={(loc) => {
             setLocations((prev) =>
@@ -66,7 +70,6 @@ export default function LocationsPage() {
             );
 
             setShowModal(false);
-            setEditLocation(null);
           }}
         />
       )}

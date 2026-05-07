@@ -35,6 +35,7 @@ public class LocationsController : ControllerBase
 			Name = request.Name,
 			City = request.City,
 			Address = request.Address,
+			SystemKeys = NormalizeSystems(request.SystemKeys),
 			Geo = new GeoJsonPoint<GeoJson2DGeographicCoordinates>(
 				new GeoJson2DGeographicCoordinates(request.Longitude, request.Latitude)
 			),
@@ -72,6 +73,7 @@ public class LocationsController : ControllerBase
 		location.Name = request.Name;
 		location.City = request.City;
 		location.Address = request.Address;
+		location.SystemKeys = NormalizeSystems(request.SystemKeys);
 		location.Geo = new GeoJsonPoint<GeoJson2DGeographicCoordinates>(
 			new GeoJson2DGeographicCoordinates(request.Longitude, request.Latitude)
 		);
@@ -96,6 +98,57 @@ public class LocationsController : ControllerBase
 			displayName = m.DisplayName,
 			role = m.Role.ToString()
 		}));
+	}
+
+	[HttpGet("nearby")]
+	public async Task<IActionResult> Nearby([FromQuery] SearchNearbyLocationsRequest request)
+	{
+		var locations = await _repository.FindNearbyLocationsAsync(
+			request.Latitude,
+			request.Longitude,
+			request.RadiusInMeters);
+
+		var result = locations
+			.Where(location => !location.Members.Any(m => m.UserId == _currentUser.UserId))
+			.Where(location => !location.JoinRequests.Any(r =>
+				r.UserId == _currentUser.UserId &&
+				r.Status == LocationJoinRequestStatus.Pending))
+			.Where(location =>
+				string.IsNullOrWhiteSpace(request.SystemKey) ||
+				location.SystemKeys.Contains(request.SystemKey, StringComparer.OrdinalIgnoreCase))
+			.Select(ToLocationResponse);
+
+		return Ok(result);
+	}
+
+	[HttpPost("{id}/join-requests")]
+	public async Task<IActionResult> RequestMembership(string id, [FromBody] RequestLocationMembershipRequest request)
+	{
+		var location = await _repository.GetByIdAsync(id);
+		if (location == null) return NotFound();
+
+		if (location.Members.Any(m => m.UserId == _currentUser.UserId))
+			return BadRequest("Du bist dort bereits Mitglied.");
+
+		var existing = location.JoinRequests.FirstOrDefault(r =>
+			r.UserId == _currentUser.UserId &&
+			r.Status == LocationJoinRequestStatus.Pending);
+
+		if (existing != null)
+			return BadRequest("Du hast dort bereits angefragt.");
+
+		location.JoinRequests.Add(new LocationJoinRequest
+		{
+			RequestId = Guid.NewGuid().ToString("N"),
+			UserId = _currentUser.UserId,
+			DisplayName = _currentUser.DisplayName,
+			Message = request.Message,
+			Status = LocationJoinRequestStatus.Pending,
+			CreatedAt = DateTime.UtcNow
+		});
+
+		await _repository.UpdateAsync(location);
+		return NoContent();
 	}
 
 	[HttpPost("{id}/members")]
@@ -174,8 +227,21 @@ public class LocationsController : ControllerBase
 			latitude = location.Geo?.Coordinates.Latitude,
 			longitude = location.Geo?.Coordinates.Longitude,
 			role = member?.Role.ToString(),
-			isOpen = location.AccessMode == LocationAccessMode.Open
+			isOpen = location.AccessMode == LocationAccessMode.Open,
+			systemKeys = location.SystemKeys,
+			hasPendingJoinRequest = location.JoinRequests.Any(r =>
+				r.UserId == _currentUser.UserId &&
+				r.Status == LocationJoinRequestStatus.Pending)
 		};
+	}
+
+	private static List<string> NormalizeSystems(IEnumerable<string>? systems)
+	{
+		return systems?
+			.Select(s => s.Trim())
+			.Where(s => !string.IsNullOrWhiteSpace(s))
+			.Distinct(StringComparer.OrdinalIgnoreCase)
+			.ToList() ?? new List<string>();
 	}
 
 	private LocationRole? GetCurrentUserRole(Location location)

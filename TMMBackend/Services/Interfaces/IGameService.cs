@@ -12,5 +12,8 @@ public interface IGameService
 	Task<List<GameResponse>> SearchAsync(SearchGamesRequest request);
 	Task<List<GameResponse>> SearchNearbyAsync(SearchNearbyGamesRequest request);
 	Task RejectApplicationAsync(string gameId, string applicationId);
+	Task<GameResponse> CreateChangeProposalAsync(string gameId, CreateChangeProposalRequest request);
+	Task<GameResponse> AcceptChangeProposalAsync(string gameId, string proposalId);
+	Task<GameResponse> RejectChangeProposalAsync(string gameId, string proposalId);
 
 }

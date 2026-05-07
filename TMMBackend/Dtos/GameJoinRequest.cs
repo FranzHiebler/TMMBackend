@@ -18,3 +18,12 @@ public class AssignPlayerToTableRequest
 	public string DisplayName { get; set; } = default!;
 	public string? ApplicationId { get; set; }
 }
+
+public class CreateChangeProposalRequest
+{
+	public string? TableId { get; set; }
+	public DateTime? ProposedStartTimeUtc { get; set; }
+	public List<string>? ProposedSystems { get; set; }
+	public int? ProposedPoints { get; set; }
+	public string? Message { get; set; }
+}

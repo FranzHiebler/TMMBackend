@@ -1,8 +1,10 @@
-import { useState } from "react";
-import { searchNearbyGames } from "../api/gamesService";
-import type { GameResponse } from "../types/game";
-import GameList from "../components/GameList";
-import { useJoinGame } from "../api/useJoinGame";
+import { useEffect, useState } from "react";
+import {
+  getSystems,
+  requestLocationMembership,
+  searchNearbyLocations,
+} from "../api/gamesService";
+import type { LocationResponse, SystemOption } from "../types/game";
 import { useUser } from "../context/UserContext";
 import LocationPicker from "../components/LocationPicker";
 
@@ -13,13 +15,28 @@ export default function NearbyPage() {
   const [longitude, setLongitude] = useState<number | null>(9.6808);
   const [radiusKm, setRadiusKm] = useState("25");
   const [systemKey, setSystemKey] = useState("");
+  const [systems, setSystems] = useState<SystemOption[]>([]);
 
-  const [games, setGames] = useState<GameResponse[]>([]);
+  const [locations, setLocations] = useState<LocationResponse[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"success" | "error">("success");
+  const [requestingId, setRequestingId] = useState<string | null>(null);
 
   const user = useUser();
-  const { join, joiningKey, errorMessage, successMessage, messageByKey } = useJoinGame();
+
+  useEffect(() => {
+    getSystems()
+      .then(setSystems)
+      .catch(() => setSystems([]));
+  }, []);
+
+  useEffect(() => {
+    if (!message) return;
+
+    const timeout = window.setTimeout(() => setMessage(""), 4500);
+    return () => window.clearTimeout(timeout);
+  }, [message]);
 
   async function searchAddress() {
     const query = `${address}, ${city}, Deutschland`.trim();
@@ -32,11 +49,12 @@ export default function NearbyPage() {
     const data = await res.json();
 
     if (!data.length) {
-      setError("Adresse nicht gefunden. Bitte Marker manuell setzen.");
+      setMessageType("error");
+      setMessage("Adresse nicht gefunden. Bitte Marker manuell setzen.");
       return;
     }
 
-    setError("");
+    setMessage("");
     setLatitude(Number(data[0].lat));
     setLongitude(Number(data[0].lon));
   }
@@ -45,36 +63,52 @@ export default function NearbyPage() {
     e.preventDefault();
 
     if (latitude == null || longitude == null) {
-      setError("Bitte Standort auswählen.");
+      setMessageType("error");
+      setMessage("Bitte Standort auswählen.");
       return;
     }
 
     try {
       setLoading(true);
-      setError("");
+      setMessage("");
 
-      const data = await searchNearbyGames({
+      const data = await searchNearbyLocations({
         latitude,
         longitude,
-        radiusKm: Number(radiusKm), // wird in gamesService.ts bereits * 1000 genommen
+        radiusKm: Number(radiusKm),
         systemKey: systemKey || undefined,
       });
 
-      setGames(data);
+      setLocations(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Fehler bei Nearby Search");
+      setMessageType("error");
+      setMessage(err instanceof Error ? err.message : "Fehler bei Nearby Search");
     } finally {
       setLoading(false);
     }
   }
 
+  async function requestMembership(locationId: string) {
+    try {
+      setRequestingId(locationId);
+      setMessage("");
+      await requestLocationMembership(locationId, null, user);
+      setLocations((prev) => prev.filter((location) => location.id !== locationId));
+      setMessageType("success");
+      setMessage("Aufnahmeanfrage gesendet");
+    } catch (err) {
+      setMessageType("error");
+      setMessage(err instanceof Error ? err.message : "Anfrage fehlgeschlagen");
+    } finally {
+      setRequestingId(null);
+    }
+  }
+
   return (
     <div className="container">
-      <h1>Nearby Games</h1>
+      <h1>Locations in der Nähe</h1>
 
-      {successMessage && <div className="message message-success">{successMessage}</div>}
-      {errorMessage && <div className="message message-error">{errorMessage}</div>}
-      {error && <div className="message message-error">{error}</div>}
+      {message && <div className={`message message-${messageType}`}>{message}</div>}
 
       <form onSubmit={handleSearch} className="form">
         <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Stadt" />
@@ -104,26 +138,43 @@ export default function NearbyPage() {
           <span>km</span>
         </div>
 
-        <input
-          value={systemKey}
-          onChange={(e) => setSystemKey(e.target.value)}
-          placeholder="System Key optional, z.B. tow"
-        />
+        <select value={systemKey} onChange={(e) => setSystemKey(e.target.value)}>
+          <option value="">Alle Systeme</option>
+          {systems.map((system) => (
+            <option key={system.key} value={system.key}>
+              {system.name}
+            </option>
+          ))}
+        </select>
 
         <button type="submit" disabled={loading}>
-          {loading ? "Suche..." : "Suchen"}
+          {loading ? "Suche..." : "Locations suchen"}
         </button>
       </form>
 
-      {!loading && !error && (
-        <GameList
-          games={games}
-          joiningKey={joiningKey}
-          messageByKey={messageByKey}
-          currentUserId={user.userId}
-          onJoin={join}
-        />
+      {!loading && locations.length === 0 && (
+        <p>Keine unbekannten Locations gefunden.</p>
       )}
+
+      <div className="location-list">
+        {locations.map((location) => (
+          <div key={location.id} className="card">
+            <h3>{location.name}</h3>
+            <p>{location.city}</p>
+            {location.address && <p>{location.address}</p>}
+            {(location.systemKeys ?? []).length > 0 && (
+              <p>Systeme: {(location.systemKeys ?? []).join(", ")}</p>
+            )}
+            <button
+              type="button"
+              disabled={requestingId === location.id}
+              onClick={() => requestMembership(location.id)}
+            >
+              {requestingId === location.id ? "Sendet..." : "Aufnahme anfragen"}
+            </button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

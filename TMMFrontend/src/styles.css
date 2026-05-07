@@ -228,6 +228,63 @@ nav a:hover {
   white-space: nowrap;
 }
 
+.table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.proposal-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.proposal-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.proposal-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #f9fafb;
+}
+
+.proposal-row p {
+  margin: 6px 0 0;
+}
+
+.proposal-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.inline-location-editor {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.inline-add-system {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  margin-top: 10px;
+}
+
 @media (max-width: 850px) {
   .location-card-grid {
     grid-template-columns: 1fr;
@@ -258,7 +315,16 @@ nav a:hover {
   }
 
   .member-row,
-  .member-edit-row {
+  .member-edit-row,
+  .proposal-row {
+    grid-template-columns: 1fr;
+  }
+
+  .proposal-actions {
+    flex-wrap: wrap;
+  }
+
+  .inline-add-system {
     grid-template-columns: 1fr;
   }
 

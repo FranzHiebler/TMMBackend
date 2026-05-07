@@ -21,3 +21,10 @@ public enum ApplicationStatus
 	Rejected,
 	Withdrawn
 }
+
+public enum ChangeProposalStatus
+{
+	Pending,
+	Accepted,
+	Rejected
+}

@@ -7,9 +7,10 @@ type Props = {
   currentUserId: string;
   messageByKey: Record<string, string>;
   onJoin: (gameId: string, tableId: string, joinMode: GameJoinMode, systemKey?: string) => void;
+  onGameUpdated?: (game: GameResponse) => void;
 };
 
-export default function GameList({ games, joiningKey, currentUserId, messageByKey, onJoin }: Props) {
+export default function GameList({ games, joiningKey, currentUserId, messageByKey, onJoin, onGameUpdated }: Props) {
   if (games.length === 0) return <p>Keine Spiele gefunden.</p>;
 
   return (
@@ -22,6 +23,7 @@ export default function GameList({ games, joiningKey, currentUserId, messageByKe
           currentUserId={currentUserId}
           messageByKey={messageByKey}
           onJoin={onJoin}
+          onGameUpdated={onGameUpdated}
         />
       ))}
     </>

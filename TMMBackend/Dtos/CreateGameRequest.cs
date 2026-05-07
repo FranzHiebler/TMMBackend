@@ -20,5 +20,6 @@ public class CreateGameTableRequest
 	public List<string> Systems { get; set; } = new();
 	public string? Scenario { get; set; }
 	public int? Points { get; set; }
+	public DateTime? StartTimeUtc { get; set; }
 	public string? Notes { get; set; }
 }

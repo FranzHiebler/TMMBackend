@@ -70,6 +70,7 @@ public class GameService : IGameService
 				Systems = t.Systems ?? new List<string>(),
 				Scenario = t.Scenario,
 				Points = t.Points,
+				StartTimeUtc = t.StartTimeUtc,
 				Notes = t.Notes
 			}).ToList(),
 			CreatedAt = DateTime.UtcNow,
@@ -323,6 +324,135 @@ public class GameService : IGameService
 		await _repository.UpdateAsync(game);
 	}
 
+	public async Task<GameResponse> CreateChangeProposalAsync(string gameId, CreateChangeProposalRequest request)
+	{
+		var game = await _repository.GetByIdAsync(gameId);
+		if (game == null) throw new GameActionException("Session nicht gefunden.");
+		if (game.Status is GameSessionState.Cancelled or GameSessionState.Closed)
+			throw new GameActionException("Diese Session kann nicht mehr geändert werden.");
+
+		if (!IsUserAlreadyAssigned(game, _currentUser.UserId))
+			throw new GameActionException("Nur angemeldete Spieler dürfen Änderungen vorschlagen.");
+
+		GameTable? table = null;
+		if (!string.IsNullOrWhiteSpace(request.TableId))
+		{
+			table = game.Tables.FirstOrDefault(t => t.TableId == request.TableId);
+			if (table == null) throw new GameActionException("Tisch nicht gefunden.");
+		}
+
+		var proposedSystems = request.ProposedSystems?
+			.Select(s => s.Trim())
+			.Where(s => !string.IsNullOrWhiteSpace(s))
+			.Distinct(StringComparer.OrdinalIgnoreCase)
+			.ToList();
+
+		var hasTimeChange = request.ProposedStartTimeUtc.HasValue;
+		var hasSystemChange = proposedSystems is { Count: > 0 };
+		var hasPointsChange = request.ProposedPoints.HasValue;
+
+		if (!hasTimeChange && !hasSystemChange && !hasPointsChange)
+			throw new GameActionException("Bitte mindestens Uhrzeit, System oder Punkte vorschlagen.");
+
+		if ((hasSystemChange || hasPointsChange) && table == null)
+			throw new GameActionException("System- oder Punkteänderungen brauchen einen Tisch.");
+
+		if (request.ProposedPoints is < 0)
+			throw new GameActionException("Punkte dürfen nicht negativ sein.");
+
+		game.ChangeProposals.Add(new GameChangeProposal
+		{
+			ProposalId = Guid.NewGuid().ToString("N"),
+			TableId = table?.TableId,
+			ProposedBy = new ParticipantInfo
+			{
+				UserId = _currentUser.UserId,
+				DisplayName = _currentUser.DisplayName
+			},
+			ProposedStartTimeUtc = request.ProposedStartTimeUtc,
+			ProposedSystems = hasSystemChange ? proposedSystems : null,
+			ProposedPoints = request.ProposedPoints,
+			Message = request.Message,
+			Status = ChangeProposalStatus.Pending,
+			CreatedAt = DateTime.UtcNow
+		});
+
+		game.UpdatedAt = DateTime.UtcNow;
+		await _repository.UpdateAsync(game);
+		return Map(game);
+	}
+
+	public async Task<GameResponse> AcceptChangeProposalAsync(string gameId, string proposalId)
+	{
+		var game = await _repository.GetByIdAsync(gameId);
+		if (game == null) throw new GameActionException("Session nicht gefunden.");
+
+		if (!await CanManageSession(game))
+			throw new GameActionException("Du darfst diese Session nicht verwalten.");
+
+		var proposal = GetPendingChangeProposal(game, proposalId);
+		GameTable? table = null;
+
+		if (!string.IsNullOrWhiteSpace(proposal.TableId))
+		{
+			table = game.Tables.FirstOrDefault(t => t.TableId == proposal.TableId);
+			if (table == null) throw new GameActionException("Tisch nicht gefunden.");
+		}
+
+		if (proposal.ProposedStartTimeUtc.HasValue)
+		{
+			if (table != null)
+				table.StartTimeUtc = proposal.ProposedStartTimeUtc.Value;
+			else
+				game.StartTimeUtc = proposal.ProposedStartTimeUtc.Value;
+		}
+
+		if (proposal.ProposedSystems is { Count: > 0 })
+		{
+			if (table == null) throw new GameActionException("Tisch nicht gefunden.");
+			table.Systems = proposal.ProposedSystems;
+		}
+
+		if (proposal.ProposedPoints.HasValue)
+		{
+			if (table == null) throw new GameActionException("Tisch nicht gefunden.");
+			table.Points = proposal.ProposedPoints;
+		}
+
+		proposal.Status = ChangeProposalStatus.Accepted;
+		proposal.ResolvedAt = DateTime.UtcNow;
+		game.UpdatedAt = DateTime.UtcNow;
+
+		await _repository.UpdateAsync(game);
+		return Map(game);
+	}
+
+	public async Task<GameResponse> RejectChangeProposalAsync(string gameId, string proposalId)
+	{
+		var game = await _repository.GetByIdAsync(gameId);
+		if (game == null) throw new GameActionException("Session nicht gefunden.");
+
+		if (!await CanManageSession(game))
+			throw new GameActionException("Du darfst diese Session nicht verwalten.");
+
+		var proposal = GetPendingChangeProposal(game, proposalId);
+		proposal.Status = ChangeProposalStatus.Rejected;
+		proposal.ResolvedAt = DateTime.UtcNow;
+		game.UpdatedAt = DateTime.UtcNow;
+
+		await _repository.UpdateAsync(game);
+		return Map(game);
+	}
+
+	private static GameChangeProposal GetPendingChangeProposal(GameSession game, string proposalId)
+	{
+		var proposal = game.ChangeProposals.FirstOrDefault(p => p.ProposalId == proposalId);
+		if (proposal == null) throw new GameActionException("Änderungsvorschlag nicht gefunden.");
+		if (proposal.Status != ChangeProposalStatus.Pending)
+			throw new GameActionException("Dieser Änderungsvorschlag wurde bereits bearbeitet.");
+		return proposal;
+	}
+
 	private static GameResponse Map(GameSession game)
 	{
 		return new GameResponse
@@ -353,6 +483,7 @@ public class GameService : IGameService
 				Systems = t.Systems,
 				Scenario = t.Scenario,
 				Points = t.Points,
+				StartTimeUtc = t.StartTimeUtc,
 				Notes = t.Notes,
 				AssignedPlayers = t.AssignedPlayers.Select(p => new ParticipantDto
 				{
@@ -373,6 +504,23 @@ public class GameService : IGameService
 					Status = a.Status,
 					CreatedAt = a.CreatedAt
 				}).ToList()
+			}).ToList(),
+			ChangeProposals = game.ChangeProposals.Select(p => new GameChangeProposalDto
+			{
+				Id = p.ProposalId,
+				TableId = p.TableId,
+				ProposedBy = new ParticipantDto
+				{
+					UserId = p.ProposedBy.UserId,
+					DisplayName = p.ProposedBy.DisplayName
+				},
+				ProposedStartTimeUtc = p.ProposedStartTimeUtc,
+				ProposedSystems = p.ProposedSystems,
+				ProposedPoints = p.ProposedPoints,
+				Message = p.Message,
+				Status = p.Status,
+				CreatedAt = p.CreatedAt,
+				ResolvedAt = p.ResolvedAt
 			}).ToList()
 		};
 	}

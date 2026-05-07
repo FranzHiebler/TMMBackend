@@ -20,4 +20,22 @@ public class SystemRepository
 	{
 		return await _systems.Find(FilterDefinition<SystemDefinition>.Empty).ToListAsync();
 	}
+
+	public async Task<SystemDefinition> CreateAsync(string key, string name)
+	{
+		var normalizedKey = key.Trim().ToLowerInvariant();
+		var existing = await _systems.Find(x => x.Key == normalizedKey).FirstOrDefaultAsync();
+
+		if (existing != null)
+			return existing;
+
+		var system = new SystemDefinition
+		{
+			Key = normalizedKey,
+			Name = name.Trim()
+		};
+
+		await _systems.InsertOneAsync(system);
+		return system;
+	}
 }

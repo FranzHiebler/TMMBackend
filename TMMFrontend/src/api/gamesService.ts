@@ -1,5 +1,6 @@
 import type {
   ApplyToGameRequest,
+  CreateChangeProposalRequest,
   CreateGameRequest,
   CreateLocationRequest,
   GameResponse,
@@ -7,6 +8,7 @@ import type {
   LocationOption,
   LocationResponse,
   SearchNearbyGamesRequest,
+  SearchNearbyLocationsRequest,
   LocationMemberResponse,
   UpsertLocationMemberRequest,
   SystemOption,
@@ -98,6 +100,63 @@ export async function applyToGame(
   if (!res.ok) throw new Error((await res.text()) || "Bewerbung fehlgeschlagen");
 }
 
+export async function createChangeProposal(
+  gameId: string,
+  request: CreateChangeProposalRequest,
+  user: User
+): Promise<GameResponse> {
+  const res = await fetch(`${API}/Games/${gameId}/change-proposals`, {
+    method: "POST",
+    headers: authHeaders(user),
+    body: JSON.stringify(request),
+  });
+
+  if (!res.ok) throw new Error((await res.text()) || "Vorschlag konnte nicht gesendet werden");
+  return res.json();
+}
+
+export async function createSystem(
+  request: SystemOption,
+  user: User
+): Promise<SystemOption> {
+  const res = await fetch(`${API}/Systems`, {
+    method: "POST",
+    headers: authHeaders(user),
+    body: JSON.stringify(request),
+  });
+
+  if (!res.ok) throw new Error((await res.text()) || "System konnte nicht angelegt werden");
+  return res.json();
+}
+
+export async function acceptChangeProposal(
+  gameId: string,
+  proposalId: string,
+  user: User
+): Promise<GameResponse> {
+  const res = await fetch(`${API}/Games/${gameId}/change-proposals/${proposalId}/accept`, {
+    method: "POST",
+    headers: authHeaders(user),
+  });
+
+  if (!res.ok) throw new Error((await res.text()) || "Vorschlag konnte nicht angenommen werden");
+  return res.json();
+}
+
+export async function rejectChangeProposal(
+  gameId: string,
+  proposalId: string,
+  user: User
+): Promise<GameResponse> {
+  const res = await fetch(`${API}/Games/${gameId}/change-proposals/${proposalId}/reject`, {
+    method: "POST",
+    headers: authHeaders(user),
+  });
+
+  if (!res.ok) throw new Error((await res.text()) || "Vorschlag konnte nicht abgelehnt werden");
+  return res.json();
+}
+
 export async function searchNearbyGames(
   request: SearchNearbyGamesRequest
 ): Promise<GameResponse[]> {
@@ -112,6 +171,36 @@ export async function searchNearbyGames(
   const res = await fetch(`${API}/Games/nearby?${params.toString()}`);
   if (!res.ok) throw new Error(`Nearby fehlgeschlagen: HTTP ${res.status}`);
   return res.json();
+}
+
+export async function searchNearbyLocations(
+  request: SearchNearbyLocationsRequest
+): Promise<LocationResponse[]> {
+  const params = new URLSearchParams({
+    latitude: request.latitude.toString(),
+    longitude: request.longitude.toString(),
+    radiusInMeters: (request.radiusKm * 1000).toString(),
+  });
+
+  if (request.systemKey) params.append("systemKey", request.systemKey);
+
+  const res = await fetch(`${API}/Locations/nearby?${params.toString()}`);
+  if (!res.ok) throw new Error(`Nearby Locations fehlgeschlagen: HTTP ${res.status}`);
+  return res.json();
+}
+
+export async function requestLocationMembership(
+  locationId: string,
+  message: string | null,
+  user: User
+): Promise<void> {
+  const res = await fetch(`${API}/Locations/${locationId}/join-requests`, {
+    method: "POST",
+    headers: authHeaders(user),
+    body: JSON.stringify({ message }),
+  });
+
+  if (!res.ok) throw new Error((await res.text()) || "Anfrage konnte nicht gesendet werden");
 }
 
 export async function createLocation(

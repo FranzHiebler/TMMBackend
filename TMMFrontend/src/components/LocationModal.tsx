@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import type { CreateLocationRequest, LocationResponse } from "../types/game";
-import { createLocation, updateLocation } from "../api/gamesService";
+import type { CreateLocationRequest, LocationResponse, SystemOption } from "../types/game";
+import { createLocation, createSystem, getSystems, updateLocation } from "../api/gamesService";
 import "leaflet/dist/leaflet.css";
 import LocationPicker from "./LocationPicker";
 import { useUser } from "../context/UserContext";
@@ -9,9 +9,10 @@ type Props = {
   onClose: () => void;
   onCreated: (location: LocationResponse) => void;
   location?: LocationResponse;
+  inline?: boolean;
 };
 
-export default function LocationModal({ onClose, onCreated, location }: Props) {
+export default function LocationModal({ onClose, onCreated, location, inline = false }: Props) {
   const user = useUser();
 
   const [name, setName] = useState(location?.name ?? "");
@@ -19,6 +20,9 @@ export default function LocationModal({ onClose, onCreated, location }: Props) {
   const [address, setAddress] = useState(location?.address ?? "");
   const [latitude, setLatitude] = useState<number | null>(location?.latitude ?? null);
   const [longitude, setLongitude] = useState<number | null>(location?.longitude ?? null);
+  const [systemKeys, setSystemKeys] = useState<string[]>(location?.systemKeys ?? []);
+  const [systems, setSystems] = useState<SystemOption[]>([]);
+  const [newSystemName, setNewSystemName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -38,6 +42,7 @@ export default function LocationModal({ onClose, onCreated, location }: Props) {
       address,
       latitude,
       longitude,
+      systemKeys,
     };
 
     try {
@@ -85,6 +90,39 @@ export default function LocationModal({ onClose, onCreated, location }: Props) {
   }, [address, city]);
 
   useEffect(() => {
+    getSystems()
+      .then(setSystems)
+      .catch(() => setSystems([]));
+  }, []);
+
+  function toggleSystem(key: string) {
+    setSystemKeys((prev) =>
+      prev.includes(key)
+        ? prev.filter((systemKey) => systemKey !== key)
+        : [...prev, key]
+    );
+  }
+
+  async function addSystem() {
+    const name = newSystemName.trim();
+    if (!name) return;
+
+    const key = name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+
+    try {
+      const created = await createSystem({ key, name }, user);
+      setSystems((prev) => prev.some((system) => system.key === created.key) ? prev : [...prev, created]);
+      setSystemKeys((prev) => prev.includes(created.key) ? prev : [...prev, created.key]);
+      setNewSystemName("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "System konnte nicht angelegt werden.");
+    }
+  }
+
+  useEffect(() => {
     if (!city && !address) return;
 
     const timeout = window.setTimeout(() => {
@@ -94,9 +132,8 @@ export default function LocationModal({ onClose, onCreated, location }: Props) {
     return () => window.clearTimeout(timeout);
   }, [city, address, searchAddress]);
 
-  return (
-    <div className="modal-backdrop">
-      <div className="modal">
+  const content = (
+    <div className={inline ? "inline-location-editor" : "modal"}>
         <h2>{location ? "Location bearbeiten" : "Neue Location"}</h2>
 
         {error && <div className="message message-error">{error}</div>}
@@ -104,6 +141,33 @@ export default function LocationModal({ onClose, onCreated, location }: Props) {
         <form onSubmit={handleSubmit} className="form">
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name der Location" />
           <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Stadt" />
+
+          <div>
+            <b>Systeme in dieser Location</b>
+            {systems.map((system) => (
+              <label key={system.key}>
+                <input
+                  type="checkbox"
+                  checked={systemKeys.includes(system.key)}
+                  onChange={() => toggleSystem(system.key)}
+                />
+                {system.name}
+              </label>
+            ))}
+
+            {user.userId === "64f1a2b3c4d5e6f7890abc12" && (
+              <div className="inline-add-system">
+                <input
+                  value={newSystemName}
+                  onChange={(e) => setNewSystemName(e.target.value)}
+                  placeholder="Neues System anlegen"
+                />
+                <button type="button" onClick={addSystem}>
+                  System hinzufügen
+                </button>
+              </div>
+            )}
+          </div>
 
           <input
             value={address}
@@ -128,6 +192,9 @@ export default function LocationModal({ onClose, onCreated, location }: Props) {
           </div>
         </form>
       </div>
-    </div>
   );
+
+  if (inline) return content;
+
+  return <div className="modal-backdrop">{content}</div>;
 }

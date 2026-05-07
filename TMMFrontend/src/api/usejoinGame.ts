@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { applyToGame, joinTable } from "./gamesService";
 import { GameJoinMode } from "../types/game";
 import { useUser } from "../context/UserContext";
@@ -14,6 +14,17 @@ export function useJoinGame(options: UseJoinGameOptions = {}) {
   const [successMessage, setSuccessMessage] = useState("");
   const [messageByKey, setMessageByKey] = useState<Record<string, string>>({});
   const user = useUser();
+
+  useEffect(() => {
+    if (!errorMessage && !successMessage) return;
+
+    const timeout = window.setTimeout(() => {
+      setErrorMessage("");
+      setSuccessMessage("");
+    }, 4500);
+
+    return () => window.clearTimeout(timeout);
+  }, [errorMessage, successMessage]);
 
   async function join(
     gameId: string,

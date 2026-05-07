@@ -138,6 +138,10 @@ export default function GamesPage() {
     );
   }
 
+  function handleGameUpdated(updatedGame: GameResponse) {
+    setGames((prev) => prev.map((game) => (game.id === updatedGame.id ? updatedGame : game)));
+  }
+
   const { join, joiningKey, errorMessage, successMessage,messageByKey  } = useJoinGame({
     onJoined: handleJoined,
     onApplied: handleApplied,
@@ -219,6 +223,7 @@ export default function GamesPage() {
           messageByKey={messageByKey}
           currentUserId={user.userId}
           onJoin={join}
+          onGameUpdated={handleGameUpdated}
         />
       )}
     </div>

@@ -15,6 +15,7 @@ public class GameResponse
 	public DateTime StartTimeUtc { get; set; }
 	public string? Description { get; set; }
 	public List<GameTableDto> Tables { get; set; } = new();
+	public List<GameChangeProposalDto> ChangeProposals { get; set; } = new();
 
 	public int MaxPlayers => Tables.Sum(x => x.MaxPlayers);
 	public int AssignedPlayers => Tables.Sum(x => x.AssignedPlayers.Count);
@@ -29,6 +30,7 @@ public class GameTableDto
 	public List<string> Systems { get; set; } = new();
 	public string? Scenario { get; set; }
 	public int? Points { get; set; }
+	public DateTime? StartTimeUtc { get; set; }
 	public string? Notes { get; set; }
 	public List<ParticipantDto> AssignedPlayers { get; set; } = new();
 	public List<TableApplicationDto> Applications { get; set; } = new();
@@ -44,6 +46,20 @@ public class TableApplicationDto
 	public string? Message { get; set; }
 	public ApplicationStatus Status { get; set; }
 	public DateTime CreatedAt { get; set; }
+}
+
+public class GameChangeProposalDto
+{
+	public string Id { get; set; } = default!;
+	public string? TableId { get; set; }
+	public ParticipantDto ProposedBy { get; set; } = new();
+	public DateTime? ProposedStartTimeUtc { get; set; }
+	public List<string>? ProposedSystems { get; set; }
+	public int? ProposedPoints { get; set; }
+	public string? Message { get; set; }
+	public ChangeProposalStatus Status { get; set; }
+	public DateTime CreatedAt { get; set; }
+	public DateTime? ResolvedAt { get; set; }
 }
 
 public class ParticipantDto

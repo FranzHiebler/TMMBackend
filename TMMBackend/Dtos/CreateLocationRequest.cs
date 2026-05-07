@@ -7,5 +7,19 @@
 		public string? Address { get; set; }
 		public double Latitude { get; set; }
 		public double Longitude { get; set; }
+		public List<string> SystemKeys { get; set; } = new();
+	}
+
+	public class SearchNearbyLocationsRequest
+	{
+		public double Latitude { get; set; }
+		public double Longitude { get; set; }
+		public double RadiusInMeters { get; set; } = 20000;
+		public string? SystemKey { get; set; }
+	}
+
+	public class RequestLocationMembershipRequest
+	{
+		public string? Message { get; set; }
 	}
 }

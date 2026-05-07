@@ -30,6 +30,35 @@ public class Location
 	[BsonElement("members")]
 	public List<LocationMember> Members { get; set; } = new();
 
+	[BsonElement("systemKeys")]
+	public List<string> SystemKeys { get; set; } = new();
+
+	[BsonElement("joinRequests")]
+	public List<LocationJoinRequest> JoinRequests { get; set; } = new();
+
 	[BsonElement("accessMode")]
 	public LocationAccessMode AccessMode { get; set; } = LocationAccessMode.MembersOnly;
+}
+
+[BsonIgnoreExtraElements]
+public class LocationJoinRequest
+{
+	[BsonElement("requestId")]
+	public string RequestId { get; set; } = default!;
+
+	[BsonElement("userId")]
+	[BsonRepresentation(BsonType.ObjectId)]
+	public string UserId { get; set; } = default!;
+
+	[BsonElement("displayName")]
+	public string DisplayName { get; set; } = default!;
+
+	[BsonElement("message")]
+	public string? Message { get; set; }
+
+	[BsonElement("status")]
+	public LocationJoinRequestStatus Status { get; set; } = LocationJoinRequestStatus.Pending;
+
+	[BsonElement("createdAt")]
+	public DateTime CreatedAt { get; set; }
 }

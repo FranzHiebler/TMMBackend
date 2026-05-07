@@ -22,6 +22,13 @@ public class LocationRepository
 	{
 		return await _locations.Find(FilterDefinition<Location>.Empty).ToListAsync();
 	}
+
+	public async Task<List<Location>> GetByIdsAsync(List<string> ids)
+	{
+		return await _locations
+			.Find(x => ids.Contains(x.Id!))
+			.ToListAsync();
+	}
 	public async Task CreateAsync(Location location)
 	{
 		await _locations.InsertOneAsync(location);
@@ -58,6 +65,23 @@ public class LocationRepository
 			DistanceInMeters = d["distanceInMeters"].ToDouble()
 		}).ToList();
 
+	}
+
+	public async Task<List<Location>> FindNearbyLocationsAsync(
+		double lat,
+		double lng,
+		double radiusInMeters)
+	{
+		var nearby = await FindNearbyAsync(lat, lng, radiusInMeters);
+		if (nearby.Count == 0)
+			return new List<Location>();
+
+		var ids = nearby.Select(x => x.LocationId).ToList();
+		var locations = await GetByIdsAsync(ids);
+
+		return locations
+			.OrderBy(location => ids.IndexOf(location.Id!))
+			.ToList();
 	}
 
 	public async Task<List<Location>> GetForUserAsync(string userId)

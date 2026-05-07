@@ -3,6 +3,7 @@ import GamesPage from "./pages/GamesPage";
 import NearbyPage from "./pages/NearbyPage";
 import LocationsPage from "./pages/LocationPage";
 import CreateGamePage from "./pages/CreateGamePage";
+import MyGamesPage from "./pages/MyGamesPage";
 import UserSwitcher from "./components/UserSwitcher";
 
 export default function App() {
@@ -10,6 +11,7 @@ export default function App() {
     <>
       <nav className="nav">
         <Link to="/games">Games</Link>
+        <Link to="/my-games">Meine Spiele</Link>
         <Link to="/nearby">Nearby</Link>
         <Link to="/locations">Locations</Link>
         <Link to="/games/create">Game erstellen</Link>
@@ -19,6 +21,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<GamesPage />} />
         <Route path="/games" element={<GamesPage />} />
+        <Route path="/my-games" element={<MyGamesPage />} />
         <Route path="/nearby" element={<NearbyPage />} />
         <Route path="/locations" element={<LocationsPage />} />
         <Route path="/games/create" element={<CreateGamePage />} />

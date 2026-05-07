@@ -122,4 +122,49 @@ public class GamesController : ControllerBase
 			return BadRequest(ex.Message);
 		}
 	}
+
+	[HttpPost("{id}/change-proposals")]
+	public async Task<ActionResult<GameResponse>> CreateChangeProposal(
+		string id,
+		[FromBody] CreateChangeProposalRequest request)
+	{
+		try
+		{
+			return Ok(await _service.CreateChangeProposalAsync(id, request));
+		}
+		catch (GameActionException ex)
+		{
+			return BadRequest(ex.Message);
+		}
+	}
+
+	[HttpPost("{id}/change-proposals/{proposalId}/accept")]
+	public async Task<ActionResult<GameResponse>> AcceptChangeProposal(
+		string id,
+		string proposalId)
+	{
+		try
+		{
+			return Ok(await _service.AcceptChangeProposalAsync(id, proposalId));
+		}
+		catch (GameActionException ex)
+		{
+			return BadRequest(ex.Message);
+		}
+	}
+
+	[HttpPost("{id}/change-proposals/{proposalId}/reject")]
+	public async Task<ActionResult<GameResponse>> RejectChangeProposal(
+		string id,
+		string proposalId)
+	{
+		try
+		{
+			return Ok(await _service.RejectChangeProposalAsync(id, proposalId));
+		}
+		catch (GameActionException ex)
+		{
+			return BadRequest(ex.Message);
+		}
+	}
 }
