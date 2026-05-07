@@ -52,6 +52,7 @@ public class LocationsController : ControllerBase
 				new LocationMember
 				{
 					UserId = _currentUser.UserId,
+					DisplayName = _currentUser.DisplayName,
 					Role = LocationRole.Owner
 				}
 			]
@@ -121,6 +122,101 @@ public class LocationsController : ControllerBase
 		await _repository.UpdateAsync(location);
 
 		return NoContent();
+	}
+
+	[HttpGet("{id}/members")]
+	public async Task<IActionResult> GetMembers(string id)
+	{
+		var location = await _repository.GetByIdAsync(id);
+
+		if (location == null)
+			return NotFound();
+
+		var isMember = location.Members.Any(m => m.UserId == _currentUser.UserId);
+
+		if (!isMember && location.AccessMode != LocationAccessMode.Open)
+			return Forbid();
+
+		return Ok(location.Members.Select(m => new
+		{
+			userId = m.UserId,
+			displayName = m.DisplayName,
+			role = m.Role.ToString()
+		}));
+	}
+
+	[HttpPost("{id}/members")]
+	public async Task<IActionResult> UpsertMember(
+		string id,
+		[FromBody] UpsertLocationMemberRequest request)
+	{
+		var location = await _repository.GetByIdAsync(id);
+
+		if (location == null)
+			return NotFound();
+
+		if (!IsOwner(location))
+			return Forbid();
+
+		if (request.Role == LocationRole.Owner &&
+			location.Members.Any(m => m.Role == LocationRole.Owner && m.UserId != request.UserId))
+		{
+			return BadRequest("Nur ein Owner pro Location ist aktuell erlaubt.");
+		}
+
+		var member = location.Members.FirstOrDefault(m => m.UserId == request.UserId);
+
+		if (member == null)
+		{
+			location.Members.Add(new LocationMember
+			{
+				UserId = request.UserId,
+				DisplayName = request.DisplayName,
+				Role = request.Role
+			});
+		}
+		else
+		{
+			member.DisplayName = request.DisplayName;
+			member.Role = request.Role;
+		}
+
+		await _repository.UpdateAsync(location);
+
+		return NoContent();
+	}
+
+	[HttpDelete("{id}/members/{userId}")]
+	public async Task<IActionResult> RemoveMember(string id, string userId)
+	{
+		var location = await _repository.GetByIdAsync(id);
+
+		if (location == null)
+			return NotFound();
+
+		if (!IsOwner(location))
+			return Forbid();
+
+		var member = location.Members.FirstOrDefault(m => m.UserId == userId);
+
+		if (member == null)
+			return NotFound();
+
+		if (member.Role == LocationRole.Owner)
+			return BadRequest("Owner kann nicht entfernt werden.");
+
+		location.Members.Remove(member);
+
+		await _repository.UpdateAsync(location);
+
+		return NoContent();
+	}
+
+	private bool IsOwner(Location location)
+	{
+		return location.Members.Any(m =>
+			m.UserId == _currentUser.UserId &&
+			m.Role == LocationRole.Owner);
 	}
 
 }

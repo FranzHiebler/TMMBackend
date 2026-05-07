@@ -1,8 +1,21 @@
 export type ApplicationStatus = 0 | 1 | 2 | 3;
+export type LocationRole = "Owner" | "Manager" | "Member";
 
 export interface ParticipantDto {
   userId: string;
   displayName: string;
+}
+
+export interface LocationMemberResponse {
+  userId: string;
+  displayName: string;
+  role: LocationRole;
+}
+
+export interface UpsertLocationMemberRequest {
+  userId: string;
+  displayName: string;
+  role: LocationRole;
 }
 
 export interface LocationSnapshotDto {

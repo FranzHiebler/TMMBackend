@@ -52,11 +52,12 @@ public class LocationRepository
 
 		return docs.Select(d => new NearbyLocationResult
 		{
-			LocationId = d["_id"].ToString(),
+			LocationId = d["_id"].AsObjectId.ToString(),
 			Name = d["name"].AsString,
 			City = d["city"].AsString,
 			DistanceInMeters = d["distanceInMeters"].ToDouble()
 		}).ToList();
+
 	}
 
 	public async Task<List<Location>> GetForUserAsync(string userId)

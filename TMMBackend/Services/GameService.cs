@@ -172,7 +172,10 @@ public class GameService : IGameService
 		await _repository.UpdateAsync(game);
 	}
 
-	public async Task<bool> AssignPlayerToTableAsync(string gameId, string tableId, AssignPlayerToTableRequest request)
+	public async Task<bool> AssignPlayerToTableAsync(
+		string gameId,
+		string tableId,
+		AssignPlayerToTableRequest request)
 	{
 		var game = await _repository.GetByIdAsync(gameId);
 		if (game == null) return false;
@@ -186,23 +189,52 @@ public class GameService : IGameService
 		if (table.AssignedPlayers.Count >= table.MaxPlayers)
 			return false;
 
-		if (IsUserAlreadyAssigned(game, request.UserId))
-			return true;
-
-		table.AssignedPlayers.Add(new ParticipantInfo
-		{
-			UserId = request.UserId,
-			DisplayName = request.DisplayName
-		});
+		TableApplication? application = null;
+		ParticipantInfo player;
 
 		if (!string.IsNullOrWhiteSpace(request.ApplicationId))
 		{
-			var app = game.Tables
+			application = game.Tables
 				.SelectMany(t => t.Applications)
 				.FirstOrDefault(a => a.ApplicationId == request.ApplicationId);
-				
-			if (app != null)
-				app.Status = ApplicationStatus.Accepted;
+
+			if (application == null) return false;
+			if (application.Status != ApplicationStatus.Pending) return false;
+
+			player = application.Player;
+		}
+		else
+		{
+			if (string.IsNullOrWhiteSpace(request.UserId) ||
+				string.IsNullOrWhiteSpace(request.DisplayName))
+				return false;
+
+			player = new ParticipantInfo
+			{
+				UserId = request.UserId,
+				DisplayName = request.DisplayName
+			};
+		}
+
+		if (IsUserAlreadyAssigned(game, player.UserId))
+			return true;
+
+		table.AssignedPlayers.Add(player);
+
+		if (application != null)
+		{
+			application.Status = ApplicationStatus.Accepted;
+			application.TableId = table.TableId;
+
+			foreach (var otherApplication in game.Tables
+				.SelectMany(t => t.Applications)
+				.Where(a =>
+					a.Player.UserId == player.UserId &&
+					a.ApplicationId != application.ApplicationId &&
+					a.Status == ApplicationStatus.Pending))
+			{
+				otherApplication.Status = ApplicationStatus.Withdrawn;
+			}
 		}
 
 		UpdateSessionState(game);
@@ -211,7 +243,6 @@ public class GameService : IGameService
 		await _repository.UpdateAsync(game);
 		return true;
 	}
-
 	public async Task<List<GameResponse>> SearchAsync(SearchGamesRequest request)
 	{
 		var games = await _repository.SearchAsync(request);
@@ -267,6 +298,29 @@ public class GameService : IGameService
 	{
 		var hasOpenSlot = game.Tables.Any(t => t.AssignedPlayers.Count < t.MaxPlayers);
 		game.Status = hasOpenSlot ? GameSessionState.Open : GameSessionState.Full;
+	}
+	public async Task RejectApplicationAsync(string gameId, string applicationId)
+	{
+		var game = await _repository.GetByIdAsync(gameId);
+		if (game == null) throw new GameActionException("Session nicht gefunden.");
+
+		if (!await CanManageSession(game))
+			throw new GameActionException("Du darfst diese Session nicht verwalten.");
+
+		var application = game.Tables
+			.SelectMany(t => t.Applications)
+			.FirstOrDefault(a => a.ApplicationId == applicationId);
+
+		if (application == null)
+			throw new GameActionException("Bewerbung nicht gefunden.");
+
+		if (application.Status != ApplicationStatus.Pending)
+			throw new GameActionException("Diese Bewerbung wurde bereits bearbeitet.");
+
+		application.Status = ApplicationStatus.Rejected;
+		game.UpdatedAt = DateTime.UtcNow;
+
+		await _repository.UpdateAsync(game);
 	}
 
 	private static GameResponse Map(GameSession game)

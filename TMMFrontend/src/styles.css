@@ -15,7 +15,10 @@ body {
   padding: 32px 20px;
 }
 
-h1, h2, h3, h4 {
+h1,
+h2,
+h3,
+h4 {
   margin: 0 0 14px;
   color: #111827;
 }
@@ -146,6 +149,91 @@ nav a:hover {
   color: #ffffff;
 }
 
+.user-switcher {
+  margin-left: auto;
+  width: auto;
+  min-width: 180px;
+  padding: 8px 12px;
+}
+
+.input-with-unit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.input-with-unit input {
+  flex: 1;
+}
+
+.input-with-unit span {
+  font-weight: 700;
+  color: #374151;
+}
+
+.location-card-grid {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+
+.location-main {
+  min-width: 0;
+}
+
+.location-actions {
+  margin-top: 12px;
+}
+
+.location-members-side {
+  min-width: 0;
+}
+
+.location-members-side > .card {
+  margin: 0;
+  background: #f9fafb;
+}
+
+.member-list {
+  display: grid;
+  gap: 10px;
+}
+
+.member-row {
+  display: grid;
+  grid-template-columns: 1fr 140px auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.member-row span {
+  font-weight: 700;
+}
+
+.member-row strong {
+  justify-self: start;
+}
+
+.member-edit-row {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr auto;
+  gap: 12px;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.member-row button,
+.member-edit-row button {
+  white-space: nowrap;
+}
+
+@media (max-width: 850px) {
+  .location-card-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 700px) {
   .container {
     padding: 20px 12px;
@@ -159,11 +247,18 @@ nav a:hover {
     padding: 16px;
     border-radius: 14px;
   }
-  
+
+  nav {
+    flex-wrap: wrap;
+  }
+
   .user-switcher {
-  margin-left: auto;
-  width: auto;
-  min-width: 180px;
-  padding: 8px 12px;
-}
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .member-row,
+  .member-edit-row {
+    grid-template-columns: 1fr;
+  }
 }

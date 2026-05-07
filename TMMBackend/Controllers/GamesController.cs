@@ -106,4 +106,20 @@ public class GamesController : ControllerBase
 	{
 		return Ok(await _service.SearchNearbyAsync(request));
 	}
+
+	[HttpPost("{id}/applications/{applicationId}/reject")]
+	public async Task<IActionResult> RejectApplication(
+	string id,
+	string applicationId)
+	{
+		try
+		{
+			await _service.RejectApplicationAsync(id, applicationId);
+			return NoContent();
+		}
+		catch (GameActionException ex)
+		{
+			return BadRequest(ex.Message);
+		}
+	}
 }

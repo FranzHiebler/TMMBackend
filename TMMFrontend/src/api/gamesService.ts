@@ -7,9 +7,12 @@ import type {
   LocationOption,
   LocationResponse,
   SearchNearbyGamesRequest,
+  LocationMemberResponse,
+  UpsertLocationMemberRequest,
   SystemOption,
 } from "../types/game";
 import type { User } from "../context/UserContext";
+
 
 const API = import.meta.env.VITE_API_BASE_URL;
 
@@ -126,4 +129,31 @@ export async function updateLocation(id: string, request: CreateLocationRequest)
   });
 
   if (!res.ok) throw new Error(`Location aktualisieren fehlgeschlagen: HTTP ${res.status}`);
+}
+
+export async function getLocationMembers(locationId: string): Promise<LocationMemberResponse[]> {
+  const res = await fetch(`${API}/Locations/${locationId}/members`);
+  if (!res.ok) throw new Error(`Mitglieder laden fehlgeschlagen: HTTP ${res.status}`);
+  return res.json();
+}
+
+export async function upsertLocationMember(
+  locationId: string,
+  request: UpsertLocationMemberRequest
+): Promise<void> {
+  const res = await fetch(`${API}/Locations/${locationId}/members`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+
+  if (!res.ok) throw new Error(await res.text() || `Mitglied speichern fehlgeschlagen`);
+}
+
+export async function removeLocationMember(locationId: string, userId: string): Promise<void> {
+  const res = await fetch(`${API}/Locations/${locationId}/members/${userId}`, {
+    method: "DELETE",
+  });
+
+  if (!res.ok) throw new Error(await res.text() || `Mitglied entfernen fehlgeschlagen`);
 }

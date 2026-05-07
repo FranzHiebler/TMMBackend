@@ -12,4 +12,6 @@ public interface IGameService
 	Task<bool> AssignPlayerToTableAsync(string gameId, string tableId, AssignPlayerToTableRequest request);
 	Task<List<GameResponse>> SearchAsync(SearchGamesRequest request);
 	Task<List<GameResponse>> SearchNearbyAsync(SearchNearbyGamesRequest request);
+	Task RejectApplicationAsync(string gameId, string applicationId);
+
 }

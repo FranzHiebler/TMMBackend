@@ -10,6 +10,9 @@ public class LocationMember
 	[BsonRepresentation(BsonType.ObjectId)]
 	public string? UserId { get; set; }
 
+	[BsonElement("displayName")]
+	public string DisplayName { get; set; } = default!;
+
 	[BsonElement("role")]
 	public LocationRole Role { get; set; }
 }
