@@ -1,4 +1,4 @@
-export type ApplicationStatus = 0 | 1 | 2 | 3;
+export type ApplicationStatus = "Pending" | "Accepted" | "Rejected" | "Withdrawn";
 export type LocationRole = "Owner" | "Admin" | "Manager" | "Member" | "Applicant";
 
 export interface ParticipantDto {
@@ -130,8 +130,8 @@ export interface CreateLocationRequest {
 }
 
 export const GameJoinMode = {
-  ApprovalRequired: 0,
-  FirstComeFirstServe: 1,
+  ApprovalRequired: "ApprovalRequired",
+  FirstComeFirstServe: "FirstComeFirstServe",
 } as const;
 
 export interface UserSearchResponse {

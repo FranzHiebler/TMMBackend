@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   GameJoinMode,
   type CreateGameRequest,
@@ -37,13 +37,8 @@ export default function CreateGameForm() {
   const [error, setError] = useState("");
   const [joinMode, setJoinMode] = useState<GameJoinMode>(GameJoinMode.FirstComeFirstServe);
 
-  useEffect(() => {
-    loadInitialData();
-  }, [user.userId]);
-
-  async function loadInitialData() {
+  const loadInitialData = useCallback(async () => {
     try {
-      setError("");
       const [locationData, systemData] = await Promise.all([
         getMyLocations(user),
         getSystems(),
@@ -53,7 +48,12 @@ export default function CreateGameForm() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Daten konnten nicht geladen werden");
     }
-  }
+  }, [user]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadInitialData();
+  }, [loadInitialData]);
 
   function updateTable(index: number, patch: Partial<CreateGameTableRequest>) {
     setTables((prev) => prev.map((table, i) => (i === index ? { ...table, ...patch } : table)));
@@ -140,7 +140,7 @@ export default function CreateGameForm() {
           onCreateClick={() => setShowLocationModal(true)}
         />
 
-        <select value={joinMode} onChange={(e) => setJoinMode(Number(e.target.value) as GameJoinMode)}>
+        <select value={joinMode} onChange={(e) => setJoinMode(e.target.value as GameJoinMode)}>
           <option value={GameJoinMode.FirstComeFirstServe}>First Come First Serve</option>
           <option value={GameJoinMode.ApprovalRequired}>Approval Required</option>
         </select>

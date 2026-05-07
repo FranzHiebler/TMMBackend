@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { getAllGames } from "../api/gamesService";
 import { useJoinGame } from "../api/useJoinGame";
 import GameList from "../components/GameList";
@@ -60,21 +60,20 @@ export default function GamesPage() {
   const [systemFilter, setSystemFilter] = useState("");
   const [viewFilter, setViewFilter] = useState<ViewFilter>("all");
 
-  async function loadGames() {
+  const loadGames = useCallback(async () => {
     try {
-      setLoading(true);
-      setError("");
       setGames(await getAllGames());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Games konnten nicht geladen werden.");
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
-    loadGames();
-  }, []);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadGames();
+  }, [loadGames]);
 
   function handleJoined(gameId: string, tableId: string) {
     setGames((prev) =>
@@ -128,7 +127,7 @@ export default function GamesPage() {
                           },
                           systemKey: systemKey ?? null,
                           message: null,
-                          status: 0,
+                          status: "Pending",
                           createdAt: new Date().toISOString(),
                         },
                       ],

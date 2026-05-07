@@ -8,36 +8,35 @@ type Props = {
   onChange: (lat: number, lng: number) => void;
 };
 
+function ClickHandler({ latitude, longitude, onChange }: Props) {
+  useMapEvents({
+    click(e) {
+      onChange(e.latlng.lat, e.latlng.lng);
+    },
+  });
+
+  return latitude != null && longitude != null ? (
+    <Marker position={[latitude, longitude]} />
+  ) : null;
+}
+
+function FlyToLocation({ latitude, longitude }: Pick<Props, "latitude" | "longitude">) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (latitude != null && longitude != null) {
+      map.setView([latitude, longitude], 14);
+    }
+  }, [latitude, longitude, map]);
+
+  return null;
+}
+
 export default function LocationPicker({ latitude, longitude, onChange }: Props) {
   const position: LatLngExpression = [
     latitude ?? 50.5558,
     longitude ?? 9.6808,
   ];
-
-  function ClickHandler() {
-    useMapEvents({
-      click(e) {
-        onChange(e.latlng.lat, e.latlng.lng);
-      },
-    });
-
-    return latitude != null && longitude != null ? (
-      <Marker position={[latitude, longitude]} />
-    ) : null;
-  }
-
-
-  function FlyToLocation({ latitude, longitude }: { latitude: number | null; longitude: number | null }) {
-    const map = useMap();
-
-    useEffect(() => {
-      if (latitude && longitude) {
-        map.setView([latitude, longitude], 14); // oder flyTo
-      }
-    }, [latitude, longitude]);
-
-    return null;
-  }
 
   return (
     <div style={{ height: 300, marginTop: 12 }}>
@@ -46,7 +45,7 @@ export default function LocationPicker({ latitude, longitude, onChange }: Props)
           attribution="&copy; OpenStreetMap"
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <ClickHandler />
+        <ClickHandler latitude={latitude} longitude={longitude} onChange={onChange} />
         <FlyToLocation latitude={latitude} longitude={longitude} />
       </MapContainer>
     </div>

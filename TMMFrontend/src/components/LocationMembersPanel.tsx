@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   getLocationMembers,
   removeLocationMember,
@@ -41,20 +41,24 @@ export default function LocationMembersPanel({ location }: Props) {
     return users.filter((u) => !members.some((m) => m.userId === u.userId));
   }, [users, members]);
 
-  async function loadMembers() {
+  const effectiveSelectedUserId =
+    selectedUserId && availableUsers.some((u) => u.userId === selectedUserId)
+      ? selectedUserId
+      : availableUsers[0]?.userId ?? "";
+
+  const loadMembers = useCallback(async () => {
     if (!location) return;
     setMembers(await getLocationMembers(location.id, user));
-  }
+  }, [location, user]);
 
-  async function loadUsers() {
+  const loadUsers = useCallback(async () => {
     setUsers(await searchUsers(""));
-  }
+  }, []);
 
   useEffect(() => {
     if (!location) return;
 
     async function init() {
-      setError("");
       await loadMembers();
 
       if (canEdit) {
@@ -65,23 +69,12 @@ export default function LocationMembersPanel({ location }: Props) {
     init().catch((err) =>
       setError(err instanceof Error ? err.message : "Daten konnten nicht geladen werden")
     );
-  }, [location?.id, location?.role, user.userId]);
-
-  useEffect(() => {
-    if (!selectedUserId && availableUsers.length > 0) {
-      setSelectedUserId(availableUsers[0].userId);
-      return;
-    }
-
-    if (selectedUserId && !availableUsers.some((u) => u.userId === selectedUserId)) {
-      setSelectedUserId(availableUsers[0]?.userId ?? "");
-    }
-  }, [availableUsers, selectedUserId]);
+  }, [canEdit, loadMembers, loadUsers, location]);
 
   async function addMember() {
     if (!location) return;
 
-    const selected = users.find((x) => x.userId === selectedUserId);
+    const selected = users.find((x) => x.userId === effectiveSelectedUserId);
     if (!selected) return;
 
     await upsertLocationMember(
@@ -176,7 +169,7 @@ export default function LocationMembersPanel({ location }: Props) {
           {availableUsers.length > 0 ? (
             <div className="member-edit-row">
               <select
-                value={selectedUserId}
+                value={effectiveSelectedUserId}
                 onChange={(e) => setSelectedUserId(e.target.value)}
               >
                 {availableUsers.map((u) => (
@@ -198,7 +191,7 @@ export default function LocationMembersPanel({ location }: Props) {
                 ))}
               </select>
 
-              <button type="button" onClick={addMember} disabled={!selectedUserId}>
+              <button type="button" onClick={addMember} disabled={!effectiveSelectedUserId}>
                 Mitglied hinzufügen
               </button>
             </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getMyLocations } from "../api/gamesService";
 import type { LocationResponse } from "../types/game";
 import LocationList from "../components/LocationList";
@@ -14,15 +14,8 @@ export default function LocationsPage() {
   const [error, setError] = useState("");
   const [editLocation, setEditLocation] = useState<LocationResponse | null>(null);
 
-  useEffect(() => {
-    loadLocations();
-  }, [user.userId]);
-
-  async function loadLocations() {
+  const loadLocations = useCallback(async () => {
     try {
-      setLoading(true);
-      setError("");
-
       const data = await getMyLocations(user);
       setLocations(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -31,7 +24,12 @@ export default function LocationsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [user]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadLocations();
+  }, [loadLocations]);
 
   return (
     <div className="container">

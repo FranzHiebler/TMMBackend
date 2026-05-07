@@ -199,6 +199,7 @@ public class GameService : IGameService
 
 			if (application == null) return false;
 			if (application.Status != ApplicationStatus.Pending) return false;
+			if (!SystemMatches(table.Systems, application.SystemKey)) return false;
 
 			player = application.Player;
 		}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { CreateLocationRequest, LocationResponse } from "../types/game";
 import { createLocation, updateLocation } from "../api/gamesService";
 import "leaflet/dist/leaflet.css";
@@ -60,7 +60,7 @@ export default function LocationModal({ onClose, onCreated, location }: Props) {
     }
   }
 
-  async function searchAddress() {
+  const searchAddress = useCallback(async () => {
     const query = `${address}, ${city}, Deutschland`.trim();
     if (query.length < 5) return;
 
@@ -82,7 +82,7 @@ export default function LocationModal({ onClose, onCreated, location }: Props) {
     } catch {
       setError("Adresse konnte nicht gesucht werden.");
     }
-  }
+  }, [address, city]);
 
   useEffect(() => {
     if (!city && !address) return;
@@ -92,7 +92,7 @@ export default function LocationModal({ onClose, onCreated, location }: Props) {
     }, 800);
 
     return () => window.clearTimeout(timeout);
-  }, [city, address]);
+  }, [city, address, searchAddress]);
 
   return (
     <div className="modal-backdrop">
