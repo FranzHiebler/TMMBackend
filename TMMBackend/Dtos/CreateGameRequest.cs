@@ -1,6 +1,6 @@
-﻿using TMMBackend.Domain;
+﻿using TabletopMatchMaker.Domain;
 
-namespace TMMBackend.Dtos;
+namespace TabletopMatchMaker.Dtos;
 
 public class CreateGameRequest
 {

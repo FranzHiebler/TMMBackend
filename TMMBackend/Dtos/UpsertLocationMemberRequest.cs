@@ -1,10 +1,10 @@
-﻿using TMMBackend.Domain;
+﻿using TabletopMatchMaker.Domain;
 
-namespace TMMBackend.Dtos;
+namespace TabletopMatchMaker.Dtos;
 
 public class UpsertLocationMemberRequest
 {
 	public string UserId { get; set; } = default!;
-	public string DisplayName { get; set; } = default!; // erstmal für später/UI
+	public string DisplayName { get; set; } = default!;
 	public LocationRole Role { get; set; }
 }

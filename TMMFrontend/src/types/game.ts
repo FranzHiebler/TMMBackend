@@ -1,5 +1,5 @@
 export type ApplicationStatus = 0 | 1 | 2 | 3;
-export type LocationRole = "Owner" | "Manager" | "Member";
+export type LocationRole = "Owner" | "Admin" | "Manager" | "Member" | "Applicant";
 
 export interface ParticipantDto {
   userId: string;
@@ -117,7 +117,7 @@ export interface LocationResponse {
   address?: string | null;
   latitude?: number | null;
   longitude?: number | null;
-  role?: "Owner" | "Manager" | "Member" | null;
+  role?: LocationRole | null;
   isOpen?: boolean;
 }
 
@@ -133,6 +133,12 @@ export const GameJoinMode = {
   ApprovalRequired: 0,
   FirstComeFirstServe: 1,
 } as const;
+
+export interface UserSearchResponse {
+  userId: string;
+  displayName: string;
+  email?: string | null;
+}
 
 export type GameJoinMode =
   typeof GameJoinMode[keyof typeof GameJoinMode];

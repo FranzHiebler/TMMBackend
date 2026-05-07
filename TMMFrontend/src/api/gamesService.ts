@@ -10,6 +10,7 @@ import type {
   LocationMemberResponse,
   UpsertLocationMemberRequest,
   SystemOption,
+  UserSearchResponse,
 } from "../types/game";
 import type { User } from "../context/UserContext";
 
@@ -156,4 +157,20 @@ export async function removeLocationMember(locationId: string, userId: string): 
   });
 
   if (!res.ok) throw new Error(await res.text() || `Mitglied entfernen fehlgeschlagen`);
+}
+
+export async function searchUsers(query: string): Promise<UserSearchResponse[]> {
+  const params = new URLSearchParams();
+
+  if (query.trim()) {
+    params.append("query", query.trim());
+  }
+
+  const res = await fetch(`${API}/Users/search?${params.toString()}`);
+
+  if (!res.ok) {
+    throw new Error(`User-Suche fehlgeschlagen: HTTP ${res.status}`);
+  }
+
+  return res.json();
 }

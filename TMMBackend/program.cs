@@ -1,10 +1,9 @@
-﻿using TabletopMatchMaker.Infrastructure;
+﻿using System.Text.Json.Serialization;
+using TabletopMatchMaker.Infrastructure;
 using TabletopMatchMaker.Repositories;
 using TabletopMatchMaker.Repositories.Interfaces;
 using TabletopMatchMaker.Services;
 using TabletopMatchMaker.Services.Interfaces;
-using TMMBackend.Services.Interfaces;
-using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,6 +29,7 @@ builder.Services.AddCors(options =>
 // Dependency Injection
 builder.Services.AddScoped<IGameRepository, GameRepository>();
 builder.Services.AddScoped<IGameService, GameService>();
+builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<LocationRepository>();
 builder.Services.AddScoped<SystemRepository>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();

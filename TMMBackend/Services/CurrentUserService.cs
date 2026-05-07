@@ -1,4 +1,6 @@
-﻿using TMMBackend.Services.Interfaces;
+﻿using TabletopMatchMaker.Services.Interfaces;
+
+namespace TabletopMatchMaker.Services;
 
 public class CurrentUserService : ICurrentUserService
 {

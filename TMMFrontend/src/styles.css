@@ -190,7 +190,7 @@ nav a:hover {
   min-width: 0;
 }
 
-.location-members-side > .card {
+.location-members-side>.card {
   margin: 0;
   background: #f9fafb;
 }
@@ -260,5 +260,11 @@ nav a:hover {
   .member-row,
   .member-edit-row {
     grid-template-columns: 1fr;
+  }
+
+  .member-edit-block {
+    display: grid;
+    gap: 12px;
+    margin-top: 16px;
   }
 }

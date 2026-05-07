@@ -1,7 +1,7 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver.GeoJsonObjectModel;
-using TMMBackend.Domain;
+using TabletopMatchMaker.Domain;
 
 namespace TabletopMatchMaker.Domain;
 

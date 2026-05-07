@@ -2,8 +2,8 @@
 using TabletopMatchMaker.Dtos;
 using TabletopMatchMaker.Services;
 using TabletopMatchMaker.Services.Interfaces;
-using TMMBackend.Dtos;
-using TMMBackend.Services;
+using TabletopMatchMaker.Dtos;
+using TabletopMatchMaker.Services;
 
 namespace TabletopMatchMaker.Controllers;
 

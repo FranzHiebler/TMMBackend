@@ -4,15 +4,15 @@ using MongoDB.Bson.Serialization.Attributes;
 namespace TabletopMatchMaker.Domain;
 
 [BsonIgnoreExtraElements]
-public class LocationMember
+public class UserProfile
 {
-	[BsonElement("userId")]
+	[BsonId]
 	[BsonRepresentation(BsonType.ObjectId)]
-	public string? UserId { get; set; }
+	public string? Id { get; set; }
 
 	[BsonElement("displayName")]
 	public string DisplayName { get; set; } = default!;
 
-	[BsonElement("role")]
-	public LocationRole Role { get; set; }
+	[BsonElement("email")]
+	public string? Email { get; set; }
 }

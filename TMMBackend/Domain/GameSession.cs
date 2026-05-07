@@ -1,6 +1,6 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
-using TMMBackend.Domain;
+using TabletopMatchMaker.Domain;
 
 namespace TabletopMatchMaker.Domain;
 

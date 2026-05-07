@@ -1,4 +1,4 @@
-﻿namespace TMMBackend.Domain
+﻿namespace TabletopMatchMaker.Domain
 {
 	public enum LocationAccessMode
 	{

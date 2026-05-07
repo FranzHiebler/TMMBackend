@@ -1,9 +1,11 @@
-﻿namespace TMMBackend.Domain
+﻿namespace TabletopMatchMaker.Domain
 {
 	public enum LocationRole
 	{
 		Owner,
+		Admin,
 		Manager,
-		Member
+		Member,
+		Applicant
 	}
 }

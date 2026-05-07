@@ -1,4 +1,4 @@
-﻿using TMMBackend.Domain;
+﻿using TabletopMatchMaker.Domain;
 
 namespace TabletopMatchMaker.Dtos;
 

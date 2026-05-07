@@ -3,9 +3,6 @@ using TabletopMatchMaker.Dtos;
 using TabletopMatchMaker.Repositories;
 using TabletopMatchMaker.Repositories.Interfaces;
 using TabletopMatchMaker.Services.Interfaces;
-using TMMBackend.Domain;
-using TMMBackend.Dtos;
-using TMMBackend.Services.Interfaces;
 
 namespace TabletopMatchMaker.Services;
 
@@ -32,11 +29,13 @@ public class GameService : IGameService
 		if (location == null)
 			throw new Exception("Location not found");
 
-		var isMember = location.Members.Any(m => m.UserId == _currentUser.UserId);
+		var hasUsableRole = location.Members.Any(m =>
+			m.UserId == _currentUser.UserId &&
+			m.Role != LocationRole.Applicant);
 
 		var allowed =
 			location.AccessMode == LocationAccessMode.Open ||
-			isMember;
+			hasUsableRole;
 
 		if (!allowed)
 			throw new Exception("Not allowed to create game at this location");

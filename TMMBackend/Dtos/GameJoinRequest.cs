@@ -1,4 +1,4 @@
-﻿namespace TMMBackend.Dtos;
+﻿namespace TabletopMatchMaker.Dtos;
 
 public class JoinTableRequest
 {

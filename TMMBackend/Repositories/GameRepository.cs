@@ -4,7 +4,7 @@ using TabletopMatchMaker.Domain;
 using TabletopMatchMaker.Dtos;
 using TabletopMatchMaker.Infrastructure;
 using TabletopMatchMaker.Repositories.Interfaces;
-using TMMBackend.Domain;
+using TabletopMatchMaker.Domain;
 
 namespace TabletopMatchMaker.Repositories;
 

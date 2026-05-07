@@ -1,4 +1,4 @@
-﻿namespace TMMBackend.Services.Interfaces
+﻿namespace TabletopMatchMaker.Services.Interfaces
 {
 	public interface ICurrentUserService
 	{
