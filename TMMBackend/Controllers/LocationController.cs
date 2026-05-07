@@ -2,7 +2,6 @@
 using MongoDB.Driver.GeoJsonObjectModel;
 using TabletopMatchMaker.Domain;
 using TabletopMatchMaker.Repositories;
-using TabletopMatchMaker.Domain;
 using TabletopMatchMaker.Dtos;
 using TabletopMatchMaker.Services.Interfaces;
 

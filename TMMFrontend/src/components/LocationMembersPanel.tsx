@@ -11,6 +11,7 @@ import type {
   LocationRole,
   UserSearchResponse,
 } from "../types/game";
+import { useUser } from "../context/UserContext";
 
 type Props = {
   location?: LocationResponse;
@@ -20,6 +21,8 @@ const ownerAssignableRoles: LocationRole[] = ["Admin", "Manager", "Member", "App
 const adminAssignableRoles: LocationRole[] = ["Manager", "Member", "Applicant"];
 
 export default function LocationMembersPanel({ location }: Props) {
+  const user = useUser();
+
   const [members, setMembers] = useState<LocationMemberResponse[]>([]);
   const [users, setUsers] = useState<UserSearchResponse[]>([]);
   const [selectedUserId, setSelectedUserId] = useState("");
@@ -40,7 +43,7 @@ export default function LocationMembersPanel({ location }: Props) {
 
   async function loadMembers() {
     if (!location) return;
-    setMembers(await getLocationMembers(location.id));
+    setMembers(await getLocationMembers(location.id, user));
   }
 
   async function loadUsers() {
@@ -51,6 +54,7 @@ export default function LocationMembersPanel({ location }: Props) {
     if (!location) return;
 
     async function init() {
+      setError("");
       await loadMembers();
 
       if (canEdit) {
@@ -61,7 +65,7 @@ export default function LocationMembersPanel({ location }: Props) {
     init().catch((err) =>
       setError(err instanceof Error ? err.message : "Daten konnten nicht geladen werden")
     );
-  }, [location?.id, canEdit]);
+  }, [location?.id, location?.role, user.userId]);
 
   useEffect(() => {
     if (!selectedUserId && availableUsers.length > 0) {
@@ -77,14 +81,18 @@ export default function LocationMembersPanel({ location }: Props) {
   async function addMember() {
     if (!location) return;
 
-    const user = users.find((x) => x.userId === selectedUserId);
-    if (!user) return;
+    const selected = users.find((x) => x.userId === selectedUserId);
+    if (!selected) return;
 
-    await upsertLocationMember(location.id, {
-      userId: user.userId,
-      displayName: user.displayName,
-      role,
-    });
+    await upsertLocationMember(
+      location.id,
+      {
+        userId: selected.userId,
+        displayName: selected.displayName,
+        role,
+      },
+      user
+    );
 
     setRole("Member");
     await loadMembers();
@@ -94,11 +102,15 @@ export default function LocationMembersPanel({ location }: Props) {
   async function changeRole(member: LocationMemberResponse, newRole: LocationRole) {
     if (!location) return;
 
-    await upsertLocationMember(location.id, {
-      userId: member.userId,
-      displayName: member.displayName || member.userId,
-      role: newRole,
-    });
+    await upsertLocationMember(
+      location.id,
+      {
+        userId: member.userId,
+        displayName: member.displayName || member.userId,
+        role: newRole,
+      },
+      user
+    );
 
     await loadMembers();
   }
@@ -106,7 +118,7 @@ export default function LocationMembersPanel({ location }: Props) {
   async function remove(userId: string) {
     if (!location) return;
 
-    await removeLocationMember(location.id, userId);
+    await removeLocationMember(location.id, userId, user);
     await loadMembers();
     await loadUsers();
   }

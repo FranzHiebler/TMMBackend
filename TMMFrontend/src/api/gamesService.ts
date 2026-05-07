@@ -14,14 +14,7 @@ import type {
 } from "../types/game";
 import type { User } from "../context/UserContext";
 
-
 const API = import.meta.env.VITE_API_BASE_URL;
-
-export async function getAllGames(): Promise<GameResponse[]> {
-  const res = await fetch(`${API}/Games/search?OnlyOpen=false`);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
-}
 
 function authHeaders(user?: User): HeadersInit {
   return {
@@ -35,14 +28,23 @@ function authHeaders(user?: User): HeadersInit {
   };
 }
 
-export async function createGame(request: CreateGameRequest): Promise<GameResponse> {
+export async function getAllGames(): Promise<GameResponse[]> {
+  const res = await fetch(`${API}/Games/search?OnlyOpen=false`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+export async function createGame(
+  request: CreateGameRequest,
+  user: User
+): Promise<GameResponse> {
   const res = await fetch(`${API}/Games`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(user),
     body: JSON.stringify(request),
   });
 
-  if (!res.ok) throw new Error(await res.text() || `HTTP ${res.status}`);
+  if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
   return res.json();
 }
 
@@ -52,8 +54,11 @@ export async function getLocations(): Promise<LocationOption[]> {
   return res.json();
 }
 
-export async function getMyLocations(): Promise<LocationResponse[]> {
-  const res = await fetch(`${API}/Locations/mine`);
+export async function getMyLocations(user: User): Promise<LocationResponse[]> {
+  const res = await fetch(`${API}/Locations/mine`, {
+    headers: authHeaders(user),
+  });
+
   if (!res.ok) throw new Error(`Locations fehlgeschlagen: HTTP ${res.status}`);
   return res.json();
 }
@@ -76,7 +81,7 @@ export async function joinTable(
     body: JSON.stringify(request),
   });
 
-  if (!res.ok) throw new Error(await res.text() || "Join fehlgeschlagen");
+  if (!res.ok) throw new Error((await res.text()) || "Join fehlgeschlagen");
 }
 
 export async function applyToGame(
@@ -90,7 +95,7 @@ export async function applyToGame(
     body: JSON.stringify(request),
   });
 
-  if (!res.ok) throw new Error(await res.text() || "Bewerbung fehlgeschlagen");
+  if (!res.ok) throw new Error((await res.text()) || "Bewerbung fehlgeschlagen");
 }
 
 export async function searchNearbyGames(
@@ -110,11 +115,12 @@ export async function searchNearbyGames(
 }
 
 export async function createLocation(
-  request: CreateLocationRequest
+  request: CreateLocationRequest,
+  user: User
 ): Promise<LocationResponse> {
   const res = await fetch(`${API}/Locations`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(user),
     body: JSON.stringify(request),
   });
 
@@ -122,41 +128,57 @@ export async function createLocation(
   return res.json();
 }
 
-export async function updateLocation(id: string, request: CreateLocationRequest) {
+export async function updateLocation(
+  id: string,
+  request: CreateLocationRequest,
+  user: User
+): Promise<void> {
   const res = await fetch(`${API}/Locations/${id}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(user),
     body: JSON.stringify(request),
   });
 
   if (!res.ok) throw new Error(`Location aktualisieren fehlgeschlagen: HTTP ${res.status}`);
 }
 
-export async function getLocationMembers(locationId: string): Promise<LocationMemberResponse[]> {
-  const res = await fetch(`${API}/Locations/${locationId}/members`);
+export async function getLocationMembers(
+  locationId: string,
+  user: User
+): Promise<LocationMemberResponse[]> {
+  const res = await fetch(`${API}/Locations/${locationId}/members`, {
+    headers: authHeaders(user),
+  });
+
   if (!res.ok) throw new Error(`Mitglieder laden fehlgeschlagen: HTTP ${res.status}`);
   return res.json();
 }
 
 export async function upsertLocationMember(
   locationId: string,
-  request: UpsertLocationMemberRequest
+  request: UpsertLocationMemberRequest,
+  user: User
 ): Promise<void> {
   const res = await fetch(`${API}/Locations/${locationId}/members`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(user),
     body: JSON.stringify(request),
   });
 
-  if (!res.ok) throw new Error(await res.text() || `Mitglied speichern fehlgeschlagen`);
+  if (!res.ok) throw new Error((await res.text()) || "Mitglied speichern fehlgeschlagen");
 }
 
-export async function removeLocationMember(locationId: string, userId: string): Promise<void> {
+export async function removeLocationMember(
+  locationId: string,
+  userId: string,
+  user: User
+): Promise<void> {
   const res = await fetch(`${API}/Locations/${locationId}/members/${userId}`, {
     method: "DELETE",
+    headers: authHeaders(user),
   });
 
-  if (!res.ok) throw new Error(await res.text() || `Mitglied entfernen fehlgeschlagen`);
+  if (!res.ok) throw new Error((await res.text()) || "Mitglied entfernen fehlgeschlagen");
 }
 
 export async function searchUsers(query: string): Promise<UserSearchResponse[]> {

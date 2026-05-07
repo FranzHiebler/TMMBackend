@@ -3,92 +3,86 @@ import type { CreateLocationRequest, LocationResponse } from "../types/game";
 import { createLocation, updateLocation } from "../api/gamesService";
 import "leaflet/dist/leaflet.css";
 import LocationPicker from "./LocationPicker";
+import { useUser } from "../context/UserContext";
 
 type Props = {
   onClose: () => void;
   onCreated: (location: LocationResponse) => void;
-  location?: LocationResponse; 
+  location?: LocationResponse;
 };
 
 export default function LocationModal({ onClose, onCreated, location }: Props) {
+  const user = useUser();
+
   const [name, setName] = useState(location?.name ?? "");
   const [city, setCity] = useState(location?.city ?? "");
   const [address, setAddress] = useState(location?.address ?? "");
   const [latitude, setLatitude] = useState<number | null>(location?.latitude ?? null);
   const [longitude, setLongitude] = useState<number | null>(location?.longitude ?? null);
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const isValid = name.trim() && city.trim() && address.trim() && latitude != null && longitude != null;
 
-  const isValid =
-    name.trim() &&
-    city.trim() &&
-    address.trim() &&
-    latitude != null &&
-    longitude != null;
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
 
-
-
-async function handleSubmit(e: React.FormEvent) {
-  e.preventDefault();
-
-  if (!name || !city || !address || latitude == null || longitude == null) {
-    setError("Bitte Name, Stadt, Adresse und Standort eingeben.");
-    return;
-  }
-
-  const request: CreateLocationRequest = {
-    name,
-    city,
-    address,
-    latitude,
-    longitude,
-  };
-
-  try {
-    setLoading(true);
-    setError("");
-
-    if (location) {
-      await updateLocation(location.id, request);
-      onCreated({ ...location, ...request });
-    } else {
-      const created = await createLocation(request);
-      onCreated(created);
-    }
-
-    onClose();
-  } catch (err) {
-    setError(err instanceof Error ? err.message : "Fehler beim Speichern");
-  } finally {
-    setLoading(false);
-  }
-}
-
-async function searchAddress() {
-  const query = `${address}, ${city}, Deutschland`.trim();
-  if (query.length < 5) return;
-
-  try {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&countrycodes=de&q=${encodeURIComponent(query)}&limit=1`
-    );
-
-    const data = await res.json();
-
-    if (!data.length) {
-      setError("Adresse nicht gefunden. Bitte Marker manuell auf der Karte setzen.");
+    if (!isValid) {
+      setError("Bitte Name, Stadt, Adresse und Standort eingeben.");
       return;
     }
 
-    setError("");
-    setLatitude(Number(data[0].lat));
-    setLongitude(Number(data[0].lon));
-  } catch {
-    setError("Adresse konnte nicht gesucht werden.");
+    const request: CreateLocationRequest = {
+      name,
+      city,
+      address,
+      latitude,
+      longitude,
+    };
+
+    try {
+      setLoading(true);
+      setError("");
+
+      if (location) {
+        await updateLocation(location.id, request, user);
+        onCreated({ ...location, ...request });
+      } else {
+        const created = await createLocation(request, user);
+        onCreated(created);
+      }
+
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Fehler beim Speichern");
+    } finally {
+      setLoading(false);
+    }
   }
-}
+
+  async function searchAddress() {
+    const query = `${address}, ${city}, Deutschland`.trim();
+    if (query.length < 5) return;
+
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&countrycodes=de&q=${encodeURIComponent(query)}&limit=1`
+      );
+
+      const data = await res.json();
+
+      if (!data.length) {
+        setError("Adresse nicht gefunden. Bitte Marker manuell setzen.");
+        return;
+      }
+
+      setError("");
+      setLatitude(Number(data[0].lat));
+      setLongitude(Number(data[0].lon));
+    } catch {
+      setError("Adresse konnte nicht gesucht werden.");
+    }
+  }
 
   useEffect(() => {
     if (!city && !address) return;
@@ -105,11 +99,12 @@ async function searchAddress() {
       <div className="modal">
         <h2>{location ? "Location bearbeiten" : "Neue Location"}</h2>
 
-        {error && <div className="error">{error}</div>}
+        {error && <div className="message message-error">{error}</div>}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="form">
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name der Location" />
           <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Stadt" />
+
           <input
             value={address}
             onChange={(e) => {
@@ -120,20 +115,13 @@ async function searchAddress() {
             placeholder="Straße, Hausnummer"
           />
 
-          <LocationPicker
-            latitude={latitude}
-            longitude={longitude}
-            onChange={(lat, lng) => {
-              setLatitude(lat);
-              setLongitude(lng);
-            }}
-          />          
+          <LocationPicker latitude={latitude} longitude={longitude} onChange={(lat, lng) => {
+            setLatitude(lat);
+            setLongitude(lng);
+          }} />
 
           <div className="modal-actions">
-            <button type="button" onClick={onClose}>
-              Abbrechen
-            </button>
-
+            <button type="button" onClick={onClose}>Abbrechen</button>
             <button type="submit" disabled={loading || !isValid}>
               {loading ? "Speichert..." : "Speichern"}
             </button>

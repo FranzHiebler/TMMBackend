@@ -9,6 +9,7 @@ import {
 import { createGame, getMyLocations, getSystems } from "../api/gamesService";
 import LocationSelect from "./LocationSelect";
 import LocationModal from "./LocationModal";
+import { useUser } from "../context/UserContext";
 
 function newTable(index: number): CreateGameTableRequest {
   return {
@@ -22,31 +23,29 @@ function newTable(index: number): CreateGameTableRequest {
 }
 
 export default function CreateGameForm() {
+  const user = useUser();
+
   const [locations, setLocations] = useState<LocationResponse[]>([]);
   const [systems, setSystems] = useState<SystemOption[]>([]);
-
   const [locationId, setLocationId] = useState("");
   const [showLocationModal, setShowLocationModal] = useState(false);
-
   const [title, setTitle] = useState("");
   const [startTime, setStartTime] = useState("");
   const [description, setDescription] = useState("");
   const [tables, setTables] = useState<CreateGameTableRequest[]>([newTable(1)]);
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
-  const [joinMode, setJoinMode] = useState<GameJoinMode>(GameJoinMode.FirstComeFirstServe)
+  const [joinMode, setJoinMode] = useState<GameJoinMode>(GameJoinMode.FirstComeFirstServe);
 
   useEffect(() => {
     loadInitialData();
-  }, []);
+  }, [user.userId]);
 
   async function loadInitialData() {
     try {
       setError("");
       const [locationData, systemData] = await Promise.all([
-        getMyLocations(),
+        getMyLocations(user),
         getSystems(),
       ]);
       setLocations(locationData);
@@ -57,9 +56,7 @@ export default function CreateGameForm() {
   }
 
   function updateTable(index: number, patch: Partial<CreateGameTableRequest>) {
-    setTables((prev) =>
-      prev.map((table, i) => (i === index ? { ...table, ...patch } : table))
-    );
+    setTables((prev) => prev.map((table, i) => (i === index ? { ...table, ...patch } : table)));
   }
 
   function addTable() {
@@ -94,12 +91,7 @@ export default function CreateGameForm() {
       return;
     }
 
-    if (tables.length === 0) {
-      setError("Mindestens ein Tisch ist erforderlich.");
-      return;
-    }
-
-    if (tables.some((t) => !t.name || t.maxPlayers < 1)) {
+    if (tables.length === 0 || tables.some((t) => !t.name || t.maxPlayers < 1)) {
       setError("Jeder Tisch braucht Name und mindestens 1 Spieler.");
       return;
     }
@@ -122,7 +114,7 @@ export default function CreateGameForm() {
     try {
       setLoading(true);
       setError("");
-      await createGame(request);
+      await createGame(request, user);
       alert("Game Session wurde erstellt.");
       setTitle("");
       setDescription("");
@@ -153,27 +145,15 @@ export default function CreateGameForm() {
           <option value={GameJoinMode.ApprovalRequired}>Approval Required</option>
         </select>
 
-        <input
-          type="datetime-local"
-          value={startTime}
-          onChange={(e) => setStartTime(e.target.value)}
-        />
+        <input type="datetime-local" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
 
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Beschreibung"
-        />
+        <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Beschreibung" />
 
         <h2>Tische</h2>
 
         {tables.map((table, index) => (
-          <div key={index} className="card">
-            <input
-              value={table.name}
-              onChange={(e) => updateTable(index, { name: e.target.value })}
-              placeholder="Tischname"
-            />
+          <div key={index} className="card form">
+            <input value={table.name} onChange={(e) => updateTable(index, { name: e.target.value })} placeholder="Tischname" />
 
             <input
               type="number"
@@ -185,7 +165,8 @@ export default function CreateGameForm() {
 
             <div>
               <b>Systeme:</b>
-              <label style={{ marginLeft: 8 }}>
+
+              <label>
                 <input
                   type="checkbox"
                   checked={table.systems.includes("egal")}
@@ -195,7 +176,7 @@ export default function CreateGameForm() {
               </label>
 
               {systems.map((s) => (
-                <label key={s.key} style={{ marginLeft: 8 }}>
+                <label key={s.key}>
                   <input
                     type="checkbox"
                     checked={table.systems.includes(s.key)}
@@ -207,28 +188,16 @@ export default function CreateGameForm() {
               ))}
             </div>
 
-            <input
-              value={table.scenario ?? ""}
-              onChange={(e) => updateTable(index, { scenario: e.target.value })}
-              placeholder="Szenario optional"
-            />
+            <input value={table.scenario ?? ""} onChange={(e) => updateTable(index, { scenario: e.target.value })} placeholder="Szenario optional" />
 
             <input
               type="number"
               value={table.points ?? ""}
-              onChange={(e) =>
-                updateTable(index, {
-                  points: e.target.value ? Number(e.target.value) : null,
-                })
-              }
+              onChange={(e) => updateTable(index, { points: e.target.value ? Number(e.target.value) : null })}
               placeholder="Punkte optional"
             />
 
-            <input
-              value={table.notes ?? ""}
-              onChange={(e) => updateTable(index, { notes: e.target.value })}
-              placeholder="Notizen optional"
-            />
+            <input value={table.notes ?? ""} onChange={(e) => updateTable(index, { notes: e.target.value })} placeholder="Notizen optional" />
 
             {tables.length > 1 && (
               <button type="button" onClick={() => removeTable(index)}>
@@ -238,9 +207,7 @@ export default function CreateGameForm() {
           </div>
         ))}
 
-        <button type="button" onClick={addTable}>
-          + Tisch hinzufügen
-        </button>
+        <button type="button" onClick={addTable}>+ Tisch hinzufügen</button>
 
         <button type="submit" disabled={loading}>
           {loading ? "Speichere..." : "Game Session erstellen"}
