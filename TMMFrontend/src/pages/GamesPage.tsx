@@ -62,6 +62,7 @@ export default function GamesPage() {
 
   const loadGames = useCallback(async () => {
     try {
+      setError("");
       setGames(await getAllGames());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Games konnten nicht geladen werden.");
@@ -71,80 +72,17 @@ export default function GamesPage() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadGames();
   }, [loadGames]);
 
-  function handleJoined(gameId: string, tableId: string) {
-    setGames((prev) =>
-      prev.map((game) =>
-        game.id !== gameId
-          ? game
-          : {
-              ...game,
-              assignedPlayers: game.assignedPlayers + 1,
-              openSlots: Math.max(0, game.openSlots - 1),
-              tables: game.tables.map((table) =>
-                table.id !== tableId
-                  ? table
-                  : {
-                      ...table,
-                      openSlots: Math.max(0, table.openSlots - 1),
-                      assignedPlayers: [
-                        ...table.assignedPlayers,
-                        {
-                          userId: user.userId,
-                          displayName: user.displayName,
-                        },
-                      ],
-                    }
-              ),
-            }
-      )
-    );
-  }
-
-  function handleApplied(gameId: string, tableId: string, systemKey?: string) {
-    setGames((prev) =>
-      prev.map((game) =>
-        game.id !== gameId
-          ? game
-          : {
-              ...game,
-              tables: game.tables.map((table) =>
-                table.id !== tableId
-                  ? table
-                  : {
-                      ...table,
-                      applications: [
-                        ...table.applications,
-                        {
-                          id: `local-${Date.now()}`,
-                          tableId,
-                          player: {
-                            userId: user.userId,
-                            displayName: user.displayName,
-                          },
-                          systemKey: systemKey ?? null,
-                          message: null,
-                          status: "Pending",
-                          createdAt: new Date().toISOString(),
-                        },
-                      ],
-                    }
-              ),
-            }
-      )
-    );
-  }
-
   function handleGameUpdated(updatedGame: GameResponse) {
-    setGames((prev) => prev.map((game) => (game.id === updatedGame.id ? updatedGame : game)));
+    setGames((prev) =>
+      prev.map((game) => (game.id === updatedGame.id ? updatedGame : game))
+    );
   }
 
-  const { join, joiningKey, errorMessage, successMessage,messageByKey  } = useJoinGame({
-    onJoined: handleJoined,
-    onApplied: handleApplied,
+  const { join, joiningKey, errorMessage, successMessage, messageByKey } = useJoinGame({
+    onGameUpdated: handleGameUpdated,
   });
 
   const filteredGames = useMemo(() => {

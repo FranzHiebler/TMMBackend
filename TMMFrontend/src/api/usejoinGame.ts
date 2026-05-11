@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { applyToGame, joinTable } from "./gamesService";
+import { applyToGame, getGameById, joinTable } from "./gamesService";
+import type { GameResponse } from "../types/game";
 import { GameJoinMode } from "../types/game";
 import { useUser } from "../context/UserContext";
 
 type UseJoinGameOptions = {
   onJoined?: (gameId: string, tableId: string, systemKey?: string) => void;
   onApplied?: (gameId: string, tableId: string, systemKey?: string) => void;
+  onGameUpdated?: (game: GameResponse) => void;
 };
 
 export function useJoinGame(options: UseJoinGameOptions = {}) {
@@ -42,17 +44,21 @@ export function useJoinGame(options: UseJoinGameOptions = {}) {
 
       if (joinMode === GameJoinMode.FirstComeFirstServe) {
         await joinTable(gameId, tableId, { systemKey: systemKey || null }, user);
-        options.onJoined?.(gameId, tableId, systemKey);
+
+        const updatedGame = await getGameById(gameId);
+        options.onGameUpdated?.(updatedGame);
+
         setMessageByKey((prev) => ({
           ...prev,
-          [key]: joinMode === GameJoinMode.FirstComeFirstServe
-            ? "Erfolgreich beigetreten"
-            : "Bewerbung gesendet",
+          [key]: "Erfolgreich beigetreten",
         }));
+
         setSuccessMessage("Erfolgreich beigetreten");
       } else {
         await applyToGame(gameId, { tableId, systemKey: systemKey || null }, user);
-        options.onApplied?.(gameId, tableId, systemKey);
+
+        const updatedGame = await getGameById(gameId);
+        options.onGameUpdated?.(updatedGame);
 
         setMessageByKey((prev) => ({
           ...prev,
@@ -71,5 +77,6 @@ export function useJoinGame(options: UseJoinGameOptions = {}) {
       setJoiningKey(null);
     }
   }
+
   return { join, joiningKey, errorMessage, successMessage, messageByKey };
 }

@@ -18,7 +18,9 @@ export default function MyGamesPage() {
   const [games, setGames] = useState<GameResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const { join, joiningKey, messageByKey } = useJoinGame();
+  const { join, joiningKey, messageByKey } = useJoinGame({
+    onGameUpdated: handleGameUpdated,
+  });
 
   const loadGames = useCallback(async () => {
     try {
