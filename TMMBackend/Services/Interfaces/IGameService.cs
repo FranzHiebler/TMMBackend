@@ -15,5 +15,6 @@ public interface IGameService
 	Task<GameResponse> CreateChangeProposalAsync(string gameId, CreateChangeProposalRequest request);
 	Task<GameResponse> AcceptChangeProposalAsync(string gameId, string proposalId);
 	Task<GameResponse> RejectChangeProposalAsync(string gameId, string proposalId);
-
+	Task RemovePlayerFromTableAsync(string gameId, string tableId, string userId);
+	Task MovePlayerToTableAsync(string gameId, string userId, MovePlayerToTableRequest request);
 }

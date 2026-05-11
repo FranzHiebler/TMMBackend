@@ -50,6 +50,16 @@ export async function createGame(
   return res.json();
 }
 
+export async function getGameById(gameId: string): Promise<GameResponse> {
+  const res = await fetch(`${API}/Games/${gameId}`);
+
+  if (!res.ok) {
+    throw new Error((await res.text()) || `Game laden fehlgeschlagen: HTTP ${res.status}`);
+  }
+
+  return res.json();
+}
+
 export async function getLocations(): Promise<LocationOption[]> {
   const res = await fetch(`${API}/Locations`);
   if (!res.ok) throw new Error(`Locations fehlgeschlagen: HTTP ${res.status}`);
@@ -284,4 +294,61 @@ export async function searchUsers(query: string): Promise<UserSearchResponse[]> 
   }
 
   return res.json();
+}
+
+export async function assignApplicationToTable(
+  gameId: string,
+  tableId: string,
+  applicationId: string,
+  user: User
+): Promise<void> {
+  const res = await fetch(`${API}/Games/${gameId}/tables/${tableId}/assign`, {
+    method: "POST",
+    headers: authHeaders(user),
+    body: JSON.stringify({ applicationId }),
+  });
+
+  if (!res.ok) throw new Error((await res.text()) || "Zuweisung fehlgeschlagen");
+}
+
+export async function rejectApplication(
+  gameId: string,
+  applicationId: string,
+  user: User
+): Promise<void> {
+  const res = await fetch(`${API}/Games/${gameId}/applications/${applicationId}/reject`, {
+    method: "POST",
+    headers: authHeaders(user),
+  });
+
+  if (!res.ok) throw new Error((await res.text()) || "Ablehnen fehlgeschlagen");
+}
+
+export async function removePlayerFromTable(
+  gameId: string,
+  tableId: string,
+  userId: string,
+  user: User
+): Promise<void> {
+  const res = await fetch(`${API}/Games/${gameId}/tables/${tableId}/players/${userId}/remove`, {
+    method: "POST",
+    headers: authHeaders(user),
+  });
+
+  if (!res.ok) throw new Error((await res.text()) || "Spieler entfernen fehlgeschlagen");
+}
+
+export async function movePlayerToTable(
+  gameId: string,
+  userId: string,
+  targetTableId: string,
+  user: User
+): Promise<void> {
+  const res = await fetch(`${API}/Games/${gameId}/players/${userId}/move`, {
+    method: "POST",
+    headers: authHeaders(user),
+    body: JSON.stringify({ targetTableId }),
+  });
+
+  if (!res.ok) throw new Error((await res.text()) || "Spieler verschieben fehlgeschlagen");
 }

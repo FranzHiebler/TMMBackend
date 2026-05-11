@@ -2,8 +2,6 @@
 using TabletopMatchMaker.Dtos;
 using TabletopMatchMaker.Services;
 using TabletopMatchMaker.Services.Interfaces;
-using TabletopMatchMaker.Dtos;
-using TabletopMatchMaker.Services;
 
 namespace TabletopMatchMaker.Controllers;
 
@@ -161,6 +159,40 @@ public class GamesController : ControllerBase
 		try
 		{
 			return Ok(await _service.RejectChangeProposalAsync(id, proposalId));
+		}
+		catch (GameActionException ex)
+		{
+			return BadRequest(ex.Message);
+		}
+	}
+
+	[HttpPost("{id}/tables/{tableId}/players/{userId}/remove")]
+	public async Task<IActionResult> RemovePlayerFromTable(
+	string id,
+	string tableId,
+	string userId)
+	{
+		try
+		{
+			await _service.RemovePlayerFromTableAsync(id, tableId, userId);
+			return NoContent();
+		}
+		catch (GameActionException ex)
+		{
+			return BadRequest(ex.Message);
+		}
+	}
+
+	[HttpPost("{id}/players/{userId}/move")]
+	public async Task<IActionResult> MovePlayerToTable(
+		string id,
+		string userId,
+		[FromBody] MovePlayerToTableRequest request)
+	{
+		try
+		{
+			await _service.MovePlayerToTableAsync(id, userId, request);
+			return NoContent();
 		}
 		catch (GameActionException ex)
 		{

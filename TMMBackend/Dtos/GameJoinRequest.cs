@@ -14,8 +14,8 @@ public class ApplyToGameRequest
 
 public class AssignPlayerToTableRequest
 {
-	public string UserId { get; set; } = default!;
-	public string DisplayName { get; set; } = default!;
+	public string? UserId { get; set; }
+	public string? DisplayName { get; set; }
 	public string? ApplicationId { get; set; }
 }
 
@@ -26,4 +26,9 @@ public class CreateChangeProposalRequest
 	public List<string>? ProposedSystems { get; set; }
 	public int? ProposedPoints { get; set; }
 	public string? Message { get; set; }
+}
+
+public class MovePlayerToTableRequest
+{
+	public string TargetTableId { get; set; } = default!;
 }
