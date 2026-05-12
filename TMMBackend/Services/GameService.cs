@@ -1,6 +1,5 @@
 ﻿using TabletopMatchMaker.Domain;
 using TabletopMatchMaker.Dtos;
-using TabletopMatchMaker.Repositories;
 using TabletopMatchMaker.Repositories.Interfaces;
 using TabletopMatchMaker.Services.Interfaces;
 
@@ -9,7 +8,7 @@ namespace TabletopMatchMaker.Services;
 public class GameService : IGameService
 {
 	private readonly IGameRepository _repository;
-	private readonly LocationRepository _locationRepository;
+	private readonly ILocationLookupService _locationService;
 	private readonly ICurrentUserService _currentUser;
 	private readonly IGameSessionAuthorizationService _authorization;
 	private readonly IGameAssignmentService _assignmentService;
@@ -17,14 +16,14 @@ public class GameService : IGameService
 
 	public GameService(
 		IGameRepository repository,
-		LocationRepository locationRepository,
+		ILocationLookupService locationService,
 		ICurrentUserService currentUser,
 		IGameSessionAuthorizationService authorization,
 		IGameAssignmentService assignmentService,
 		IGameProposalService proposalService)
 	{
 		_repository = repository;
-		_locationRepository = locationRepository;
+		_locationService = locationService;
 		_currentUser = currentUser;
 		_authorization = authorization;
 		_assignmentService = assignmentService;
@@ -33,7 +32,7 @@ public class GameService : IGameService
 
 	public async Task<GameResponse> CreateAsync(CreateGameRequest request)
 	{
-		var location = await _locationRepository.GetByIdAsync(request.LocationId);
+		var location = await _locationService.GetByIdAsync(request.LocationId);
 		if (location == null)
 			throw new GameActionException("Location wurde nicht gefunden.");
 
@@ -113,15 +112,8 @@ public class GameService : IGameService
 
 	public async Task<List<GameResponse>> SearchNearbyAsync(SearchNearbyGamesRequest request)
 	{
-		var nearbyLocations = await _locationRepository.FindNearbyAsync(
-			request.Latitude,
-			request.Longitude,
-			request.RadiusInMeters);
-
-		var locationIds = nearbyLocations.Select(x => x.LocationId).ToList();
-
-		var games = await _repository.SearchNearbyAsync(request, locationIds);
-		return games.Select(GameMapper.ToResponse).ToList();
+		throw new NotImplementedException(
+			"SearchNearbyAsync muss nach dem LocationService-Refactor noch auf LocationService umgestellt werden.");
 	}
 
 	public Task RejectApplicationAsync(string gameId, string applicationId)
