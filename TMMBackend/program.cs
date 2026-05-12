@@ -28,13 +28,18 @@ builder.Services.AddCors(options =>
 
 // Dependency Injection
 builder.Services.AddScoped<IGameRepository, GameRepository>();
+builder.Services.AddScoped<ILocationRepository, LocationRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<ISystemRepository, SystemRepository>();
+
 builder.Services.AddScoped<IGameService, GameService>();
 builder.Services.AddScoped<IGameAssignmentService, GameAssignmentService>();
 builder.Services.AddScoped<IGameProposalService, GameProposalService>();
 builder.Services.AddScoped<IGameSessionAuthorizationService, GameSessionAuthorizationService>();
-builder.Services.AddScoped<UserRepository>();
-builder.Services.AddScoped<LocationRepository>();
-builder.Services.AddScoped<SystemRepository>();
+
+builder.Services.AddScoped<ILocationService, LocationService>();
+builder.Services.AddScoped<ILocationLookupService>(sp => sp.GetRequiredService<ILocationService>());
+
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
 // Controller + Swagger
@@ -61,7 +66,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// CORS muss vor MapControllers
 app.UseCors("Frontend");
 
 app.UseAuthorization();

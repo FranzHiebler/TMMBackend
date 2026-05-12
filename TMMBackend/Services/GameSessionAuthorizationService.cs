@@ -1,19 +1,18 @@
 ﻿using TabletopMatchMaker.Domain;
-using TabletopMatchMaker.Repositories;
 using TabletopMatchMaker.Services.Interfaces;
 
 namespace TabletopMatchMaker.Services;
 
 public class GameSessionAuthorizationService : IGameSessionAuthorizationService
 {
-	private readonly LocationRepository _locationRepository;
+	private readonly ILocationLookupService _locationService;
 	private readonly ICurrentUserService _currentUser;
 
 	public GameSessionAuthorizationService(
-		LocationRepository locationRepository,
+		ILocationLookupService locationService,
 		ICurrentUserService currentUser)
 	{
-		_locationRepository = locationRepository;
+		_locationService = locationService;
 		_currentUser = currentUser;
 	}
 
@@ -31,11 +30,13 @@ public class GameSessionAuthorizationService : IGameSessionAuthorizationService
 		if (game.Host.UserId == _currentUser.UserId)
 			return true;
 
-		var location = await _locationRepository.GetByIdAsync(game.LocationId);
+		var location = await _locationService.GetByIdAsync(game.LocationId);
 		if (location == null) return false;
 
 		return location.Members.Any(m =>
 			m.UserId == _currentUser.UserId &&
-			(m.Role == LocationRole.Owner || m.Role == LocationRole.Manager));
+			(m.Role == LocationRole.Owner ||
+			 m.Role == LocationRole.Admin ||
+			 m.Role == LocationRole.Manager));
 	}
 }

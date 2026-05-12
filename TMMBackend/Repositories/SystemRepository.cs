@@ -2,10 +2,11 @@
 using MongoDB.Driver;
 using TabletopMatchMaker.Domain;
 using TabletopMatchMaker.Infrastructure;
+using TabletopMatchMaker.Repositories.Interfaces;
 
 namespace TabletopMatchMaker.Repositories;
 
-public class SystemRepository
+public class SystemRepository : ISystemRepository
 {
 	private readonly IMongoCollection<SystemDefinition> _systems;
 

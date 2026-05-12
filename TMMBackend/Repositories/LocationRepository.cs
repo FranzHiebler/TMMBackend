@@ -3,10 +3,11 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using TabletopMatchMaker.Domain;
 using TabletopMatchMaker.Infrastructure;
+using TabletopMatchMaker.Repositories.Interfaces;
 
 namespace TabletopMatchMaker.Repositories;
 
-public class LocationRepository
+public class LocationRepository : ILocationRepository
 {
 	private readonly IMongoCollection<Location> _locations;
 
@@ -28,9 +29,39 @@ public class LocationRepository
 			.Find(x => ids.Contains(x.Id!))
 			.ToListAsync();
 	}
+
+	public async Task<Location?> GetByIdAsync(string id)
+	{
+		return await _locations
+			.Find(x => x.Id == id)
+			.FirstOrDefaultAsync();
+	}
+
 	public async Task CreateAsync(Location location)
 	{
 		await _locations.InsertOneAsync(location);
+	}
+
+	public async Task UpdateAsync(Location location)
+	{
+		await _locations.ReplaceOneAsync(x => x.Id == location.Id, location);
+	}
+
+	public async Task<List<Location>> GetForUserAsync(string userId)
+	{
+		var memberFilter = Builders<Location>.Filter.ElemMatch(
+			x => x.Members,
+			m => m.UserId == userId
+		);
+
+		var openFilter = Builders<Location>.Filter.Eq(
+			x => x.AccessMode,
+			LocationAccessMode.Open
+		);
+
+		var filter = Builders<Location>.Filter.Or(memberFilter, openFilter);
+
+		return await _locations.Find(filter).ToListAsync();
 	}
 
 	public async Task<List<NearbyLocationResult>> FindNearbyAsync(
@@ -63,7 +94,6 @@ public class LocationRepository
 			City = d["city"].AsString,
 			DistanceInMeters = d["distanceInMeters"].ToDouble()
 		}).ToList();
-
 	}
 
 	public async Task<List<Location>> FindNearbyLocationsAsync(
@@ -72,6 +102,7 @@ public class LocationRepository
 		double radiusInMeters)
 	{
 		var nearby = await FindNearbyAsync(lat, lng, radiusInMeters);
+
 		if (nearby.Count == 0)
 			return new List<Location>();
 
@@ -81,34 +112,5 @@ public class LocationRepository
 		return locations
 			.OrderBy(location => ids.IndexOf(location.Id!))
 			.ToList();
-	}
-
-	public async Task<List<Location>> GetForUserAsync(string userId)
-	{
-		var memberFilter = Builders<Location>.Filter.ElemMatch(
-			x => x.Members,
-			m => m.UserId == userId
-		);
-
-		var openFilter = Builders<Location>.Filter.Eq(
-			x => x.AccessMode,
-			LocationAccessMode.Open
-		);
-
-		var filter = Builders<Location>.Filter.Or(memberFilter, openFilter);
-
-		return await _locations.Find(filter).ToListAsync();
-	}
-
-	public async Task<Location?> GetByIdAsync(string id)
-	{
-		return await _locations
-			.Find(x => x.Id == id)
-			.FirstOrDefaultAsync();
-	}
-
-	public async Task UpdateAsync(Location location)
-	{
-		await _locations.ReplaceOneAsync(x => x.Id == location.Id, location);
 	}
 }

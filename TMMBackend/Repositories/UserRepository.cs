@@ -1,11 +1,13 @@
 ﻿using Microsoft.Extensions.Options;
+using MongoDB.Bson;
 using MongoDB.Driver;
-using TabletopMatchMaker.Infrastructure;
 using TabletopMatchMaker.Domain;
+using TabletopMatchMaker.Infrastructure;
+using TabletopMatchMaker.Repositories.Interfaces;
 
 namespace TabletopMatchMaker.Repositories;
 
-public class UserRepository
+public class UserRepository : IUserRepository
 {
 	private readonly IMongoCollection<UserProfile> _users;
 
@@ -20,7 +22,9 @@ public class UserRepository
 	{
 		var filter = string.IsNullOrWhiteSpace(query)
 			? FilterDefinition<UserProfile>.Empty
-			: Builders<UserProfile>.Filter.Regex(x => x.DisplayName, new MongoDB.Bson.BsonRegularExpression(query, "i"));
+			: Builders<UserProfile>.Filter.Regex(
+				x => x.DisplayName,
+				new BsonRegularExpression(query, "i"));
 
 		return await _users.Find(filter).Limit(20).ToListAsync();
 	}

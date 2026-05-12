@@ -1,17 +1,17 @@
 ﻿using MongoDB.Driver.GeoJsonObjectModel;
 using TabletopMatchMaker.Domain;
 using TabletopMatchMaker.Dtos;
-using TabletopMatchMaker.Repositories;
+using TabletopMatchMaker.Repositories.Interfaces;
 using TabletopMatchMaker.Services.Interfaces;
 
 namespace TabletopMatchMaker.Services;
 
 public class LocationService : ILocationService
 {
-	private readonly LocationRepository _repository;
+	private readonly ILocationRepository _repository;
 	private readonly ICurrentUserService _currentUser;
 
-	public LocationService(LocationRepository repository, ICurrentUserService currentUser)
+	public LocationService(ILocationRepository repository, ICurrentUserService currentUser)
 	{
 		_repository = repository;
 		_currentUser = currentUser;
@@ -20,6 +20,14 @@ public class LocationService : ILocationService
 	public Task<Location?> GetByIdAsync(string id)
 	{
 		return _repository.GetByIdAsync(id);
+	}
+
+	public Task<List<NearbyLocationResult>> FindNearbyAsync(
+		double lat,
+		double lng,
+		double radiusInMeters)
+	{
+		return _repository.FindNearbyAsync(lat, lng, radiusInMeters);
 	}
 
 	public async Task<List<LocationOptionResponse>> GetAllAsync()

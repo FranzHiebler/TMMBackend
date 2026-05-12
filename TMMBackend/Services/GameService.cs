@@ -112,8 +112,37 @@ public class GameService : IGameService
 
 	public async Task<List<GameResponse>> SearchNearbyAsync(SearchNearbyGamesRequest request)
 	{
-		throw new NotImplementedException(
-			"SearchNearbyAsync muss nach dem LocationService-Refactor noch auf LocationService umgestellt werden.");
+		var nearbyLocations = await _locationService.FindNearbyAsync(
+			request.Latitude,
+			request.Longitude,
+			request.RadiusInMeters);
+
+		if (nearbyLocations.Count == 0)
+			return new List<GameResponse>();
+
+		var locationIds = nearbyLocations
+			.Select(x => x.LocationId)
+			.ToList();
+
+		var games = await _repository.SearchNearbyAsync(request, locationIds);
+
+		var distanceByLocationId = nearbyLocations.ToDictionary(
+			x => x.LocationId,
+			x => x.DistanceInMeters);
+
+		IEnumerable<GameSession> orderedGames =
+			request.SortBy.Equals("date", StringComparison.OrdinalIgnoreCase)
+				? games.OrderBy(g => g.StartTimeUtc)
+				: games
+					.OrderBy(g => distanceByLocationId.GetValueOrDefault(g.LocationId, double.MaxValue))
+					.ThenBy(g => g.StartTimeUtc);
+
+		if (request.SortDescending)
+			orderedGames = orderedGames.Reverse();
+
+		return orderedGames
+			.Select(GameMapper.ToResponse)
+			.ToList();
 	}
 
 	public Task RejectApplicationAsync(string gameId, string applicationId)

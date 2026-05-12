@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using TabletopMatchMaker.Repositories;
+using TabletopMatchMaker.Repositories.Interfaces;
 
 namespace TabletopMatchMaker.Controllers;
 
@@ -7,9 +7,9 @@ namespace TabletopMatchMaker.Controllers;
 [Route("api/[controller]")]
 public class UsersController : ControllerBase
 {
-	private readonly UserRepository _repository;
+	private readonly IUserRepository _repository;
 
-	public UsersController(UserRepository repository)
+	public UsersController(IUserRepository repository)
 	{
 		_repository = repository;
 	}
@@ -22,7 +22,8 @@ public class UsersController : ControllerBase
 		return Ok(users.Select(u => new
 		{
 			userId = u.Id,
-			displayName = u.DisplayName
+			displayName = u.DisplayName,
+			email = u.Email
 		}));
 	}
 }
