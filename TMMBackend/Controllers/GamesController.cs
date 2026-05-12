@@ -24,16 +24,7 @@ public class GamesController : ControllerBase
 			var result = await _service.CreateAsync(request);
 			return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
 		}
-		catch (Exception ex) when (ex.Message == "Location not found")
-		{
-			return NotFound(ex.Message);
-		}
-		catch (Exception ex) when (
-			ex.Message == "Not allowed to create game at this location")
-		{
-			return Forbid();
-		}
-		catch (Exception ex)
+		catch (GameActionException ex)
 		{
 			return BadRequest(ex.Message);
 		}
@@ -45,7 +36,7 @@ public class GamesController : ControllerBase
 		var game = await _service.GetByIdAsync(id);
 
 		if (game == null)
-			return NotFound();
+			return NotFound("Game Session wurde nicht gefunden.");
 
 		return Ok(game);
 	}
@@ -90,7 +81,7 @@ public class GamesController : ControllerBase
 		[FromBody] AssignPlayerToTableRequest request)
 	{
 		var success = await _service.AssignPlayerToTableAsync(id, tableId, request);
-		return success ? NoContent() : BadRequest("Assign failed");
+		return success ? NoContent() : BadRequest("Spieler konnte nicht zugewiesen werden.");
 	}
 
 	[HttpGet("search")]
@@ -106,9 +97,7 @@ public class GamesController : ControllerBase
 	}
 
 	[HttpPost("{id}/applications/{applicationId}/reject")]
-	public async Task<IActionResult> RejectApplication(
-	string id,
-	string applicationId)
+	public async Task<IActionResult> RejectApplication(string id, string applicationId)
 	{
 		try
 		{
@@ -137,9 +126,7 @@ public class GamesController : ControllerBase
 	}
 
 	[HttpPost("{id}/change-proposals/{proposalId}/accept")]
-	public async Task<ActionResult<GameResponse>> AcceptChangeProposal(
-		string id,
-		string proposalId)
+	public async Task<ActionResult<GameResponse>> AcceptChangeProposal(string id, string proposalId)
 	{
 		try
 		{
@@ -152,9 +139,7 @@ public class GamesController : ControllerBase
 	}
 
 	[HttpPost("{id}/change-proposals/{proposalId}/reject")]
-	public async Task<ActionResult<GameResponse>> RejectChangeProposal(
-		string id,
-		string proposalId)
+	public async Task<ActionResult<GameResponse>> RejectChangeProposal(string id, string proposalId)
 	{
 		try
 		{
@@ -168,9 +153,9 @@ public class GamesController : ControllerBase
 
 	[HttpPost("{id}/tables/{tableId}/players/{userId}/remove")]
 	public async Task<IActionResult> RemovePlayerFromTable(
-	string id,
-	string tableId,
-	string userId)
+		string id,
+		string tableId,
+		string userId)
 	{
 		try
 		{

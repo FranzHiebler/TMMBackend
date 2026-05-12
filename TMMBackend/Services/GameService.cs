@@ -34,15 +34,14 @@ public class GameService : IGameService
 	public async Task<GameResponse> CreateAsync(CreateGameRequest request)
 	{
 		var location = await _locationRepository.GetByIdAsync(request.LocationId);
-
 		if (location == null)
-			throw new Exception("Location not found");
+			throw new GameActionException("Location wurde nicht gefunden.");
 
 		if (!_authorization.CanCreateGameAtLocation(location))
-			throw new Exception("Not allowed to create game at this location");
+			throw new GameActionException("Du darfst an dieser Location keine Game Session erstellen.");
 
 		if (request.Tables.Count == 0)
-			throw new Exception("At least one table is required");
+			throw new GameActionException("Es muss mindestens ein Tisch angelegt werden.");
 
 		var gameSession = new GameSession
 		{
