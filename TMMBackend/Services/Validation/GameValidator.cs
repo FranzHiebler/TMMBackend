@@ -25,6 +25,15 @@ public static class GameValidator
 			ValidateTable(table);
 	}
 
+	public static void ValidateSearch(SearchGamesRequest request)
+	{
+		if (!string.IsNullOrWhiteSpace(request.City) && request.City.Trim().Length > 120)
+			throw new DomainException("Stadt darf maximal 120 Zeichen lang sein.");
+
+		if (!string.IsNullOrWhiteSpace(request.SystemKey) && request.SystemKey.Trim().Length > 80)
+			throw new DomainException("System darf maximal 80 Zeichen lang sein.");
+	}
+
 	public static void ValidateNearby(SearchNearbyGamesRequest request)
 	{
 		ValidateCoordinates(request.Latitude, request.Longitude);
@@ -39,6 +48,9 @@ public static class GameValidator
 			!request.SortBy.Equals("distance", StringComparison.OrdinalIgnoreCase) &&
 			!request.SortBy.Equals("date", StringComparison.OrdinalIgnoreCase))
 			throw new DomainException("Sortierung muss 'distance' oder 'date' sein.");
+
+		if (!string.IsNullOrWhiteSpace(request.SystemKey) && request.SystemKey.Trim().Length > 80)
+			throw new DomainException("System darf maximal 80 Zeichen lang sein.");
 	}
 
 	private static void ValidateTable(CreateGameTableRequest table)

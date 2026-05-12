@@ -85,30 +85,28 @@ public class GameAssignmentService : IGameAssignmentService
 		await SaveAsync(game);
 	}
 
-	public async Task<bool> AssignPlayerToTableAsync(
+	public async Task AssignPlayerToTableAsync(
 		string gameId,
 		string tableId,
 		AssignPlayerToTableRequest request)
 	{
-		var game = await _repository.GetByIdAsync(gameId);
-		if (game == null) return false;
+		var game = await GetGameOrThrow(gameId);
+		await EnsureCanManageAsync(game);
 
-		if (!await _authorization.CanManageSessionAsync(game))
-			return false;
-
-		var table = game.Tables.FirstOrDefault(x => x.TableId == tableId);
-		if (table == null) return false;
+		var table = GameServiceHelpers.GetTableOrThrow(game, tableId);
 
 		if (table.AssignedPlayers.Count >= table.MaxPlayers)
-			return false;
+			throw new DomainException("Der Tisch ist voll.");
 
 		var resolved = ResolvePlayerForAssignment(game, table, request);
-		if (resolved == null) return false;
+
+		if (resolved == null)
+			throw new DomainException("Spieler oder Bewerbung konnte nicht zugewiesen werden.");
 
 		var (player, application) = resolved.Value;
 
 		if (GameSessionRules.IsUserAlreadyAssigned(game, player.UserId))
-			return true;
+			return;
 
 		table.AssignedPlayers.Add(player);
 
@@ -117,8 +115,6 @@ public class GameAssignmentService : IGameAssignmentService
 
 		GameSessionRules.UpdateSessionState(game);
 		await SaveAsync(game);
-
-		return true;
 	}
 
 	public async Task RejectApplicationAsync(string gameId, string applicationId)

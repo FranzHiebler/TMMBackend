@@ -96,7 +96,7 @@ public class GameService : IGameService
 		return _assignmentService.ApplyAsync(gameId, request);
 	}
 
-	public Task<bool> AssignPlayerToTableAsync(
+	public Task AssignPlayerToTableAsync(
 		string gameId,
 		string tableId,
 		AssignPlayerToTableRequest request)
@@ -106,6 +106,8 @@ public class GameService : IGameService
 
 	public async Task<List<GameResponse>> SearchAsync(SearchGamesRequest request)
 	{
+		GameValidator.ValidateSearch(request);
+
 		var games = await _repository.SearchAsync(request);
 		return games.Select(GameMapper.ToResponse).ToList();
 	}

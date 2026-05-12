@@ -54,15 +54,11 @@ public class GamesController : ControllerBase
 
 	[HttpPost("{id}/tables/{tableId}/assign")]
 	public async Task<IActionResult> AssignPlayerToTable(
-		string id,
-		string tableId,
-		[FromBody] AssignPlayerToTableRequest request)
+	string id,
+	string tableId,
+	[FromBody] AssignPlayerToTableRequest request)
 	{
-		var success = await _service.AssignPlayerToTableAsync(id, tableId, request);
-
-		if (!success)
-			return BadRequest(new { error = "Spieler konnte nicht zugewiesen werden." });
-
+		await _service.AssignPlayerToTableAsync(id, tableId, request);
 		return NoContent();
 	}
 
