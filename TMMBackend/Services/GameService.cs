@@ -112,6 +112,8 @@ public class GameService : IGameService
 
 	public async Task<List<GameResponse>> SearchNearbyAsync(SearchNearbyGamesRequest request)
 	{
+		GameValidator.ValidateNearby(request);
+
 		var nearbyLocations = await _locationService.FindNearbyAsync(
 			request.Latitude,
 			request.Longitude,
