@@ -3,7 +3,6 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using TabletopMatchMaker.Domain;
 using TabletopMatchMaker.Infrastructure;
-using TabletopMatchMaker.Domain;
 
 namespace TabletopMatchMaker.Repositories;
 

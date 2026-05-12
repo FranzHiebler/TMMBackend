@@ -1,8 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver.GeoJsonObjectModel;
 using TabletopMatchMaker.Domain;
-using TabletopMatchMaker.Repositories;
 using TabletopMatchMaker.Dtos;
+using TabletopMatchMaker.Repositories;
+using TabletopMatchMaker.Services;
 using TabletopMatchMaker.Services.Interfaces;
 
 namespace TabletopMatchMaker.Controllers;
@@ -14,28 +15,30 @@ public class LocationsController : ControllerBase
 	private readonly LocationRepository _repository;
 	private readonly ICurrentUserService _currentUser;
 
-	public LocationsController(LocationRepository repository, ICurrentUserService currentUser)
+	public LocationsController(
+		LocationRepository repository,
+		ICurrentUserService currentUser)
 	{
 		_repository = repository;
 		_currentUser = currentUser;
 	}
 
 	[HttpGet]
-	public async Task<IActionResult> GetAll()
+	public async Task<ActionResult<List<LocationOptionResponse>>> GetAll()
 	{
 		var locations = await _repository.GetAllAsync();
-		return Ok(locations.Select(x => new { id = x.Id, name = x.Name, city = x.City }));
+		return Ok(locations.Select(LocationMapper.ToOptionResponse));
 	}
 
 	[HttpPost]
-	public async Task<IActionResult> Create([FromBody] CreateLocationRequest request)
+	public async Task<ActionResult<LocationResponse>> Create([FromBody] CreateLocationRequest request)
 	{
 		var location = new Location
 		{
 			Name = request.Name,
 			City = request.City,
 			Address = request.Address,
-			SystemKeys = NormalizeSystems(request.SystemKeys),
+			SystemKeys = LocationRules.NormalizeSystems(request.SystemKeys),
 			Geo = new GeoJsonPoint<GeoJson2DGeographicCoordinates>(
 				new GeoJson2DGeographicCoordinates(request.Longitude, request.Latitude)
 			),
@@ -51,14 +54,17 @@ public class LocationsController : ControllerBase
 		};
 
 		await _repository.CreateAsync(location);
-		return Ok(ToLocationResponse(location));
+
+		return Ok(LocationMapper.ToResponse(location, _currentUser.UserId));
 	}
 
 	[HttpGet("mine")]
-	public async Task<IActionResult> GetMine()
+	public async Task<ActionResult<List<LocationResponse>>> GetMine()
 	{
 		var locations = await _repository.GetForUserAsync(_currentUser.UserId);
-		return Ok(locations.Select(ToLocationResponse));
+
+		return Ok(locations.Select(location =>
+			LocationMapper.ToResponse(location, _currentUser.UserId)));
 	}
 
 	[HttpPut("{id}")]
@@ -67,13 +73,13 @@ public class LocationsController : ControllerBase
 		var location = await _repository.GetByIdAsync(id);
 		if (location == null) return NotFound();
 
-		if (!CanEditLocation(location))
+		if (!LocationRules.CanEditLocation(location, _currentUser.UserId))
 			return Forbid();
 
 		location.Name = request.Name;
 		location.City = request.City;
 		location.Address = request.Address;
-		location.SystemKeys = NormalizeSystems(request.SystemKeys);
+		location.SystemKeys = LocationRules.NormalizeSystems(request.SystemKeys);
 		location.Geo = new GeoJsonPoint<GeoJson2DGeographicCoordinates>(
 			new GeoJson2DGeographicCoordinates(request.Longitude, request.Latitude)
 		);
@@ -83,25 +89,20 @@ public class LocationsController : ControllerBase
 	}
 
 	[HttpGet("{id}/members")]
-	public async Task<IActionResult> GetMembers(string id)
+	public async Task<ActionResult<List<LocationMemberResponse>>> GetMembers(string id)
 	{
 		var location = await _repository.GetByIdAsync(id);
 		if (location == null) return NotFound();
 
-		var isMember = location.Members.Any(m => m.UserId == _currentUser.UserId);
-		if (!isMember && location.AccessMode != LocationAccessMode.Open)
+		if (!LocationRules.CanViewMembers(location, _currentUser.UserId))
 			return Forbid();
 
-		return Ok(location.Members.Select(m => new
-		{
-			userId = m.UserId,
-			displayName = m.DisplayName,
-			role = m.Role.ToString()
-		}));
+		return Ok(location.Members.Select(LocationMapper.ToMemberResponse));
 	}
 
 	[HttpGet("nearby")]
-	public async Task<IActionResult> Nearby([FromQuery] SearchNearbyLocationsRequest request)
+	public async Task<ActionResult<List<LocationResponse>>> Nearby(
+		[FromQuery] SearchNearbyLocationsRequest request)
 	{
 		var locations = await _repository.FindNearbyLocationsAsync(
 			request.Latitude,
@@ -116,13 +117,15 @@ public class LocationsController : ControllerBase
 			.Where(location =>
 				string.IsNullOrWhiteSpace(request.SystemKey) ||
 				location.SystemKeys.Contains(request.SystemKey, StringComparer.OrdinalIgnoreCase))
-			.Select(ToLocationResponse);
+			.Select(location => LocationMapper.ToResponse(location, _currentUser.UserId));
 
 		return Ok(result);
 	}
 
 	[HttpPost("{id}/join-requests")]
-	public async Task<IActionResult> RequestMembership(string id, [FromBody] RequestLocationMembershipRequest request)
+	public async Task<IActionResult> RequestMembership(
+		string id,
+		[FromBody] RequestLocationMembershipRequest request)
 	{
 		var location = await _repository.GetByIdAsync(id);
 		if (location == null) return NotFound();
@@ -152,21 +155,23 @@ public class LocationsController : ControllerBase
 	}
 
 	[HttpPost("{id}/members")]
-	public async Task<IActionResult> UpsertMember(string id, [FromBody] UpsertLocationMemberRequest request)
+	public async Task<IActionResult> UpsertMember(
+		string id,
+		[FromBody] UpsertLocationMemberRequest request)
 	{
 		var location = await _repository.GetByIdAsync(id);
 		if (location == null) return NotFound();
 
-		if (!CanManageMembers(location))
+		if (!LocationRules.CanManageMembers(location, _currentUser.UserId))
 			return Forbid();
 
-		var actorRole = GetCurrentUserRole(location);
+		var actorRole = LocationRules.GetCurrentUserRole(location, _currentUser.UserId);
 		var member = location.Members.FirstOrDefault(m => m.UserId == request.UserId);
 
-		if (!CanAssignRole(actorRole, request.Role))
+		if (!LocationRules.CanAssignRole(actorRole, request.Role))
 			return BadRequest("Diese Rolle darfst du nicht vergeben.");
 
-		if (member != null && !CanModifyTarget(actorRole, member.Role))
+		if (member != null && !LocationRules.CanModifyTarget(actorRole, member.Role))
 			return BadRequest("Dieses Mitglied darfst du nicht ändern.");
 
 		if (member == null)
@@ -194,10 +199,10 @@ public class LocationsController : ControllerBase
 		var location = await _repository.GetByIdAsync(id);
 		if (location == null) return NotFound();
 
-		if (!CanManageMembers(location))
+		if (!LocationRules.CanManageMembers(location, _currentUser.UserId))
 			return Forbid();
 
-		var actorRole = GetCurrentUserRole(location);
+		var actorRole = LocationRules.GetCurrentUserRole(location, _currentUser.UserId);
 		var member = location.Members.FirstOrDefault(m => m.UserId == userId);
 
 		if (member == null) return NotFound();
@@ -205,89 +210,12 @@ public class LocationsController : ControllerBase
 		if (member.Role == LocationRole.Owner)
 			return BadRequest("Owner kann nicht entfernt werden.");
 
-		if (!CanModifyTarget(actorRole, member.Role))
+		if (!LocationRules.CanModifyTarget(actorRole, member.Role))
 			return BadRequest("Dieses Mitglied darfst du nicht entfernen.");
 
 		location.Members.Remove(member);
 
 		await _repository.UpdateAsync(location);
 		return NoContent();
-	}
-
-	private object ToLocationResponse(Location location)
-	{
-		var member = location.Members.FirstOrDefault(m => m.UserId == _currentUser.UserId);
-
-		return new
-		{
-			id = location.Id,
-			name = location.Name,
-			city = location.City,
-			address = location.Address,
-			latitude = location.Geo?.Coordinates.Latitude,
-			longitude = location.Geo?.Coordinates.Longitude,
-			role = member?.Role.ToString(),
-			isOpen = location.AccessMode == LocationAccessMode.Open,
-			systemKeys = location.SystemKeys,
-			hasPendingJoinRequest = location.JoinRequests.Any(r =>
-				r.UserId == _currentUser.UserId &&
-				r.Status == LocationJoinRequestStatus.Pending)
-		};
-	}
-
-	private static List<string> NormalizeSystems(IEnumerable<string>? systems)
-	{
-		return systems?
-			.Select(s => s.Trim())
-			.Where(s => !string.IsNullOrWhiteSpace(s))
-			.Distinct(StringComparer.OrdinalIgnoreCase)
-			.ToList() ?? new List<string>();
-	}
-
-	private LocationRole? GetCurrentUserRole(Location location)
-	{
-		return location.Members.FirstOrDefault(m => m.UserId == _currentUser.UserId)?.Role;
-	}
-
-	private bool CanEditLocation(Location location)
-	{
-		var role = GetCurrentUserRole(location);
-		return role == LocationRole.Owner ||
-			   role == LocationRole.Admin ||
-			   role == LocationRole.Manager;
-	}
-
-	private bool CanManageMembers(Location location)
-	{
-		var role = GetCurrentUserRole(location);
-		return role == LocationRole.Owner ||
-			   role == LocationRole.Admin;
-	}
-
-	private static bool CanAssignRole(LocationRole? actorRole, LocationRole targetRole)
-	{
-		if (actorRole == LocationRole.Owner)
-			return targetRole != LocationRole.Owner;
-
-		if (actorRole == LocationRole.Admin)
-			return targetRole == LocationRole.Manager ||
-				   targetRole == LocationRole.Member ||
-				   targetRole == LocationRole.Applicant;
-
-		return false;
-	}
-
-	private static bool CanModifyTarget(LocationRole? actorRole, LocationRole targetCurrentRole)
-	{
-		if (targetCurrentRole == LocationRole.Owner)
-			return false;
-
-		if (actorRole == LocationRole.Owner)
-			return true;
-
-		if (actorRole == LocationRole.Admin)
-			return targetCurrentRole != LocationRole.Admin;
-
-		return false;
 	}
 }
