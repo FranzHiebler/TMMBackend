@@ -10,6 +10,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.Configure<MongoDbSettings>(
 	builder.Configuration.GetSection("MongoDb"));
 
+builder.Services.Configure<AdminSettings>(
+	builder.Configuration.GetSection("Admin"));
+
 builder.Services.AddCors(options =>
 {
 	options.AddPolicy("Frontend", policy =>
@@ -38,6 +41,7 @@ builder.Services.AddScoped<ILocationService, LocationService>();
 builder.Services.AddScoped<ILocationLookupService>(sp => sp.GetRequiredService<ILocationService>());
 
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddScoped<IAdminAuthorizationService, AdminAuthorizationService>();
 
 builder.Services
 	.AddControllers()

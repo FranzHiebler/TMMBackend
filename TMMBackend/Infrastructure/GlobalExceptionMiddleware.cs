@@ -32,7 +32,7 @@ public class GlobalExceptionMiddleware
 	{
 		var statusCode = ex switch
 		{
-			GameActionException => HttpStatusCode.BadRequest,
+			DomainException => HttpStatusCode.BadRequest,
 			KeyNotFoundException => HttpStatusCode.NotFound,
 			UnauthorizedAccessException => HttpStatusCode.Forbidden,
 			_ => HttpStatusCode.InternalServerError

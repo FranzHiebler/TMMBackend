@@ -28,10 +28,10 @@ public class GameProposalService : IGameProposalService
 		var game = await GetGameOrThrow(gameId);
 
 		if (game.Status is GameSessionState.Cancelled or GameSessionState.Closed)
-			throw new GameActionException("Diese Session kann nicht mehr geändert werden.");
+			throw new DomainException("Diese Session kann nicht mehr geändert werden.");
 
 		if (!GameSessionRules.IsUserAlreadyAssigned(game, _currentUser.UserId))
-			throw new GameActionException("Nur angemeldete Spieler dürfen Änderungen vorschlagen.");
+			throw new DomainException("Nur angemeldete Spieler dürfen Änderungen vorschlagen.");
 
 		var table = GameServiceHelpers.ResolveProposalTable(game, request);
 		var proposedSystems = GameServiceHelpers.NormalizeSystems(request.ProposedSystems);
@@ -41,13 +41,13 @@ public class GameProposalService : IGameProposalService
 		var hasPointsChange = request.ProposedPoints.HasValue;
 
 		if (!hasTimeChange && !hasSystemChange && !hasPointsChange)
-			throw new GameActionException("Bitte mindestens Uhrzeit, System oder Punkte vorschlagen.");
+			throw new DomainException("Bitte mindestens Uhrzeit, System oder Punkte vorschlagen.");
 
 		if ((hasSystemChange || hasPointsChange) && table == null)
-			throw new GameActionException("System- oder Punkteänderungen brauchen einen Tisch.");
+			throw new DomainException("System- oder Punkteänderungen brauchen einen Tisch.");
 
 		if (request.ProposedPoints is < 0)
-			throw new GameActionException("Punkte dürfen nicht negativ sein.");
+			throw new DomainException("Punkte dürfen nicht negativ sein.");
 
 		game.ChangeProposals.Add(new GameChangeProposal
 		{
@@ -99,13 +99,13 @@ public class GameProposalService : IGameProposalService
 	private async Task<GameSession> GetGameOrThrow(string gameId)
 	{
 		return await _repository.GetByIdAsync(gameId)
-			?? throw new GameActionException("Session nicht gefunden.");
+			?? throw new DomainException("Session nicht gefunden.");
 	}
 
 	private async Task EnsureCanManageAsync(GameSession game)
 	{
 		if (!await _authorization.CanManageSessionAsync(game))
-			throw new GameActionException("Du darfst diese Session nicht verwalten.");
+			throw new DomainException("Du darfst diese Session nicht verwalten.");
 	}
 
 	private ParticipantInfo CurrentParticipant()
@@ -138,13 +138,13 @@ public class GameProposalService : IGameProposalService
 
 		if (proposal.ProposedSystems is { Count: > 0 })
 		{
-			if (table == null) throw new GameActionException("Tisch nicht gefunden.");
+			if (table == null) throw new DomainException("Tisch nicht gefunden.");
 			table.Systems = proposal.ProposedSystems;
 		}
 
 		if (proposal.ProposedPoints.HasValue)
 		{
-			if (table == null) throw new GameActionException("Tisch nicht gefunden.");
+			if (table == null) throw new DomainException("Tisch nicht gefunden.");
 			table.Points = proposal.ProposedPoints;
 		}
 	}

@@ -3,6 +3,7 @@ using TabletopMatchMaker.Domain;
 using TabletopMatchMaker.Dtos;
 using TabletopMatchMaker.Repositories.Interfaces;
 using TabletopMatchMaker.Services.Interfaces;
+using TabletopMatchMaker.Services.Validation;
 
 namespace TabletopMatchMaker.Services;
 
@@ -38,6 +39,8 @@ public class LocationService : ILocationService
 
 	public async Task<LocationResponse> CreateAsync(CreateLocationRequest request)
 	{
+		LocationValidator.ValidateCreateOrUpdate(request);
+
 		var location = new Location
 		{
 			Name = request.Name,
@@ -73,6 +76,8 @@ public class LocationService : ILocationService
 
 	public async Task UpdateAsync(string id, CreateLocationRequest request)
 	{
+		LocationValidator.ValidateCreateOrUpdate(request);
+
 		var location = await GetLocationOrThrow(id);
 
 		if (!LocationRules.CanEditLocation(location, _currentUser.UserId))
@@ -101,6 +106,8 @@ public class LocationService : ILocationService
 
 	public async Task<List<LocationResponse>> SearchNearbyAsync(SearchNearbyLocationsRequest request)
 	{
+		LocationValidator.ValidateNearby(request);
+
 		var locations = await _repository.FindNearbyLocationsAsync(
 			request.Latitude,
 			request.Longitude,
@@ -123,14 +130,14 @@ public class LocationService : ILocationService
 		var location = await GetLocationOrThrow(id);
 
 		if (location.Members.Any(m => m.UserId == _currentUser.UserId))
-			throw new GameActionException("Du bist dort bereits Mitglied.");
+			throw new DomainException("Du bist dort bereits Mitglied.");
 
 		var existing = location.JoinRequests.FirstOrDefault(r =>
 			r.UserId == _currentUser.UserId &&
 			r.Status == LocationJoinRequestStatus.Pending);
 
 		if (existing != null)
-			throw new GameActionException("Du hast dort bereits angefragt.");
+			throw new DomainException("Du hast dort bereits angefragt.");
 
 		location.JoinRequests.Add(new LocationJoinRequest
 		{
@@ -211,10 +218,10 @@ public class LocationService : ILocationService
 		var member = location.Members.FirstOrDefault(m => m.UserId == request.UserId);
 
 		if (!LocationRules.CanAssignRole(actorRole, request.Role))
-			throw new GameActionException("Diese Rolle darfst du nicht vergeben.");
+			throw new DomainException("Diese Rolle darfst du nicht vergeben.");
 
 		if (member != null && !LocationRules.CanModifyTarget(actorRole, member.Role))
-			throw new GameActionException("Dieses Mitglied darfst du nicht ändern.");
+			throw new DomainException("Dieses Mitglied darfst du nicht ändern.");
 
 		if (member == null)
 		{
@@ -246,10 +253,10 @@ public class LocationService : ILocationService
 			?? throw new KeyNotFoundException("Mitglied wurde nicht gefunden.");
 
 		if (member.Role == LocationRole.Owner)
-			throw new GameActionException("Owner kann nicht entfernt werden.");
+			throw new DomainException("Owner kann nicht entfernt werden.");
 
 		if (!LocationRules.CanModifyTarget(actorRole, member.Role))
-			throw new GameActionException("Dieses Mitglied darfst du nicht entfernen.");
+			throw new DomainException("Dieses Mitglied darfst du nicht entfernen.");
 
 		location.Members.Remove(member);
 		await _repository.UpdateAsync(location);
@@ -271,7 +278,7 @@ public class LocationService : ILocationService
 			throw new KeyNotFoundException("Beitrittsanfrage wurde nicht gefunden.");
 
 		if (joinRequest.Status != LocationJoinRequestStatus.Pending)
-			throw new GameActionException("Diese Beitrittsanfrage wurde bereits bearbeitet.");
+			throw new DomainException("Diese Beitrittsanfrage wurde bereits bearbeitet.");
 
 		return joinRequest;
 	}

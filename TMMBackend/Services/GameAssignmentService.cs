@@ -26,21 +26,21 @@ public class GameAssignmentService : IGameAssignmentService
 		var game = await GetGameOrThrow(gameId);
 
 		if (game.Status != GameSessionState.Open)
-			throw new GameActionException("Diese Session ist nicht offen.");
+			throw new DomainException("Diese Session ist nicht offen.");
 
 		if (game.JoinMode != GameJoinMode.FirstComeFirstServe)
-			throw new GameActionException("Direkter Beitritt ist für diese Session nicht aktiviert.");
+			throw new DomainException("Direkter Beitritt ist für diese Session nicht aktiviert.");
 
 		if (GameSessionRules.IsUserAlreadyAssigned(game, _currentUser.UserId))
-			throw new GameActionException("Du bist bereits in dieser Session angemeldet.");
+			throw new DomainException("Du bist bereits in dieser Session angemeldet.");
 
 		var table = GameServiceHelpers.GetTableOrThrow(game, tableId);
 
 		if (table.AssignedPlayers.Count >= table.MaxPlayers)
-			throw new GameActionException("Der Tisch ist voll.");
+			throw new DomainException("Der Tisch ist voll.");
 
 		if (!GameSessionRules.SystemMatches(table.Systems, request.SystemKey))
-			throw new GameActionException("Das gewählte System passt nicht zu diesem Tisch.");
+			throw new DomainException("Das gewählte System passt nicht zu diesem Tisch.");
 
 		table.AssignedPlayers.Add(CurrentParticipant());
 
@@ -53,13 +53,13 @@ public class GameAssignmentService : IGameAssignmentService
 		var game = await GetGameOrThrow(gameId);
 
 		if (game.Status != GameSessionState.Open)
-			throw new GameActionException("Diese Session ist nicht offen.");
+			throw new DomainException("Diese Session ist nicht offen.");
 
 		if (game.JoinMode != GameJoinMode.ApprovalRequired)
-			throw new GameActionException("Bewerbungen sind für diese Session nicht aktiviert.");
+			throw new DomainException("Bewerbungen sind für diese Session nicht aktiviert.");
 
 		if (GameSessionRules.IsUserAlreadyAssigned(game, _currentUser.UserId))
-			throw new GameActionException("Du bist bereits in dieser Session angemeldet.");
+			throw new DomainException("Du bist bereits in dieser Session angemeldet.");
 
 		var table = GetApplicationTargetTable(game, request);
 
@@ -131,10 +131,10 @@ public class GameAssignmentService : IGameAssignmentService
 			.FirstOrDefault(a => a.ApplicationId == applicationId);
 
 		if (application == null)
-			throw new GameActionException("Bewerbung nicht gefunden.");
+			throw new DomainException("Bewerbung nicht gefunden.");
 
 		if (application.Status != ApplicationStatus.Pending)
-			throw new GameActionException("Diese Bewerbung wurde bereits bearbeitet.");
+			throw new DomainException("Diese Bewerbung wurde bereits bearbeitet.");
 
 		application.Status = ApplicationStatus.Rejected;
 		await SaveAsync(game);
@@ -149,7 +149,7 @@ public class GameAssignmentService : IGameAssignmentService
 		var player = table.AssignedPlayers.FirstOrDefault(p => p.UserId == userId);
 
 		if (player == null)
-			throw new GameActionException("Spieler ist nicht an diesem Tisch.");
+			throw new DomainException("Spieler ist nicht an diesem Tisch.");
 
 		table.AssignedPlayers.Remove(player);
 		RestoreApplicationAfterRemoval(game, table, player);
@@ -164,13 +164,13 @@ public class GameAssignmentService : IGameAssignmentService
 		await EnsureCanManageAsync(game);
 
 		if (string.IsNullOrWhiteSpace(request.TargetTableId))
-			throw new GameActionException("Zieltisch fehlt.");
+			throw new DomainException("Zieltisch fehlt.");
 
 		var sourceTable = game.Tables.FirstOrDefault(t =>
 			t.AssignedPlayers.Any(p => p.UserId == userId));
 
 		if (sourceTable == null)
-			throw new GameActionException("Spieler ist keinem Tisch zugewiesen.");
+			throw new DomainException("Spieler ist keinem Tisch zugewiesen.");
 
 		var targetTable = GameServiceHelpers.GetTableOrThrow(game, request.TargetTableId);
 
@@ -178,7 +178,7 @@ public class GameAssignmentService : IGameAssignmentService
 			return;
 
 		if (targetTable.AssignedPlayers.Count >= targetTable.MaxPlayers)
-			throw new GameActionException("Der Zieltisch ist voll.");
+			throw new DomainException("Der Zieltisch ist voll.");
 
 		var player = sourceTable.AssignedPlayers.First(p => p.UserId == userId);
 
@@ -192,13 +192,13 @@ public class GameAssignmentService : IGameAssignmentService
 	private async Task<GameSession> GetGameOrThrow(string gameId)
 	{
 		return await _repository.GetByIdAsync(gameId)
-			?? throw new GameActionException("Session nicht gefunden.");
+			?? throw new DomainException("Session nicht gefunden.");
 	}
 
 	private async Task EnsureCanManageAsync(GameSession game)
 	{
 		if (!await _authorization.CanManageSessionAsync(game))
-			throw new GameActionException("Du darfst diese Session nicht verwalten.");
+			throw new DomainException("Du darfst diese Session nicht verwalten.");
 	}
 
 	private ParticipantInfo CurrentParticipant()
@@ -224,7 +224,7 @@ public class GameAssignmentService : IGameAssignmentService
 		var table = GameServiceHelpers.GetTableOrThrow(game, request.TableId);
 
 		if (!GameSessionRules.SystemMatches(table.Systems, request.SystemKey))
-			throw new GameActionException("Das gewählte System passt nicht zu diesem Tisch.");
+			throw new DomainException("Das gewählte System passt nicht zu diesem Tisch.");
 
 		return table;
 	}

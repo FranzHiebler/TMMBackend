@@ -34,10 +34,10 @@ public static class GameSessionRules
 		var proposal = game.ChangeProposals.FirstOrDefault(p => p.ProposalId == proposalId);
 
 		if (proposal == null)
-			throw new GameActionException("Änderungsvorschlag nicht gefunden.");
+			throw new DomainException("Änderungsvorschlag nicht gefunden.");
 
 		if (proposal.Status != ChangeProposalStatus.Pending)
-			throw new GameActionException("Dieser Änderungsvorschlag wurde bereits bearbeitet.");
+			throw new DomainException("Dieser Änderungsvorschlag wurde bereits bearbeitet.");
 
 		return proposal;
 	}

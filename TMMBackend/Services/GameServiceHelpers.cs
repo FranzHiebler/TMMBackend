@@ -8,7 +8,7 @@ public static class GameServiceHelpers
 	public static GameTable GetTableOrThrow(GameSession game, string tableId)
 	{
 		return game.Tables.FirstOrDefault(x => x.TableId == tableId)
-			?? throw new GameActionException("Tisch nicht gefunden.");
+			?? throw new DomainException("Tisch nicht gefunden.");
 	}
 
 	public static List<string>? NormalizeSystems(IEnumerable<string>? systems)
@@ -26,7 +26,7 @@ public static class GameServiceHelpers
 			return null;
 
 		return game.Tables.FirstOrDefault(t => t.TableId == request.TableId)
-			?? throw new GameActionException("Tisch nicht gefunden.");
+			?? throw new DomainException("Tisch nicht gefunden.");
 	}
 
 	public static GameTable? ResolveExistingProposalTable(GameSession game, GameChangeProposal proposal)
@@ -35,6 +35,6 @@ public static class GameServiceHelpers
 			return null;
 
 		return game.Tables.FirstOrDefault(t => t.TableId == proposal.TableId)
-			?? throw new GameActionException("Tisch nicht gefunden.");
+			?? throw new DomainException("Tisch nicht gefunden.");
 	}
 }
