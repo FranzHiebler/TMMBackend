@@ -29,9 +29,9 @@ builder.Services.AddCors(options =>
 // Dependency Injection
 builder.Services.AddScoped<IGameRepository, GameRepository>();
 builder.Services.AddScoped<IGameService, GameService>();
-builder.Services.AddScoped<IGameSessionAuthorizationService, GameSessionAuthorizationService>();
 builder.Services.AddScoped<IGameAssignmentService, GameAssignmentService>();
 builder.Services.AddScoped<IGameProposalService, GameProposalService>();
+builder.Services.AddScoped<IGameSessionAuthorizationService, GameSessionAuthorizationService>();
 builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<LocationRepository>();
 builder.Services.AddScoped<SystemRepository>();
