@@ -11,15 +11,18 @@ public class GameService : IGameService
 	private readonly IGameRepository _repository;
 	private readonly LocationRepository _locationRepository;
 	private readonly ICurrentUserService _currentUser;
+	private readonly IGameSessionAuthorizationService _authorization;
 
 	public GameService(
 		IGameRepository repository,
 		LocationRepository locationRepository,
-		ICurrentUserService currentUser)
+		ICurrentUserService currentUser,
+		IGameSessionAuthorizationService authorization)
 	{
 		_repository = repository;
 		_locationRepository = locationRepository;
 		_currentUser = currentUser;
+		_authorization = authorization;
 	}
 
 	public async Task<GameResponse> CreateAsync(CreateGameRequest request)
@@ -29,15 +32,7 @@ public class GameService : IGameService
 		if (location == null)
 			throw new Exception("Location not found");
 
-		var hasUsableRole = location.Members.Any(m =>
-			m.UserId == _currentUser.UserId &&
-			m.Role != LocationRole.Applicant);
-
-		var allowed =
-			location.AccessMode == LocationAccessMode.Open ||
-			hasUsableRole;
-
-		if (!allowed)
+		if (!_authorization.CanCreateGameAtLocation(location))
 			throw new Exception("Not allowed to create game at this location");
 
 		if (request.Tables.Count == 0)
@@ -78,70 +73,56 @@ public class GameService : IGameService
 		};
 
 		await _repository.CreateAsync(gameSession);
-		return Map(gameSession);
+		return GameMapper.ToResponse(gameSession);
 	}
 
 	public async Task<GameResponse?> GetByIdAsync(string id)
 	{
 		var gameSession = await _repository.GetByIdAsync(id);
-		return gameSession == null ? null : Map(gameSession);
+		return gameSession == null ? null : GameMapper.ToResponse(gameSession);
 	}
 
 	public async Task JoinTableAsync(string gameId, string tableId, JoinTableRequest request)
 	{
-		var game = await _repository.GetByIdAsync(gameId);
-		if (game == null) throw new GameActionException("Session nicht gefunden.");
-		if (game.Status != GameSessionState.Open) throw new GameActionException("Diese Session ist nicht offen.");
-		if (game.JoinMode != GameJoinMode.FirstComeFirstServe) throw new GameActionException("Direkter Beitritt ist für diese Session nicht aktiviert.");
+		var game = await GetGameOrThrow(gameId);
 
-		if (IsUserAlreadyAssigned(game, _currentUser.UserId))
+		if (game.Status != GameSessionState.Open)
+			throw new GameActionException("Diese Session ist nicht offen.");
+
+		if (game.JoinMode != GameJoinMode.FirstComeFirstServe)
+			throw new GameActionException("Direkter Beitritt ist für diese Session nicht aktiviert.");
+
+		if (GameSessionRules.IsUserAlreadyAssigned(game, _currentUser.UserId))
 			throw new GameActionException("Du bist bereits in dieser Session angemeldet.");
 
-		var table = game.Tables.FirstOrDefault(x => x.TableId == tableId);
-		if (table == null) throw new GameActionException("Tisch nicht gefunden.");
+		var table = GetTableOrThrow(game, tableId);
 
 		if (table.AssignedPlayers.Count >= table.MaxPlayers)
 			throw new GameActionException("Der Tisch ist voll.");
 
-		if (!SystemMatches(table.Systems, request.SystemKey))
+		if (!GameSessionRules.SystemMatches(table.Systems, request.SystemKey))
 			throw new GameActionException("Das gewählte System passt nicht zu diesem Tisch.");
 
-		table.AssignedPlayers.Add(new ParticipantInfo
-		{
-			UserId = _currentUser.UserId,
-			DisplayName = _currentUser.DisplayName
-		});
+		table.AssignedPlayers.Add(CurrentParticipant());
 
-		UpdateSessionState(game);
-		game.UpdatedAt = DateTime.UtcNow;
-
-		await _repository.UpdateAsync(game);
+		GameSessionRules.UpdateSessionState(game);
+		await SaveAsync(game);
 	}
 
 	public async Task ApplyAsync(string gameId, ApplyToGameRequest request)
 	{
-		var game = await _repository.GetByIdAsync(gameId);
-		if (game == null) throw new GameActionException("Session nicht gefunden.");
-		if (game.Status != GameSessionState.Open) throw new GameActionException("Diese Session ist nicht offen.");
-		if (game.JoinMode != GameJoinMode.ApprovalRequired) throw new GameActionException("Bewerbungen sind für diese Session nicht aktiviert.");
+		var game = await GetGameOrThrow(gameId);
 
-		if (IsUserAlreadyAssigned(game, _currentUser.UserId))
+		if (game.Status != GameSessionState.Open)
+			throw new GameActionException("Diese Session ist nicht offen.");
+
+		if (game.JoinMode != GameJoinMode.ApprovalRequired)
+			throw new GameActionException("Bewerbungen sind für diese Session nicht aktiviert.");
+
+		if (GameSessionRules.IsUserAlreadyAssigned(game, _currentUser.UserId))
 			throw new GameActionException("Du bist bereits in dieser Session angemeldet.");
 
-		GameTable table;
-
-		if (!string.IsNullOrWhiteSpace(request.TableId))
-		{
-			table = game.Tables.FirstOrDefault(x => x.TableId == request.TableId)
-				?? throw new GameActionException("Tisch nicht gefunden.");
-
-			if (!SystemMatches(table.Systems, request.SystemKey))
-				throw new GameActionException("Das gewählte System passt nicht zu diesem Tisch.");
-		}
-		else
-		{
-			table = game.Tables.First();
-		}
+		var table = GetApplicationTargetTable(game, request);
 
 		var alreadyApplied = game.Tables.Any(t =>
 			t.Applications.Any(a =>
@@ -155,20 +136,14 @@ public class GameService : IGameService
 		{
 			ApplicationId = Guid.NewGuid().ToString("N"),
 			TableId = table.TableId,
-			Player = new ParticipantInfo
-			{
-				UserId = _currentUser.UserId,
-				DisplayName = _currentUser.DisplayName
-			},
+			Player = CurrentParticipant(),
 			SystemKey = request.SystemKey,
 			Message = request.Message,
 			Status = ApplicationStatus.Pending,
 			CreatedAt = DateTime.UtcNow
 		});
 
-		game.UpdatedAt = DateTime.UtcNow;
-
-		await _repository.UpdateAsync(game);
+		await SaveAsync(game);
 	}
 
 	public async Task<bool> AssignPlayerToTableAsync(
@@ -179,7 +154,7 @@ public class GameService : IGameService
 		var game = await _repository.GetByIdAsync(gameId);
 		if (game == null) return false;
 
-		if (!await CanManageSession(game))
+		if (!await _authorization.CanManageSessionAsync(game))
 			return false;
 
 		var table = game.Tables.FirstOrDefault(x => x.TableId == tableId);
@@ -188,66 +163,29 @@ public class GameService : IGameService
 		if (table.AssignedPlayers.Count >= table.MaxPlayers)
 			return false;
 
-		TableApplication? application = null;
-		ParticipantInfo player;
+		var resolved = ResolvePlayerForAssignment(game, table, request);
+		if (resolved == null) return false;
 
-		if (!string.IsNullOrWhiteSpace(request.ApplicationId))
-		{
-			application = game.Tables
-				.SelectMany(t => t.Applications)
-				.FirstOrDefault(a => a.ApplicationId == request.ApplicationId);
+		var (player, application) = resolved.Value;
 
-			if (application == null) return false;
-			if (application.Status != ApplicationStatus.Pending) return false;
-			if (!SystemMatches(table.Systems, application.SystemKey)) return false;
-
-			player = application.Player;
-		}
-		else
-		{
-			if (string.IsNullOrWhiteSpace(request.UserId) ||
-				string.IsNullOrWhiteSpace(request.DisplayName))
-				return false;
-
-			player = new ParticipantInfo
-			{
-				UserId = request.UserId,
-				DisplayName = request.DisplayName
-			};
-		}
-
-		if (IsUserAlreadyAssigned(game, player.UserId))
+		if (GameSessionRules.IsUserAlreadyAssigned(game, player.UserId))
 			return true;
 
 		table.AssignedPlayers.Add(player);
 
 		if (application != null)
-		{
-			application.Status = ApplicationStatus.Accepted;
-			application.TableId = table.TableId;
+			AcceptApplication(game, table, application, player.UserId);
 
-			foreach (var otherApplication in game.Tables
-				.SelectMany(t => t.Applications)
-				.Where(a =>
-					a.Player.UserId == player.UserId &&
-					a.ApplicationId != application.ApplicationId &&
-					a.Status == ApplicationStatus.Pending))
-			{
-				otherApplication.Status = ApplicationStatus.Withdrawn;
-			}
-		}
+		GameSessionRules.UpdateSessionState(game);
+		await SaveAsync(game);
 
-		UpdateSessionState(game);
-		game.UpdatedAt = DateTime.UtcNow;
-
-		await _repository.UpdateAsync(game);
 		return true;
 	}
 
 	public async Task<List<GameResponse>> SearchAsync(SearchGamesRequest request)
 	{
 		var games = await _repository.SearchAsync(request);
-		return games.Select(Map).ToList();
+		return games.Select(GameMapper.ToResponse).ToList();
 	}
 
 	public async Task<List<GameResponse>> SearchNearbyAsync(SearchNearbyGamesRequest request)
@@ -260,16 +198,13 @@ public class GameService : IGameService
 		var locationIds = nearbyLocations.Select(x => x.LocationId).ToList();
 
 		var games = await _repository.SearchNearbyAsync(request, locationIds);
-		return games.Select(Map).ToList();
+		return games.Select(GameMapper.ToResponse).ToList();
 	}
 
 	public async Task RejectApplicationAsync(string gameId, string applicationId)
 	{
-		var game = await _repository.GetByIdAsync(gameId);
-		if (game == null) throw new GameActionException("Session nicht gefunden.");
-
-		if (!await CanManageSession(game))
-			throw new GameActionException("Du darfst diese Session nicht verwalten.");
+		var game = await GetGameOrThrow(gameId);
+		await EnsureCanManageAsync(game);
 
 		var application = game.Tables
 			.SelectMany(t => t.Applications)
@@ -282,33 +217,21 @@ public class GameService : IGameService
 			throw new GameActionException("Diese Bewerbung wurde bereits bearbeitet.");
 
 		application.Status = ApplicationStatus.Rejected;
-		game.UpdatedAt = DateTime.UtcNow;
-
-		await _repository.UpdateAsync(game);
+		await SaveAsync(game);
 	}
 
 	public async Task<GameResponse> CreateChangeProposalAsync(string gameId, CreateChangeProposalRequest request)
 	{
-		var game = await _repository.GetByIdAsync(gameId);
-		if (game == null) throw new GameActionException("Session nicht gefunden.");
+		var game = await GetGameOrThrow(gameId);
+
 		if (game.Status is GameSessionState.Cancelled or GameSessionState.Closed)
 			throw new GameActionException("Diese Session kann nicht mehr geändert werden.");
 
-		if (!IsUserAlreadyAssigned(game, _currentUser.UserId))
+		if (!GameSessionRules.IsUserAlreadyAssigned(game, _currentUser.UserId))
 			throw new GameActionException("Nur angemeldete Spieler dürfen Änderungen vorschlagen.");
 
-		GameTable? table = null;
-		if (!string.IsNullOrWhiteSpace(request.TableId))
-		{
-			table = game.Tables.FirstOrDefault(t => t.TableId == request.TableId);
-			if (table == null) throw new GameActionException("Tisch nicht gefunden.");
-		}
-
-		var proposedSystems = request.ProposedSystems?
-			.Select(s => s.Trim())
-			.Where(s => !string.IsNullOrWhiteSpace(s))
-			.Distinct(StringComparer.OrdinalIgnoreCase)
-			.ToList();
+		var table = ResolveProposalTable(game, request);
+		var proposedSystems = NormalizeSystems(request.ProposedSystems);
 
 		var hasTimeChange = request.ProposedStartTimeUtc.HasValue;
 		var hasSystemChange = proposedSystems is { Count: > 0 };
@@ -327,11 +250,7 @@ public class GameService : IGameService
 		{
 			ProposalId = Guid.NewGuid().ToString("N"),
 			TableId = table?.TableId,
-			ProposedBy = new ParticipantInfo
-			{
-				UserId = _currentUser.UserId,
-				DisplayName = _currentUser.DisplayName
-			},
+			ProposedBy = CurrentParticipant(),
 			ProposedStartTimeUtc = request.ProposedStartTimeUtc,
 			ProposedSystems = hasSystemChange ? proposedSystems : null,
 			ProposedPoints = request.ProposedPoints,
@@ -340,28 +259,204 @@ public class GameService : IGameService
 			CreatedAt = DateTime.UtcNow
 		});
 
-		game.UpdatedAt = DateTime.UtcNow;
-		await _repository.UpdateAsync(game);
-		return Map(game);
+		await SaveAsync(game);
+		return GameMapper.ToResponse(game);
 	}
 
 	public async Task<GameResponse> AcceptChangeProposalAsync(string gameId, string proposalId)
 	{
-		var game = await _repository.GetByIdAsync(gameId);
-		if (game == null) throw new GameActionException("Session nicht gefunden.");
+		var game = await GetGameOrThrow(gameId);
+		await EnsureCanManageAsync(game);
 
-		if (!await CanManageSession(game))
+		var proposal = GameSessionRules.GetPendingChangeProposal(game, proposalId);
+		var table = ResolveExistingProposalTable(game, proposal);
+
+		ApplyProposal(game, table, proposal);
+
+		proposal.Status = ChangeProposalStatus.Accepted;
+		proposal.ResolvedAt = DateTime.UtcNow;
+
+		await SaveAsync(game);
+		return GameMapper.ToResponse(game);
+	}
+
+	public async Task<GameResponse> RejectChangeProposalAsync(string gameId, string proposalId)
+	{
+		var game = await GetGameOrThrow(gameId);
+		await EnsureCanManageAsync(game);
+
+		var proposal = GameSessionRules.GetPendingChangeProposal(game, proposalId);
+		proposal.Status = ChangeProposalStatus.Rejected;
+		proposal.ResolvedAt = DateTime.UtcNow;
+
+		await SaveAsync(game);
+		return GameMapper.ToResponse(game);
+	}
+
+	public async Task RemovePlayerFromTableAsync(string gameId, string tableId, string userId)
+	{
+		var game = await GetGameOrThrow(gameId);
+		await EnsureCanManageAsync(game);
+
+		var table = GetTableOrThrow(game, tableId);
+		var player = table.AssignedPlayers.FirstOrDefault(p => p.UserId == userId);
+
+		if (player == null)
+			throw new GameActionException("Spieler ist nicht an diesem Tisch.");
+
+		table.AssignedPlayers.Remove(player);
+		RestoreApplicationAfterRemoval(game, table, player);
+
+		GameSessionRules.UpdateSessionState(game);
+		await SaveAsync(game);
+	}
+
+	public async Task MovePlayerToTableAsync(string gameId, string userId, MovePlayerToTableRequest request)
+	{
+		var game = await GetGameOrThrow(gameId);
+		await EnsureCanManageAsync(game);
+
+		if (string.IsNullOrWhiteSpace(request.TargetTableId))
+			throw new GameActionException("Zieltisch fehlt.");
+
+		var sourceTable = game.Tables.FirstOrDefault(t =>
+			t.AssignedPlayers.Any(p => p.UserId == userId));
+
+		if (sourceTable == null)
+			throw new GameActionException("Spieler ist keinem Tisch zugewiesen.");
+
+		var targetTable = GetTableOrThrow(game, request.TargetTableId);
+
+		if (sourceTable.TableId == targetTable.TableId)
+			return;
+
+		if (targetTable.AssignedPlayers.Count >= targetTable.MaxPlayers)
+			throw new GameActionException("Der Zieltisch ist voll.");
+
+		var player = sourceTable.AssignedPlayers.First(p => p.UserId == userId);
+
+		sourceTable.AssignedPlayers.Remove(player);
+		targetTable.AssignedPlayers.Add(player);
+
+		GameSessionRules.UpdateSessionState(game);
+		await SaveAsync(game);
+	}
+
+	private async Task<GameSession> GetGameOrThrow(string gameId)
+	{
+		return await _repository.GetByIdAsync(gameId)
+			?? throw new GameActionException("Session nicht gefunden.");
+	}
+
+	private static GameTable GetTableOrThrow(GameSession game, string tableId)
+	{
+		return game.Tables.FirstOrDefault(x => x.TableId == tableId)
+			?? throw new GameActionException("Tisch nicht gefunden.");
+	}
+
+	private async Task EnsureCanManageAsync(GameSession game)
+	{
+		if (!await _authorization.CanManageSessionAsync(game))
 			throw new GameActionException("Du darfst diese Session nicht verwalten.");
+	}
 
-		var proposal = GetPendingChangeProposal(game, proposalId);
-		GameTable? table = null;
-
-		if (!string.IsNullOrWhiteSpace(proposal.TableId))
+	private ParticipantInfo CurrentParticipant()
+	{
+		return new ParticipantInfo
 		{
-			table = game.Tables.FirstOrDefault(t => t.TableId == proposal.TableId);
-			if (table == null) throw new GameActionException("Tisch nicht gefunden.");
+			UserId = _currentUser.UserId,
+			DisplayName = _currentUser.DisplayName
+		};
+	}
+
+	private async Task SaveAsync(GameSession game)
+	{
+		game.UpdatedAt = DateTime.UtcNow;
+		await _repository.UpdateAsync(game);
+	}
+
+	private static GameTable GetApplicationTargetTable(GameSession game, ApplyToGameRequest request)
+	{
+		if (string.IsNullOrWhiteSpace(request.TableId))
+			return game.Tables.First();
+
+		var table = GetTableOrThrow(game, request.TableId);
+
+		if (!GameSessionRules.SystemMatches(table.Systems, request.SystemKey))
+			throw new GameActionException("Das gewählte System passt nicht zu diesem Tisch.");
+
+		return table;
+	}
+
+	private static (ParticipantInfo player, TableApplication? application)? ResolvePlayerForAssignment(
+		GameSession game,
+		GameTable table,
+		AssignPlayerToTableRequest request)
+	{
+		if (!string.IsNullOrWhiteSpace(request.ApplicationId))
+		{
+			var application = game.Tables
+				.SelectMany(t => t.Applications)
+				.FirstOrDefault(a => a.ApplicationId == request.ApplicationId);
+
+			if (application == null) return null;
+			if (application.Status != ApplicationStatus.Pending) return null;
+			if (!GameSessionRules.SystemMatches(table.Systems, application.SystemKey)) return null;
+
+			return (application.Player, application);
 		}
 
+		if (string.IsNullOrWhiteSpace(request.UserId) ||
+			string.IsNullOrWhiteSpace(request.DisplayName))
+			return null;
+
+		return (new ParticipantInfo
+		{
+			UserId = request.UserId,
+			DisplayName = request.DisplayName
+		}, null);
+	}
+
+	private static void AcceptApplication(
+		GameSession game,
+		GameTable table,
+		TableApplication application,
+		string userId)
+	{
+		application.Status = ApplicationStatus.Accepted;
+		application.TableId = table.TableId;
+
+		foreach (var otherApplication in game.Tables
+			.SelectMany(t => t.Applications)
+			.Where(a =>
+				a.Player.UserId == userId &&
+				a.ApplicationId != application.ApplicationId &&
+				a.Status == ApplicationStatus.Pending))
+		{
+			otherApplication.Status = ApplicationStatus.Withdrawn;
+		}
+	}
+
+	private static GameTable? ResolveProposalTable(GameSession game, CreateChangeProposalRequest request)
+	{
+		if (string.IsNullOrWhiteSpace(request.TableId))
+			return null;
+
+		return game.Tables.FirstOrDefault(t => t.TableId == request.TableId)
+			?? throw new GameActionException("Tisch nicht gefunden.");
+	}
+
+	private static GameTable? ResolveExistingProposalTable(GameSession game, GameChangeProposal proposal)
+	{
+		if (string.IsNullOrWhiteSpace(proposal.TableId))
+			return null;
+
+		return game.Tables.FirstOrDefault(t => t.TableId == proposal.TableId)
+			?? throw new GameActionException("Tisch nicht gefunden.");
+	}
+
+	private static void ApplyProposal(GameSession game, GameTable? table, GameChangeProposal proposal)
+	{
 		if (proposal.ProposedStartTimeUtc.HasValue)
 		{
 			if (table != null)
@@ -381,54 +476,28 @@ public class GameService : IGameService
 			if (table == null) throw new GameActionException("Tisch nicht gefunden.");
 			table.Points = proposal.ProposedPoints;
 		}
-
-		proposal.Status = ChangeProposalStatus.Accepted;
-		proposal.ResolvedAt = DateTime.UtcNow;
-		game.UpdatedAt = DateTime.UtcNow;
-
-		await _repository.UpdateAsync(game);
-		return Map(game);
 	}
 
-	public async Task<GameResponse> RejectChangeProposalAsync(string gameId, string proposalId)
+	private static List<string>? NormalizeSystems(IEnumerable<string>? systems)
 	{
-		var game = await _repository.GetByIdAsync(gameId);
-		if (game == null) throw new GameActionException("Session nicht gefunden.");
-
-		if (!await CanManageSession(game))
-			throw new GameActionException("Du darfst diese Session nicht verwalten.");
-
-		var proposal = GetPendingChangeProposal(game, proposalId);
-		proposal.Status = ChangeProposalStatus.Rejected;
-		proposal.ResolvedAt = DateTime.UtcNow;
-		game.UpdatedAt = DateTime.UtcNow;
-
-		await _repository.UpdateAsync(game);
-		return Map(game);
+		return systems?
+			.Select(s => s.Trim())
+			.Where(s => !string.IsNullOrWhiteSpace(s))
+			.Distinct(StringComparer.OrdinalIgnoreCase)
+			.ToList();
 	}
 
-	public async Task RemovePlayerFromTableAsync(string gameId, string tableId, string userId)
+	private static void RestoreApplicationAfterRemoval(
+		GameSession game,
+		GameTable table,
+		ParticipantInfo player)
 	{
-		var game = await _repository.GetByIdAsync(gameId);
-		if (game == null) throw new GameActionException("Session nicht gefunden.");
-
-		if (!await CanManageSession(game))
-			throw new GameActionException("Du darfst diese Session nicht verwalten.");
-
-		var table = game.Tables.FirstOrDefault(t => t.TableId == tableId);
-		if (table == null) throw new GameActionException("Tisch nicht gefunden.");
-
-		var player = table.AssignedPlayers.FirstOrDefault(p => p.UserId == userId);
-		if (player == null) throw new GameActionException("Spieler ist nicht an diesem Tisch.");
-
-		table.AssignedPlayers.Remove(player);
-
 		var existingApplicationTable = game.Tables.FirstOrDefault(t =>
-			t.Applications.Any(a => a.Player.UserId == userId));
+			t.Applications.Any(a => a.Player.UserId == player.UserId));
 
 		var existingApplication = existingApplicationTable?
 			.Applications
-			.FirstOrDefault(a => a.Player.UserId == userId);
+			.FirstOrDefault(a => a.Player.UserId == player.UserId);
 
 		if (existingApplication != null)
 		{
@@ -443,180 +512,19 @@ public class GameService : IGameService
 				existingApplicationTable.Applications.Remove(existingApplication);
 				table.Applications.Add(existingApplication);
 			}
-		}
-		else
-		{
-			table.Applications.Add(new TableApplication
-			{
-				ApplicationId = Guid.NewGuid().ToString("N"),
-				TableId = table.TableId,
-				Player = player,
-				SystemKey = table.Systems.Count == 1 ? table.Systems[0] : null,
-				Message = null,
-				Status = ApplicationStatus.Pending,
-				CreatedAt = DateTime.UtcNow
-			});
-		}
 
-		UpdateSessionState(game);
-		game.UpdatedAt = DateTime.UtcNow;
-
-		await _repository.UpdateAsync(game);
-	}
-
-	public async Task MovePlayerToTableAsync(string gameId, string userId, MovePlayerToTableRequest request)
-	{
-		var game = await _repository.GetByIdAsync(gameId);
-		if (game == null) throw new GameActionException("Session nicht gefunden.");
-
-		if (!await CanManageSession(game))
-			throw new GameActionException("Du darfst diese Session nicht verwalten.");
-
-		if (string.IsNullOrWhiteSpace(request.TargetTableId))
-			throw new GameActionException("Zieltisch fehlt.");
-
-		var sourceTable = game.Tables.FirstOrDefault(t =>
-			t.AssignedPlayers.Any(p => p.UserId == userId));
-
-		if (sourceTable == null)
-			throw new GameActionException("Spieler ist keinem Tisch zugewiesen.");
-
-		var targetTable = game.Tables.FirstOrDefault(t => t.TableId == request.TargetTableId);
-		if (targetTable == null) throw new GameActionException("Zieltisch nicht gefunden.");
-
-		if (sourceTable.TableId == targetTable.TableId)
 			return;
+		}
 
-		if (targetTable.AssignedPlayers.Count >= targetTable.MaxPlayers)
-			throw new GameActionException("Der Zieltisch ist voll.");
-
-		var player = sourceTable.AssignedPlayers.First(p => p.UserId == userId);
-
-		sourceTable.AssignedPlayers.Remove(player);
-		targetTable.AssignedPlayers.Add(player);
-
-		UpdateSessionState(game);
-		game.UpdatedAt = DateTime.UtcNow;
-
-		await _repository.UpdateAsync(game);
-	}
-
-	private async Task<bool> CanManageSession(GameSession game)
-	{
-		if (game.Host.UserId == _currentUser.UserId)
-			return true;
-
-		var location = await _locationRepository.GetByIdAsync(game.LocationId);
-		if (location == null) return false;
-
-		return location.Members.Any(m =>
-			m.UserId == _currentUser.UserId &&
-			(m.Role == LocationRole.Owner || m.Role == LocationRole.Manager));
-	}
-
-	private static bool IsUserAlreadyAssigned(GameSession game, string userId)
-	{
-		return game.Tables.Any(t => t.AssignedPlayers.Any(p => p.UserId == userId));
-	}
-
-	private static bool SystemMatches(List<string> systems, string? systemKey)
-	{
-		if (systems.Count == 0)
-			return true;
-
-		if (systems.Contains("egal", StringComparer.OrdinalIgnoreCase))
-			return true;
-
-		if (string.IsNullOrWhiteSpace(systemKey))
-			return false;
-
-		return systems.Contains(systemKey, StringComparer.OrdinalIgnoreCase);
-	}
-
-	private static void UpdateSessionState(GameSession game)
-	{
-		var hasOpenSlot = game.Tables.Any(t => t.AssignedPlayers.Count < t.MaxPlayers);
-		game.Status = hasOpenSlot ? GameSessionState.Open : GameSessionState.Full;
-	}
-
-	private static GameChangeProposal GetPendingChangeProposal(GameSession game, string proposalId)
-	{
-		var proposal = game.ChangeProposals.FirstOrDefault(p => p.ProposalId == proposalId);
-		if (proposal == null) throw new GameActionException("Änderungsvorschlag nicht gefunden.");
-		if (proposal.Status != ChangeProposalStatus.Pending)
-			throw new GameActionException("Dieser Änderungsvorschlag wurde bereits bearbeitet.");
-		return proposal;
-	}
-
-	private static GameResponse Map(GameSession game)
-	{
-		return new GameResponse
+		table.Applications.Add(new TableApplication
 		{
-			Id = game.Id!,
-			Title = game.Title,
-			Host = new ParticipantDto
-			{
-				UserId = game.Host.UserId,
-				DisplayName = game.Host.DisplayName
-			},
-			Status = game.Status,
-			JoinMode = game.JoinMode,
-			LocationId = game.LocationId,
-			Location = new LocationSnapshotDto
-			{
-				Name = game.LocationSnapshot.Name,
-				City = game.LocationSnapshot.City
-			},
-			ClubId = game.ClubId,
-			StartTimeUtc = game.StartTimeUtc,
-			Description = game.Description,
-			Tables = game.Tables.Select(t => new GameTableDto
-			{
-				Id = t.TableId,
-				Name = t.Name,
-				MaxPlayers = t.MaxPlayers,
-				Systems = t.Systems,
-				Scenario = t.Scenario,
-				Points = t.Points,
-				StartTimeUtc = t.StartTimeUtc,
-				Notes = t.Notes,
-				AssignedPlayers = t.AssignedPlayers.Select(p => new ParticipantDto
-				{
-					UserId = p.UserId,
-					DisplayName = p.DisplayName
-				}).ToList(),
-				Applications = t.Applications.Select(a => new TableApplicationDto
-				{
-					Id = a.ApplicationId,
-					TableId = a.TableId,
-					Player = new ParticipantDto
-					{
-						UserId = a.Player.UserId,
-						DisplayName = a.Player.DisplayName
-					},
-					SystemKey = a.SystemKey,
-					Message = a.Message,
-					Status = a.Status,
-					CreatedAt = a.CreatedAt
-				}).ToList()
-			}).ToList(),
-			ChangeProposals = game.ChangeProposals.Select(p => new GameChangeProposalDto
-			{
-				Id = p.ProposalId,
-				TableId = p.TableId,
-				ProposedBy = new ParticipantDto
-				{
-					UserId = p.ProposedBy.UserId,
-					DisplayName = p.ProposedBy.DisplayName
-				},
-				ProposedStartTimeUtc = p.ProposedStartTimeUtc,
-				ProposedSystems = p.ProposedSystems,
-				ProposedPoints = p.ProposedPoints,
-				Message = p.Message,
-				Status = p.Status,
-				CreatedAt = p.CreatedAt,
-				ResolvedAt = p.ResolvedAt
-			}).ToList()
-		};
+			ApplicationId = Guid.NewGuid().ToString("N"),
+			TableId = table.TableId,
+			Player = player,
+			SystemKey = table.Systems.Count == 1 ? table.Systems[0] : null,
+			Message = null,
+			Status = ApplicationStatus.Pending,
+			CreatedAt = DateTime.UtcNow
+		});
 	}
 }
