@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using TabletopMatchMaker.Dtos;
-using TabletopMatchMaker.Services;
 using TabletopMatchMaker.Services.Interfaces;
 
 namespace TabletopMatchMaker.Controllers;
@@ -37,36 +36,14 @@ public class LocationsController : ControllerBase
 	[HttpPut("{id}")]
 	public async Task<IActionResult> Update(string id, [FromBody] CreateLocationRequest request)
 	{
-		try
-		{
-			await _service.UpdateAsync(id, request);
-			return NoContent();
-		}
-		catch (KeyNotFoundException ex)
-		{
-			return NotFound(ex.Message);
-		}
-		catch (UnauthorizedAccessException)
-		{
-			return Forbid();
-		}
+		await _service.UpdateAsync(id, request);
+		return NoContent();
 	}
 
 	[HttpGet("{id}/members")]
 	public async Task<ActionResult<List<LocationMemberResponse>>> GetMembers(string id)
 	{
-		try
-		{
-			return Ok(await _service.GetMembersAsync(id));
-		}
-		catch (KeyNotFoundException ex)
-		{
-			return NotFound(ex.Message);
-		}
-		catch (UnauthorizedAccessException)
-		{
-			return Forbid();
-		}
+		return Ok(await _service.GetMembersAsync(id));
 	}
 
 	[HttpGet("nearby")]
@@ -81,19 +58,28 @@ public class LocationsController : ControllerBase
 		string id,
 		[FromBody] RequestLocationMembershipRequest request)
 	{
-		try
-		{
-			await _service.RequestMembershipAsync(id, request);
-			return NoContent();
-		}
-		catch (KeyNotFoundException ex)
-		{
-			return NotFound(ex.Message);
-		}
-		catch (GameActionException ex)
-		{
-			return BadRequest(ex.Message);
-		}
+		await _service.RequestMembershipAsync(id, request);
+		return NoContent();
+	}
+
+	[HttpGet("{id}/join-requests")]
+	public async Task<ActionResult<List<LocationJoinRequestResponse>>> GetJoinRequests(string id)
+	{
+		return Ok(await _service.GetJoinRequestsAsync(id));
+	}
+
+	[HttpPost("{id}/join-requests/{requestId}/accept")]
+	public async Task<IActionResult> AcceptJoinRequest(string id, string requestId)
+	{
+		await _service.AcceptJoinRequestAsync(id, requestId);
+		return NoContent();
+	}
+
+	[HttpPost("{id}/join-requests/{requestId}/reject")]
+	public async Task<IActionResult> RejectJoinRequest(string id, string requestId)
+	{
+		await _service.RejectJoinRequestAsync(id, requestId);
+		return NoContent();
 	}
 
 	[HttpPost("{id}/members")]
@@ -101,44 +87,14 @@ public class LocationsController : ControllerBase
 		string id,
 		[FromBody] UpsertLocationMemberRequest request)
 	{
-		try
-		{
-			await _service.UpsertMemberAsync(id, request);
-			return NoContent();
-		}
-		catch (KeyNotFoundException ex)
-		{
-			return NotFound(ex.Message);
-		}
-		catch (UnauthorizedAccessException)
-		{
-			return Forbid();
-		}
-		catch (GameActionException ex)
-		{
-			return BadRequest(ex.Message);
-		}
+		await _service.UpsertMemberAsync(id, request);
+		return NoContent();
 	}
 
 	[HttpDelete("{id}/members/{userId}")]
 	public async Task<IActionResult> RemoveMember(string id, string userId)
 	{
-		try
-		{
-			await _service.RemoveMemberAsync(id, userId);
-			return NoContent();
-		}
-		catch (KeyNotFoundException ex)
-		{
-			return NotFound(ex.Message);
-		}
-		catch (UnauthorizedAccessException)
-		{
-			return Forbid();
-		}
-		catch (GameActionException ex)
-		{
-			return BadRequest(ex.Message);
-		}
+		await _service.RemoveMemberAsync(id, userId);
+		return NoContent();
 	}
 }

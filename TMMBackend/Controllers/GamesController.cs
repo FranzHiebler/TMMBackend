@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using TabletopMatchMaker.Dtos;
-using TabletopMatchMaker.Services;
 using TabletopMatchMaker.Services.Interfaces;
 
 namespace TabletopMatchMaker.Controllers;
@@ -19,15 +18,8 @@ public class GamesController : ControllerBase
 	[HttpPost]
 	public async Task<ActionResult<GameResponse>> Create(CreateGameRequest request)
 	{
-		try
-		{
-			var result = await _service.CreateAsync(request);
-			return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
-		}
-		catch (GameActionException ex)
-		{
-			return BadRequest(ex.Message);
-		}
+		var result = await _service.CreateAsync(request);
+		return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
 	}
 
 	[HttpGet("{id}")]
@@ -36,7 +28,7 @@ public class GamesController : ControllerBase
 		var game = await _service.GetByIdAsync(id);
 
 		if (game == null)
-			return NotFound("Game Session wurde nicht gefunden.");
+			return NotFound(new { error = "Game Session wurde nicht gefunden." });
 
 		return Ok(game);
 	}
@@ -47,15 +39,8 @@ public class GamesController : ControllerBase
 		string tableId,
 		[FromBody] JoinTableRequest request)
 	{
-		try
-		{
-			await _service.JoinTableAsync(id, tableId, request);
-			return NoContent();
-		}
-		catch (GameActionException ex)
-		{
-			return BadRequest(ex.Message);
-		}
+		await _service.JoinTableAsync(id, tableId, request);
+		return NoContent();
 	}
 
 	[HttpPost("{id}/apply")]
@@ -63,15 +48,8 @@ public class GamesController : ControllerBase
 		string id,
 		[FromBody] ApplyToGameRequest request)
 	{
-		try
-		{
-			await _service.ApplyAsync(id, request);
-			return NoContent();
-		}
-		catch (GameActionException ex)
-		{
-			return BadRequest(ex.Message);
-		}
+		await _service.ApplyAsync(id, request);
+		return NoContent();
 	}
 
 	[HttpPost("{id}/tables/{tableId}/assign")]
@@ -81,7 +59,11 @@ public class GamesController : ControllerBase
 		[FromBody] AssignPlayerToTableRequest request)
 	{
 		var success = await _service.AssignPlayerToTableAsync(id, tableId, request);
-		return success ? NoContent() : BadRequest("Spieler konnte nicht zugewiesen werden.");
+
+		if (!success)
+			return BadRequest(new { error = "Spieler konnte nicht zugewiesen werden." });
+
+		return NoContent();
 	}
 
 	[HttpGet("search")]
@@ -99,15 +81,8 @@ public class GamesController : ControllerBase
 	[HttpPost("{id}/applications/{applicationId}/reject")]
 	public async Task<IActionResult> RejectApplication(string id, string applicationId)
 	{
-		try
-		{
-			await _service.RejectApplicationAsync(id, applicationId);
-			return NoContent();
-		}
-		catch (GameActionException ex)
-		{
-			return BadRequest(ex.Message);
-		}
+		await _service.RejectApplicationAsync(id, applicationId);
+		return NoContent();
 	}
 
 	[HttpPost("{id}/change-proposals")]
@@ -115,40 +90,19 @@ public class GamesController : ControllerBase
 		string id,
 		[FromBody] CreateChangeProposalRequest request)
 	{
-		try
-		{
-			return Ok(await _service.CreateChangeProposalAsync(id, request));
-		}
-		catch (GameActionException ex)
-		{
-			return BadRequest(ex.Message);
-		}
+		return Ok(await _service.CreateChangeProposalAsync(id, request));
 	}
 
 	[HttpPost("{id}/change-proposals/{proposalId}/accept")]
 	public async Task<ActionResult<GameResponse>> AcceptChangeProposal(string id, string proposalId)
 	{
-		try
-		{
-			return Ok(await _service.AcceptChangeProposalAsync(id, proposalId));
-		}
-		catch (GameActionException ex)
-		{
-			return BadRequest(ex.Message);
-		}
+		return Ok(await _service.AcceptChangeProposalAsync(id, proposalId));
 	}
 
 	[HttpPost("{id}/change-proposals/{proposalId}/reject")]
 	public async Task<ActionResult<GameResponse>> RejectChangeProposal(string id, string proposalId)
 	{
-		try
-		{
-			return Ok(await _service.RejectChangeProposalAsync(id, proposalId));
-		}
-		catch (GameActionException ex)
-		{
-			return BadRequest(ex.Message);
-		}
+		return Ok(await _service.RejectChangeProposalAsync(id, proposalId));
 	}
 
 	[HttpPost("{id}/tables/{tableId}/players/{userId}/remove")]
@@ -157,15 +111,8 @@ public class GamesController : ControllerBase
 		string tableId,
 		string userId)
 	{
-		try
-		{
-			await _service.RemovePlayerFromTableAsync(id, tableId, userId);
-			return NoContent();
-		}
-		catch (GameActionException ex)
-		{
-			return BadRequest(ex.Message);
-		}
+		await _service.RemovePlayerFromTableAsync(id, tableId, userId);
+		return NoContent();
 	}
 
 	[HttpPost("{id}/players/{userId}/move")]
@@ -174,14 +121,7 @@ public class GamesController : ControllerBase
 		string userId,
 		[FromBody] MovePlayerToTableRequest request)
 	{
-		try
-		{
-			await _service.MovePlayerToTableAsync(id, userId, request);
-			return NoContent();
-		}
-		catch (GameActionException ex)
-		{
-			return BadRequest(ex.Message);
-		}
+		await _service.MovePlayerToTableAsync(id, userId, request);
+		return NoContent();
 	}
 }

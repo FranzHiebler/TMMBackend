@@ -73,8 +73,7 @@ public class LocationService : ILocationService
 
 	public async Task UpdateAsync(string id, CreateLocationRequest request)
 	{
-		var location = await _repository.GetByIdAsync(id)
-			?? throw new KeyNotFoundException("Location wurde nicht gefunden.");
+		var location = await GetLocationOrThrow(id);
 
 		if (!LocationRules.CanEditLocation(location, _currentUser.UserId))
 			throw new UnauthorizedAccessException("Du darfst diese Location nicht bearbeiten.");
@@ -92,8 +91,7 @@ public class LocationService : ILocationService
 
 	public async Task<List<LocationMemberResponse>> GetMembersAsync(string id)
 	{
-		var location = await _repository.GetByIdAsync(id)
-			?? throw new KeyNotFoundException("Location wurde nicht gefunden.");
+		var location = await GetLocationOrThrow(id);
 
 		if (!LocationRules.CanViewMembers(location, _currentUser.UserId))
 			throw new UnauthorizedAccessException("Du darfst die Mitglieder nicht sehen.");
@@ -122,8 +120,7 @@ public class LocationService : ILocationService
 
 	public async Task RequestMembershipAsync(string id, RequestLocationMembershipRequest request)
 	{
-		var location = await _repository.GetByIdAsync(id)
-			?? throw new KeyNotFoundException("Location wurde nicht gefunden.");
+		var location = await GetLocationOrThrow(id);
 
 		if (location.Members.Any(m => m.UserId == _currentUser.UserId))
 			throw new GameActionException("Du bist dort bereits Mitglied.");
@@ -148,10 +145,64 @@ public class LocationService : ILocationService
 		await _repository.UpdateAsync(location);
 	}
 
+	public async Task<List<LocationJoinRequestResponse>> GetJoinRequestsAsync(string id)
+	{
+		var location = await GetLocationOrThrow(id);
+
+		if (!LocationRules.CanManageMembers(location, _currentUser.UserId))
+			throw new UnauthorizedAccessException("Du darfst Beitrittsanfragen nicht sehen.");
+
+		return location.JoinRequests
+			.Where(r => r.Status == LocationJoinRequestStatus.Pending)
+			.OrderBy(r => r.CreatedAt)
+			.Select(LocationMapper.ToJoinRequestResponse)
+			.ToList();
+	}
+
+	public async Task AcceptJoinRequestAsync(string id, string requestId)
+	{
+		var location = await GetLocationOrThrow(id);
+
+		if (!LocationRules.CanManageMembers(location, _currentUser.UserId))
+			throw new UnauthorizedAccessException("Du darfst Beitrittsanfragen nicht bearbeiten.");
+
+		var joinRequest = GetPendingJoinRequestOrThrow(location, requestId);
+
+		if (location.Members.Any(m => m.UserId == joinRequest.UserId))
+		{
+			joinRequest.Status = LocationJoinRequestStatus.Accepted;
+			await _repository.UpdateAsync(location);
+			return;
+		}
+
+		location.Members.Add(new LocationMember
+		{
+			UserId = joinRequest.UserId,
+			DisplayName = joinRequest.DisplayName,
+			Role = LocationRole.Member
+		});
+
+		joinRequest.Status = LocationJoinRequestStatus.Accepted;
+
+		await _repository.UpdateAsync(location);
+	}
+
+	public async Task RejectJoinRequestAsync(string id, string requestId)
+	{
+		var location = await GetLocationOrThrow(id);
+
+		if (!LocationRules.CanManageMembers(location, _currentUser.UserId))
+			throw new UnauthorizedAccessException("Du darfst Beitrittsanfragen nicht bearbeiten.");
+
+		var joinRequest = GetPendingJoinRequestOrThrow(location, requestId);
+		joinRequest.Status = LocationJoinRequestStatus.Rejected;
+
+		await _repository.UpdateAsync(location);
+	}
+
 	public async Task UpsertMemberAsync(string id, UpsertLocationMemberRequest request)
 	{
-		var location = await _repository.GetByIdAsync(id)
-			?? throw new KeyNotFoundException("Location wurde nicht gefunden.");
+		var location = await GetLocationOrThrow(id);
 
 		if (!LocationRules.CanManageMembers(location, _currentUser.UserId))
 			throw new UnauthorizedAccessException("Du darfst Mitglieder nicht verwalten.");
@@ -185,8 +236,7 @@ public class LocationService : ILocationService
 
 	public async Task RemoveMemberAsync(string id, string userId)
 	{
-		var location = await _repository.GetByIdAsync(id)
-			?? throw new KeyNotFoundException("Location wurde nicht gefunden.");
+		var location = await GetLocationOrThrow(id);
 
 		if (!LocationRules.CanManageMembers(location, _currentUser.UserId))
 			throw new UnauthorizedAccessException("Du darfst Mitglieder nicht verwalten.");
@@ -203,5 +253,26 @@ public class LocationService : ILocationService
 
 		location.Members.Remove(member);
 		await _repository.UpdateAsync(location);
+	}
+
+	private async Task<Location> GetLocationOrThrow(string id)
+	{
+		return await _repository.GetByIdAsync(id)
+			?? throw new KeyNotFoundException("Location wurde nicht gefunden.");
+	}
+
+	private static LocationJoinRequest GetPendingJoinRequestOrThrow(
+		Location location,
+		string requestId)
+	{
+		var joinRequest = location.JoinRequests.FirstOrDefault(r => r.RequestId == requestId);
+
+		if (joinRequest == null)
+			throw new KeyNotFoundException("Beitrittsanfrage wurde nicht gefunden.");
+
+		if (joinRequest.Status != LocationJoinRequestStatus.Pending)
+			throw new GameActionException("Diese Beitrittsanfrage wurde bereits bearbeitet.");
+
+		return joinRequest;
 	}
 }

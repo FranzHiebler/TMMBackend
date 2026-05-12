@@ -7,11 +7,9 @@ using TabletopMatchMaker.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// MongoDB Settings
 builder.Services.Configure<MongoDbSettings>(
 	builder.Configuration.GetSection("MongoDb"));
 
-// CORS für React-Frontend
 builder.Services.AddCors(options =>
 {
 	options.AddPolicy("Frontend", policy =>
@@ -26,7 +24,6 @@ builder.Services.AddCors(options =>
 	});
 });
 
-// Dependency Injection
 builder.Services.AddScoped<IGameRepository, GameRepository>();
 builder.Services.AddScoped<ILocationRepository, LocationRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -42,7 +39,6 @@ builder.Services.AddScoped<ILocationLookupService>(sp => sp.GetRequiredService<I
 
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
-// Controller + Swagger
 builder.Services
 	.AddControllers()
 	.AddJsonOptions(options =>
@@ -51,13 +47,56 @@ builder.Services
 	});
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+
+builder.Services.AddSwaggerGen(options =>
+{
+	options.AddSecurityDefinition("x-user-id", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+	{
+		Name = "x-user-id",
+		Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+		In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+		Description = "Test UserId"
+	});
+
+	options.AddSecurityDefinition("x-display-name", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+	{
+		Name = "x-display-name",
+		Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+		In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+		Description = "Test DisplayName"
+	});
+
+	options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+	{
+		{
+			new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+			{
+				Reference = new Microsoft.OpenApi.Models.OpenApiReference
+				{
+					Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+					Id = "x-user-id"
+				}
+			},
+			Array.Empty<string>()
+		},
+		{
+			new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+			{
+				Reference = new Microsoft.OpenApi.Models.OpenApiReference
+				{
+					Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+					Id = "x-display-name"
+				}
+			},
+			Array.Empty<string>()
+		}
+	});
+});
 
 builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 
-// Middleware
 if (app.Environment.IsDevelopment())
 {
 	app.UseSwagger();
@@ -65,6 +104,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseMiddleware<GlobalExceptionMiddleware>();
 
 app.UseCors("Frontend");
 

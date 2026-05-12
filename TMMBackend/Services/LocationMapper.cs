@@ -45,4 +45,17 @@ public static class LocationMapper
 			Role = member.Role.ToString()
 		};
 	}
+
+	public static LocationJoinRequestResponse ToJoinRequestResponse(LocationJoinRequest request)
+	{
+		return new LocationJoinRequestResponse
+		{
+			Id = request.RequestId,
+			UserId = request.UserId,
+			DisplayName = request.DisplayName,
+			Message = request.Message,
+			Status = request.Status.ToString(),
+			CreatedAt = request.CreatedAt
+		};
+	}
 }
