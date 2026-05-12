@@ -54,9 +54,9 @@ public class GamesController : ControllerBase
 
 	[HttpPost("{id}/tables/{tableId}/assign")]
 	public async Task<IActionResult> AssignPlayerToTable(
-	string id,
-	string tableId,
-	[FromBody] AssignPlayerToTableRequest request)
+		string id,
+		string tableId,
+		[FromBody] AssignPlayerToTableRequest request)
 	{
 		await _service.AssignPlayerToTableAsync(id, tableId, request);
 		return NoContent();
