@@ -134,64 +134,63 @@ export default function LocationModal({ onClose, onCreated, location, inline = f
 
   const content = (
     <div className={inline ? "inline-location-editor" : "modal"}>
-        <h2>{location ? "Location bearbeiten" : "Neue Location"}</h2>
+      <h2>{location ? "Location bearbeiten" : "Neue Location"}</h2>
 
-        {error && <div className="message message-error">{error}</div>}
+      {error && <div className="message message-error">{error}</div>}
 
-        <form onSubmit={handleSubmit} className="form">
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name der Location" />
-          <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Stadt" />
+      <form onSubmit={handleSubmit} className="form">
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name der Location" />
+        <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Stadt" />
 
-          <div>
-            <b>Systeme in dieser Location</b>
-            {systems.map((system) => (
-              <label key={system.key}>
-                <input
-                  type="checkbox"
-                  checked={systemKeys.includes(system.key)}
-                  onChange={() => toggleSystem(system.key)}
-                />
-                {system.name}
-              </label>
-            ))}
+        <div>
+          <b>Systeme in dieser Location</b>
+          {systems.map((system) => (
+            <label key={system.key}>
+              <input
+                type="checkbox"
+                checked={systemKeys.includes(system.key)}
+                onChange={() => toggleSystem(system.key)}
+              />
+              {system.name}
+            </label>
+          ))}
 
-            {user.userId === "64f1a2b3c4d5e6f7890abc12" && (
-              <div className="inline-add-system">
-                <input
-                  value={newSystemName}
-                  onChange={(e) => setNewSystemName(e.target.value)}
-                  placeholder="Neues System anlegen"
-                />
-                <button type="button" onClick={addSystem}>
-                  System hinzufügen
-                </button>
-              </div>
-            )}
-          </div>
-
-          <input
-            value={address}
-            onChange={(e) => {
-              setAddress(e.target.value);
-              setLatitude(null);
-              setLongitude(null);
-            }}
-            placeholder="Straße, Hausnummer"
-          />
-
-          <LocationPicker latitude={latitude} longitude={longitude} onChange={(lat, lng) => {
-            setLatitude(lat);
-            setLongitude(lng);
-          }} />
-
-          <div className="modal-actions">
-            <button type="button" onClick={onClose}>Abbrechen</button>
-            <button type="submit" disabled={loading || !isValid}>
-              {loading ? "Speichert..." : "Speichern"}
+          <div className="inline-add-system">
+            <input
+              value={newSystemName}
+              onChange={(e) => setNewSystemName(e.target.value)}
+              placeholder="Neues System anlegen"
+            />
+            <button type="button" onClick={addSystem}>
+              System hinzufügen
             </button>
           </div>
-        </form>
-      </div>
+
+        </div>
+
+        <input
+          value={address}
+          onChange={(e) => {
+            setAddress(e.target.value);
+            setLatitude(null);
+            setLongitude(null);
+          }}
+          placeholder="Straße, Hausnummer"
+        />
+
+        <LocationPicker latitude={latitude} longitude={longitude} onChange={(lat, lng) => {
+          setLatitude(lat);
+          setLongitude(lng);
+        }} />
+
+        <div className="modal-actions">
+          <button type="button" onClick={onClose}>Abbrechen</button>
+          <button type="submit" disabled={loading || !isValid}>
+            {loading ? "Speichert..." : "Speichern"}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 
   if (inline) return content;
