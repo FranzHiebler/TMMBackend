@@ -9,13 +9,17 @@ import {
 } from "../api/locationsApi";
 import { searchUsers } from "../api/usersApi";
 import type {
-  LocationJoinRequestResponse,
   LocationMemberResponse,
   LocationResponse,
   LocationRole,
   UserSearchResponse,
+  LocationJoinRequestResponse,
 } from "../types/game";
 import { useUser } from "../context/UserContext";
+import LocationJoinRequestsList from "./LocationJoinRequestsList";
+import LocationMemberList from "./LocationMemberList";
+import LocationMemberAddForm from "./LocationMemberAddForm";
+import Message from "./Message";
 
 type Props = {
   location?: LocationResponse;
@@ -23,15 +27,6 @@ type Props = {
 
 const ownerAssignableRoles: LocationRole[] = ["Admin", "Manager", "Member", "Applicant"];
 const adminAssignableRoles: LocationRole[] = ["Manager", "Member", "Applicant"];
-
-function roleLabel(role: LocationRole | string) {
-  if (role === "Owner") return "Besitzer";
-  if (role === "Admin") return "Admin";
-  if (role === "Manager") return "Verwalter";
-  if (role === "Member") return "Mitglied";
-  if (role === "Applicant") return "Bewerber";
-  return role;
-}
 
 export default function LocationMembersPanel({ location }: Props) {
   const user = useUser();
@@ -191,7 +186,6 @@ export default function LocationMembersPanel({ location }: Props) {
     try {
       setBusyKey(`remove-${userId}`);
       setError("");
-
       await removeLocationMember(location.id, userId, user);
       await Promise.all([loadMembers(), loadUsers()]);
       setSuccess("Mitglied entfernt.");
@@ -215,115 +209,40 @@ export default function LocationMembersPanel({ location }: Props) {
     <div className="card">
       <h4>Mitglieder</h4>
 
-      {error && <div className="message message-error">{error}</div>}
-      {success && <div className="message message-success">{success}</div>}
+      <Message text={error} type="error" />
+      <Message text={success} type="success" />
 
-      {canEdit && joinRequests.length > 0 && (
-        <div className="proposal-list">
-          <h4>Beitrittsanfragen</h4>
-
-          {joinRequests.map((request) => (
-            <div key={request.id} className="proposal-row">
-              <div>
-                <b>{request.displayName}</b>
-                {request.message && <p>{request.message}</p>}
-              </div>
-
-              <div className="proposal-actions">
-                <button
-                  type="button"
-                  disabled={busyKey === `accept-${request.id}`}
-                  onClick={() => acceptRequest(request.id)}
-                >
-                  Annehmen
-                </button>
-
-                <button
-                  type="button"
-                  disabled={busyKey === `reject-${request.id}`}
-                  onClick={() => rejectRequest(request.id)}
-                >
-                  Ablehnen
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+      {canEdit && (
+        <LocationJoinRequestsList
+          joinRequests={joinRequests}
+          busyKey={busyKey}
+          onAccept={acceptRequest}
+          onReject={rejectRequest}
+        />
       )}
 
-      <div className="member-list">
-        {members.length === 0 && (
-          <div className="message message-info">Keine Mitglieder hinterlegt.</div>
-        )}
-
-        {members.map((m) => (
-          <div key={m.userId} className="member-row">
-            <span>{m.displayName || m.userId}</span>
-
-            {canEdit && canModify(m) ? (
-              <>
-                <select
-                  value={m.role}
-                  disabled={busyKey === `role-${m.userId}`}
-                  onChange={(e) => changeRole(m, e.target.value as LocationRole)}
-                >
-                  {assignableRoles.map((r) => (
-                    <option key={r} value={r}>
-                      {roleLabel(r)}
-                    </option>
-                  ))}
-                </select>
-
-                <button
-                  type="button"
-                  disabled={busyKey === `remove-${m.userId}`}
-                  onClick={() => remove(m.userId)}
-                >
-                  Entfernen
-                </button>
-              </>
-            ) : (
-              <strong>{roleLabel(m.role)}</strong>
-            )}
-          </div>
-        ))}
-      </div>
+      <LocationMemberList
+        members={members}
+        canEdit={canEdit}
+        assignableRoles={assignableRoles}
+        busyKey={busyKey}
+        canModify={canModify}
+        onChangeRole={changeRole}
+        onRemove={remove}
+      />
 
       {canEdit && (
         <div className="member-edit-block">
-          {availableUsers.length > 0 ? (
-            <div className="member-edit-row">
-              <select
-                value={effectiveSelectedUserId}
-                onChange={(e) => setSelectedUserId(e.target.value)}
-              >
-                {availableUsers.map((u) => (
-                  <option key={u.userId} value={u.userId}>
-                    {u.displayName}
-                    {u.email ? ` (${u.email})` : ""}
-                  </option>
-                ))}
-              </select>
-
-              <select value={role} onChange={(e) => setRole(e.target.value as LocationRole)}>
-                {assignableRoles.map((r) => (
-                  <option key={r} value={r}>
-                    {roleLabel(r)}
-                  </option>
-                ))}
-              </select>
-
-              <button
-                type="button"
-                onClick={addMember}
-                disabled={!effectiveSelectedUserId || busyKey === "add-member"}
-              >
-                Mitglied hinzufügen
-              </button>
-            </div>
-          ) : (
-            <div className="message message-info">Keine weiteren User verfügbar.</div>
-          )}
+          <LocationMemberAddForm
+            availableUsers={availableUsers}
+            selectedUserId={effectiveSelectedUserId}
+            role={role}
+            assignableRoles={assignableRoles}
+            busyKey={busyKey}
+            onSelectedUserIdChange={setSelectedUserId}
+            onRoleChange={setRole}
+            onAddMember={addMember}
+          />
         </div>
       )}
     </div>
