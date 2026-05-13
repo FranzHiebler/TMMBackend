@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  acceptLocationJoinRequest,
+  getLocationJoinRequests,
   getLocationMembers,
+  rejectLocationJoinRequest,
   removeLocationMember,
   searchUsers,
   upsertLocationMember,
 } from "../api/gamesService";
 import type {
+  LocationJoinRequestResponse,
   LocationMemberResponse,
   LocationResponse,
   LocationRole,
@@ -24,10 +28,12 @@ export default function LocationMembersPanel({ location }: Props) {
   const user = useUser();
 
   const [members, setMembers] = useState<LocationMemberResponse[]>([]);
+  const [joinRequests, setJoinRequests] = useState<LocationJoinRequestResponse[]>([]);
   const [users, setUsers] = useState<UserSearchResponse[]>([]);
   const [selectedUserId, setSelectedUserId] = useState("");
   const [role, setRole] = useState<LocationRole>("Member");
   const [error, setError] = useState("");
+  const [busyKey, setBusyKey] = useState<string | null>(null);
 
   const canEdit = location?.role === "Owner" || location?.role === "Admin";
 
@@ -51,6 +57,11 @@ export default function LocationMembersPanel({ location }: Props) {
     setMembers(await getLocationMembers(location.id, user));
   }, [location, user]);
 
+  const loadJoinRequests = useCallback(async () => {
+    if (!location || !canEdit) return;
+    setJoinRequests(await getLocationJoinRequests(location.id, user));
+  }, [location, user, canEdit]);
+
   const loadUsers = useCallback(async () => {
     setUsers(await searchUsers(""));
   }, []);
@@ -59,17 +70,48 @@ export default function LocationMembersPanel({ location }: Props) {
     if (!location) return;
 
     async function init() {
+      setError("");
       await loadMembers();
 
       if (canEdit) {
-        await loadUsers();
+        await Promise.all([loadUsers(), loadJoinRequests()]);
       }
     }
 
     init().catch((err) =>
       setError(err instanceof Error ? err.message : "Daten konnten nicht geladen werden")
     );
-  }, [canEdit, loadMembers, loadUsers, location]);
+  }, [canEdit, loadMembers, loadUsers, loadJoinRequests, location]);
+
+  async function acceptRequest(requestId: string) {
+    if (!location) return;
+
+    try {
+      setBusyKey(`accept-${requestId}`);
+      setError("");
+      await acceptLocationJoinRequest(location.id, requestId, user);
+      await Promise.all([loadMembers(), loadJoinRequests(), loadUsers()]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Beitrittsanfrage konnte nicht angenommen werden");
+    } finally {
+      setBusyKey(null);
+    }
+  }
+
+  async function rejectRequest(requestId: string) {
+    if (!location) return;
+
+    try {
+      setBusyKey(`reject-${requestId}`);
+      setError("");
+      await rejectLocationJoinRequest(location.id, requestId, user);
+      await loadJoinRequests();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Beitrittsanfrage konnte nicht abgelehnt werden");
+    } finally {
+      setBusyKey(null);
+    }
+  }
 
   async function addMember() {
     if (!location) return;
@@ -79,11 +121,7 @@ export default function LocationMembersPanel({ location }: Props) {
 
     await upsertLocationMember(
       location.id,
-      {
-        userId: selected.userId,
-        displayName: selected.displayName,
-        role,
-      },
+      { userId: selected.userId, displayName: selected.displayName, role },
       user
     );
 
@@ -97,11 +135,7 @@ export default function LocationMembersPanel({ location }: Props) {
 
     await upsertLocationMember(
       location.id,
-      {
-        userId: member.userId,
-        displayName: member.displayName || member.userId,
-        role: newRole,
-      },
+      { userId: member.userId, displayName: member.displayName || member.userId, role: newRole },
       user
     );
 
@@ -131,6 +165,39 @@ export default function LocationMembersPanel({ location }: Props) {
 
       {error && <div className="message message-error">{error}</div>}
 
+      {canEdit && joinRequests.length > 0 && (
+        <div className="proposal-list">
+          <h4>Beitrittsanfragen</h4>
+
+          {joinRequests.map((request) => (
+            <div key={request.id} className="proposal-row">
+              <div>
+                <b>{request.displayName}</b>
+                {request.message && <p>{request.message}</p>}
+              </div>
+
+              <div className="proposal-actions">
+                <button
+                  type="button"
+                  disabled={busyKey === `accept-${request.id}`}
+                  onClick={() => acceptRequest(request.id)}
+                >
+                  Annehmen
+                </button>
+
+                <button
+                  type="button"
+                  disabled={busyKey === `reject-${request.id}`}
+                  onClick={() => rejectRequest(request.id)}
+                >
+                  Ablehnen
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="member-list">
         {members.length === 0 && (
           <div className="message message-info">Keine Mitglieder hinterlegt.</div>
@@ -142,10 +209,7 @@ export default function LocationMembersPanel({ location }: Props) {
 
             {canEdit && canModify(m) ? (
               <>
-                <select
-                  value={m.role}
-                  onChange={(e) => changeRole(m, e.target.value as LocationRole)}
-                >
+                <select value={m.role} onChange={(e) => changeRole(m, e.target.value as LocationRole)}>
                   {assignableRoles.map((r) => (
                     <option key={r} value={r}>
                       {r}
@@ -168,10 +232,7 @@ export default function LocationMembersPanel({ location }: Props) {
         <div className="member-edit-block">
           {availableUsers.length > 0 ? (
             <div className="member-edit-row">
-              <select
-                value={effectiveSelectedUserId}
-                onChange={(e) => setSelectedUserId(e.target.value)}
-              >
+              <select value={effectiveSelectedUserId} onChange={(e) => setSelectedUserId(e.target.value)}>
                 {availableUsers.map((u) => (
                   <option key={u.userId} value={u.userId}>
                     {u.displayName}
@@ -180,10 +241,7 @@ export default function LocationMembersPanel({ location }: Props) {
                 ))}
               </select>
 
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value as LocationRole)}
-              >
+              <select value={role} onChange={(e) => setRole(e.target.value as LocationRole)}>
                 {assignableRoles.map((r) => (
                   <option key={r} value={r}>
                     {r}
@@ -196,9 +254,7 @@ export default function LocationMembersPanel({ location }: Props) {
               </button>
             </div>
           ) : (
-            <div className="message message-info">
-              Keine weiteren User verfügbar.
-            </div>
+            <div className="message message-info">Keine weiteren User verfügbar.</div>
           )}
         </div>
       )}

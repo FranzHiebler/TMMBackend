@@ -177,3 +177,12 @@ export interface UserSearchResponse {
 
 export type GameJoinMode =
   typeof GameJoinMode[keyof typeof GameJoinMode];
+
+export interface LocationJoinRequestResponse {
+  id: string;
+  userId: string;
+  displayName: string;
+  message?: string | null;
+  status: string;
+  createdAt: string;
+}

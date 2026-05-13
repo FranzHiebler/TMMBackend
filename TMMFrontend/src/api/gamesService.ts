@@ -13,6 +13,7 @@ import type {
   UpsertLocationMemberRequest,
   SystemOption,
   UserSearchResponse,
+  LocationJoinRequestResponse,
 } from "../types/game";
 import type { User } from "../context/UserContext";
 import { readApiError } from "./apiError";
@@ -24,9 +25,9 @@ function authHeaders(user?: User): HeadersInit {
     "Content-Type": "application/json",
     ...(user
       ? {
-          "x-user-id": user.userId,
-          "x-display-name": user.displayName,
-        }
+        "x-user-id": user.userId,
+        "x-display-name": user.displayName,
+      }
       : {}),
   };
 }
@@ -173,17 +174,22 @@ export async function searchNearbyGames(request: SearchNearbyGamesRequest): Prom
 }
 
 export async function searchNearbyLocations(
-  request: SearchNearbyLocationsRequest
+  request: SearchNearbyLocationsRequest,
+  user: User
 ): Promise<LocationResponse[]> {
   const params = new URLSearchParams({
     latitude: request.latitude.toString(),
     longitude: request.longitude.toString(),
     radiusInMeters: (request.radiusKm * 1000).toString(),
+    userId: user.userId,
   });
 
   if (request.systemKey) params.append("systemKey", request.systemKey);
 
-  const res = await fetch(`${API}/Locations/nearby?${params.toString()}`);
+  const res = await fetch(`${API}/Locations/nearby?${params.toString()}`, {
+    headers: authHeaders(user),
+  });
+  
   if (!res.ok) throw await readApiError(res, "Nearby Locations fehlgeschlagen");
   return res.json();
 }
@@ -336,4 +342,42 @@ export async function movePlayerToTable(
   });
 
   if (!res.ok) throw await readApiError(res, "Spieler verschieben fehlgeschlagen");
+}
+
+export async function getLocationJoinRequests(
+  locationId: string,
+  user: User
+): Promise<LocationJoinRequestResponse[]> {
+  const res = await fetch(`${API}/Locations/${locationId}/join-requests`, {
+    headers: authHeaders(user),
+  });
+
+  if (!res.ok) throw await readApiError(res, "Beitrittsanfragen laden fehlgeschlagen");
+  return res.json();
+}
+
+export async function acceptLocationJoinRequest(
+  locationId: string,
+  requestId: string,
+  user: User
+): Promise<void> {
+  const res = await fetch(`${API}/Locations/${locationId}/join-requests/${requestId}/accept`, {
+    method: "POST",
+    headers: authHeaders(user),
+  });
+
+  if (!res.ok) throw await readApiError(res, "Beitrittsanfrage annehmen fehlgeschlagen");
+}
+
+export async function rejectLocationJoinRequest(
+  locationId: string,
+  requestId: string,
+  user: User
+): Promise<void> {
+  const res = await fetch(`${API}/Locations/${locationId}/join-requests/${requestId}/reject`, {
+    method: "POST",
+    headers: authHeaders(user),
+  });
+
+  if (!res.ok) throw await readApiError(res, "Beitrittsanfrage ablehnen fehlgeschlagen");
 }

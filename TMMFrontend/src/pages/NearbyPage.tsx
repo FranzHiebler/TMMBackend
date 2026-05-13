@@ -72,12 +72,15 @@ export default function NearbyPage() {
       setLoading(true);
       setMessage("");
 
-      const data = await searchNearbyLocations({
-        latitude,
-        longitude,
-        radiusKm: Number(radiusKm),
-        systemKey: systemKey || undefined,
-      });
+      const data = await searchNearbyLocations(
+        {
+          latitude,
+          longitude,
+          radiusKm: Number(radiusKm),
+          systemKey: systemKey || undefined,
+        },
+        user
+      );
 
       setLocations(data);
     } catch (err) {
