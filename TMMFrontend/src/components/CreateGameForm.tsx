@@ -11,7 +11,9 @@ import { getMyLocations } from "../api/locationsApi";
 import { getSystems } from "../api/systemsApi";
 import LocationSelect from "./LocationSelect";
 import LocationModal from "./LocationModal";
+import GameTableEditor from "./GameTableEditor";
 import { useUser } from "../context/UserContext";
+import Message from "./Message";
 
 function newTable(index: number): CreateGameTableRequest {
   return {
@@ -38,6 +40,7 @@ export default function CreateGameForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [joinMode, setJoinMode] = useState<GameJoinMode>(GameJoinMode.FirstComeFirstServe);
+
   const selectedLocation = locations.find((location) => location.id === locationId);
   const locationSystemKeys = selectedLocation?.systemKeys ?? [];
   const locationSystems = systems.filter((system) => locationSystemKeys.includes(system.key));
@@ -48,6 +51,7 @@ export default function CreateGameForm() {
         getMyLocations(user),
         getSystems(),
       ]);
+
       setLocations(locationData);
       setSystems(systemData);
     } catch (err) {
@@ -56,7 +60,6 @@ export default function CreateGameForm() {
   }, [user]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadInitialData();
   }, [loadInitialData]);
 
@@ -93,6 +96,7 @@ export default function CreateGameForm() {
     const selectedKnownSystems = table.systems.filter((key) =>
       key === "egal" || locationSystemKeys.includes(key)
     );
+
     const customSystems = value
       .split(",")
       .map((system) => system.trim())
@@ -149,7 +153,7 @@ export default function CreateGameForm() {
 
   return (
     <div className="container">
-      {error && <div className="message message-error">{error}</div>}
+      <Message text={error} type="error" />
 
       <form onSubmit={handleSubmit} className="form">
         <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Titel" />
@@ -166,93 +170,38 @@ export default function CreateGameForm() {
           <option value={GameJoinMode.ApprovalRequired}>Approval Required</option>
         </select>
 
-        <input type="datetime-local" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+        <input
+          type="datetime-local"
+          value={startTime}
+          onChange={(e) => setStartTime(e.target.value)}
+        />
 
-        <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Beschreibung" />
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Beschreibung"
+        />
 
         <h2>Tische</h2>
 
         {tables.map((table, index) => (
-          <div key={index} className="card form">
-            <input value={table.name} onChange={(e) => updateTable(index, { name: e.target.value })} placeholder="Tischname" />
-
-            <input
-              type="number"
-              min={1}
-              value={table.maxPlayers}
-              onChange={(e) => updateTable(index, { maxPlayers: Number(e.target.value) })}
-              placeholder="Max Spieler"
-            />
-
-            <div>
-              <b>Systeme:</b>
-
-              <label>
-                <input
-                  type="checkbox"
-                  checked={table.systems.includes("egal")}
-                  onChange={() => toggleSystem(index, "egal")}
-                />
-                Egal
-              </label>
-
-              {locationSystems.map((s) => (
-                <label key={s.key}>
-                  <input
-                    type="checkbox"
-                    checked={table.systems.includes(s.key)}
-                    disabled={table.systems.includes("egal")}
-                    onChange={() => toggleSystem(index, s.key)}
-                  />
-                  {s.name}
-                </label>
-              ))}
-
-              {locationSystems.length === 0 && (
-                <div className="message message-info">
-                  Für diese Location sind noch keine Systeme ausgewählt.
-                </div>
-              )}
-            </div>
-
-            <input
-              value={table.systems
-                .filter((key) => key !== "egal" && !locationSystemKeys.includes(key))
-                .join(", ")}
-              onChange={(e) => updateCustomSystems(index, e.target.value)}
-              placeholder="Freitext-Systeme, z.B. Mordheim"
-              disabled={table.systems.includes("egal")}
-            />
-
-            <input
-              type="datetime-local"
-              value={table.startTimeUtc ? table.startTimeUtc.slice(0, 16) : ""}
-              onChange={(e) => updateTable(index, {
-                startTimeUtc: e.target.value ? new Date(e.target.value).toISOString() : null,
-              })}
-              placeholder="Abweichende Tisch-Startzeit"
-            />
-
-            <input value={table.scenario ?? ""} onChange={(e) => updateTable(index, { scenario: e.target.value })} placeholder="Szenario optional" />
-
-            <input
-              type="number"
-              value={table.points ?? ""}
-              onChange={(e) => updateTable(index, { points: e.target.value ? Number(e.target.value) : null })}
-              placeholder="Punkte optional"
-            />
-
-            <input value={table.notes ?? ""} onChange={(e) => updateTable(index, { notes: e.target.value })} placeholder="Notizen optional" />
-
-            {tables.length > 1 && (
-              <button type="button" onClick={() => removeTable(index)}>
-                Tisch entfernen
-              </button>
-            )}
-          </div>
+          <GameTableEditor
+            key={index}
+            table={table}
+            index={index}
+            canRemove={tables.length > 1}
+            locationSystemKeys={locationSystemKeys}
+            locationSystems={locationSystems}
+            onUpdateTable={updateTable}
+            onRemoveTable={removeTable}
+            onToggleSystem={toggleSystem}
+            onCustomSystemsChange={updateCustomSystems}
+          />
         ))}
 
-        <button type="button" onClick={addTable}>+ Tisch hinzufügen</button>
+        <button type="button" onClick={addTable}>
+          + Tisch hinzufügen
+        </button>
 
         <button type="submit" disabled={loading}>
           {loading ? "Speichere..." : "Game Session erstellen"}
