@@ -1,6 +1,10 @@
 import type { GameResponse, GameTableDto, GameJoinMode } from "../types/game";
 import AssignedPlayersList from "./AssignedPlayersList";
 import ApplicationsList from "./ApplicationsList";
+import GameTableInfo from "./GameTableInfo";
+import GameTableActions from "./GameTableActions";
+import GameProposalForm from "./GameProposalForm";
+import Message from "./Message";
 
 type Props = {
   game: GameResponse;
@@ -35,12 +39,6 @@ type Props = {
   onDragPlayerEnd: () => void;
   onDropPlayer: (targetTableId: string) => void;
 };
-
-function systemText(table: GameTableDto) {
-  if (!table.systems || table.systems.length === 0) return "Egal";
-  if (table.systems.some((x) => x.toLowerCase() === "egal")) return "Egal";
-  return table.systems.join(", ");
-}
 
 export default function GameTableCard({
   game,
@@ -89,18 +87,7 @@ export default function GameTableCard({
       onDragOver={(e) => e.preventDefault()}
       onDrop={() => onDropPlayer(table.id)}
     >
-      <h4>{table.name}</h4>
-
-      <div><b>System:</b> {systemText(table)}</div>
-      <div><b>Spieler:</b> {table.assignedPlayers.length}/{table.maxPlayers}</div>
-
-      {table.startTimeUtc && (
-        <div><b>Start am Tisch:</b> {new Date(table.startTimeUtc).toLocaleString("de-DE")}</div>
-      )}
-
-      {table.points && <div><b>Punkte:</b> {table.points}</div>}
-      {table.scenario && <div><b>Szenario:</b> {table.scenario}</div>}
-      {table.notes && <div><b>Notizen:</b> {table.notes}</div>}
+      <GameTableInfo table={table} />
 
       <AssignedPlayersList
         table={table}
@@ -111,77 +98,34 @@ export default function GameTableCard({
         onDragPlayerEnd={onDragPlayerEnd}
       />
 
-      <div className="table-actions">
-        <button
-          disabled={isFull || isJoining || alreadyInGame}
-          onClick={() => onJoin(game.id, table.id, game.joinMode, systemKey)}
-        >
-          {isJoining
-            ? "Bitte warten..."
-            : isFull
-              ? "Voll"
-              : alreadyInGame
-                ? "Bereits angemeldet"
-                : isApproval
-                  ? "Bewerben"
-                  : "Beitreten"}
-        </button>
-
-        {isAssignedToTable && (
-          <button
-            type="button"
-            onClick={() =>
-              onOpenProposalTableIdChange(openProposalTableId === table.id ? null : table.id)
-            }
-          >
-            Änderung vorschlagen
-          </button>
-        )}
-      </div>
+      <GameTableActions
+        isFull={isFull}
+        isJoining={isJoining}
+        alreadyInGame={alreadyInGame}
+        isApproval={isApproval}
+        isAssignedToTable={isAssignedToTable}
+        onJoin={() => onJoin(game.id, table.id, game.joinMode, systemKey)}
+        onToggleProposal={() =>
+          onOpenProposalTableIdChange(openProposalTableId === table.id ? null : table.id)
+        }
+      />
 
       {openProposalTableId === table.id && (
-        <div className="proposal-form">
-          <input
-            type="datetime-local"
-            value={proposalStartTime}
-            onChange={(e) => onProposalStartTimeChange(e.target.value)}
-          />
-
-          <input
-            value={proposalSystems}
-            onChange={(e) => onProposalSystemsChange(e.target.value)}
-            placeholder="Systeme, z.B. tow, wh40k"
-          />
-
-          <input
-            type="number"
-            min={0}
-            value={proposalPoints}
-            onChange={(e) => onProposalPointsChange(e.target.value)}
-            placeholder="Punkte"
-          />
-
-          <textarea
-            value={proposalMessage}
-            onChange={(e) => onProposalMessageChange(e.target.value)}
-            placeholder="Nachricht optional"
-          />
-
-          <button
-            type="button"
-            disabled={busyKey === `proposal-submit-${table.id}`}
-            onClick={() => onSubmitProposal(table)}
-          >
-            Vorschlag senden
-          </button>
-        </div>
+        <GameProposalForm
+          proposalStartTime={proposalStartTime}
+          proposalSystems={proposalSystems}
+          proposalPoints={proposalPoints}
+          proposalMessage={proposalMessage}
+          isBusy={busyKey === `proposal-submit-${table.id}`}
+          onProposalStartTimeChange={onProposalStartTimeChange}
+          onProposalSystemsChange={onProposalSystemsChange}
+          onProposalPointsChange={onProposalPointsChange}
+          onProposalMessageChange={onProposalMessageChange}
+          onSubmit={() => onSubmitProposal(table)}
+        />
       )}
 
-      {messageByKey[key] && (
-        <div className="message message-info" style={{ marginTop: 8 }}>
-          {messageByKey[key]}
-        </div>
-      )}
+      <Message text={messageByKey[key]} type="info" />
 
       <ApplicationsList
         table={table}
