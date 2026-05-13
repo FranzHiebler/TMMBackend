@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { CreateLocationRequest, LocationResponse, SystemOption } from "../types/game";
-import { createLocation, createSystem, getSystems, updateLocation } from "../api/gamesService";
+import { createLocation, updateLocation } from "../api/locationsApi";
+import { createSystem, getSystems } from "../api/systemsApi";
 import "leaflet/dist/leaflet.css";
 import LocationPicker from "./LocationPicker";
 import { useUser } from "../context/UserContext";

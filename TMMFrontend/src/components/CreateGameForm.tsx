@@ -6,7 +6,9 @@ import {
   type LocationResponse,
   type SystemOption,
 } from "../types/game";
-import { createGame, getMyLocations, getSystems } from "../api/gamesService";
+import { createGame } from "../api/gamesApi";
+import { getMyLocations } from "../api/locationsApi";
+import { getSystems } from "../api/systemsApi";
 import LocationSelect from "./LocationSelect";
 import LocationModal from "./LocationModal";
 import { useUser } from "../context/UserContext";

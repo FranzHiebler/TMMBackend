@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import {
-  getSystems,
   requestLocationMembership,
   searchNearbyLocations,
-} from "../api/gamesService";
+} from "../api/locationsApi";
+import { getSystems } from "../api/systemsApi";
 import type { LocationResponse, SystemOption } from "../types/game";
 import { useUser } from "../context/UserContext";
 import LocationPicker from "../components/LocationPicker";

@@ -8,7 +8,7 @@ import {
   rejectApplication,
   rejectChangeProposal,
   removePlayerFromTable,
-} from "../api/gamesService";
+} from "../api/gamesApi";
 import { useUser } from "../context/UserContext";
 import {
   type GameChangeProposalDto,

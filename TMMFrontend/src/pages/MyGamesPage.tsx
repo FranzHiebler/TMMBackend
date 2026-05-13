@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { getAllGames } from "../api/gamesService";
+import { getAllGames } from "../api/gamesApi";
 import GameList from "../components/GameList";
 import { useJoinGame } from "../api/useJoinGame";
 import { useUser } from "../context/UserContext";

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { applyToGame, getGameById, joinTable } from "./gamesService";
+import { applyToGame, getGameById, joinTable } from "./gamesApi";
 import type { GameResponse } from "../types/game";
 import { GameJoinMode } from "../types/game";
 import { useUser } from "../context/UserContext";
