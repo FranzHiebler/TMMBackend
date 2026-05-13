@@ -1,3 +1,4 @@
+export type GameSessionState = "Open" | "Full" | "Closed" | "Cancelled";
 export type ApplicationStatus = "Pending" | "Accepted" | "Rejected" | "Withdrawn";
 export type ChangeProposalStatus = "Pending" | "Accepted" | "Rejected";
 export type LocationRole = "Owner" | "Admin" | "Manager" | "Member" | "Applicant";
@@ -52,7 +53,7 @@ export interface GameResponse {
   id: string;
   title: string;
   host: ParticipantDto;
-  status: string | number;
+  status: GameSessionState;
   joinMode: GameJoinMode;
   locationId: string;
   location: LocationSnapshotDto;
