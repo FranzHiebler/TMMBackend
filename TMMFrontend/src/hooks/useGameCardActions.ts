@@ -8,8 +8,16 @@ import {
   rejectApplication,
   rejectChangeProposal,
   removePlayerFromTable,
+  updateGameSession,
+  updateGameTable,
 } from "../api/gamesApi";
-import type { CreateChangeProposalRequest, GameResponse, GameTableDto } from "../types/game";
+import type {
+  CreateChangeProposalRequest,
+  GameResponse,
+  GameTableDto,
+  UpdateGameSessionRequest,
+  UpdateGameTableRequest,
+} from "../types/game";
 import type { User } from "../context/UserContext";
 
 type MessageState = {
@@ -31,6 +39,49 @@ export function useGameCardActions({ game, user, onGameUpdated }: Options) {
   async function refreshGame() {
     const updated = await getGameById(game.id);
     onGameUpdated?.(updated);
+  }
+
+  async function saveSession(request: UpdateGameSessionRequest): Promise<boolean> {
+    try {
+      setBusyKey("session-edit");
+      setMessage(null);
+
+      const updated = await updateGameSession(game.id, request, user);
+      onGameUpdated?.(updated);
+      setMessage({ type: "success", text: "Session gespeichert" });
+      return true;
+    } catch (err) {
+      setMessage({
+        type: "error",
+        text: err instanceof Error ? err.message : "Session konnte nicht gespeichert werden",
+      });
+      return false;
+    } finally {
+      setBusyKey(null);
+    }
+  }
+
+  async function saveTable(
+    tableId: string,
+    request: UpdateGameTableRequest
+  ): Promise<boolean> {
+    try {
+      setBusyKey(`table-edit-${tableId}`);
+      setMessage(null);
+
+      const updated = await updateGameTable(game.id, tableId, request, user);
+      onGameUpdated?.(updated);
+      setMessage({ type: "success", text: "Tisch gespeichert" });
+      return true;
+    } catch (err) {
+      setMessage({
+        type: "error",
+        text: err instanceof Error ? err.message : "Tisch konnte nicht gespeichert werden",
+      });
+      return false;
+    } finally {
+      setBusyKey(null);
+    }
   }
 
   async function submitProposal(
@@ -164,6 +215,8 @@ export function useGameCardActions({ game, user, onGameUpdated }: Options) {
     message,
     draggedPlayerId,
     setDraggedPlayerId,
+    saveSession,
+    saveTable,
     submitProposal,
     resolveProposal,
     acceptApplication,

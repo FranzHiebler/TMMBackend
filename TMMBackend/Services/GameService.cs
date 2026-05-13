@@ -180,4 +180,58 @@ public class GameService : IGameService
 	{
 		return _assignmentService.MovePlayerToTableAsync(gameId, userId, request);
 	}
+
+	public async Task<GameResponse> UpdateSessionAsync(string gameId, UpdateGameSessionRequest request)
+	{
+		GameValidator.ValidateUpdateSession(request);
+
+		var game = await _repository.GetByIdAsync(gameId)
+			?? throw new DomainException("Session nicht gefunden.");
+
+		if (!await _authorization.CanManageSessionAsync(game))
+			throw new DomainException("Du darfst diese Session nicht bearbeiten.");
+
+		game.Title = request.Title.Trim();
+		game.StartTimeUtc = request.StartTimeUtc;
+		game.Description = string.IsNullOrWhiteSpace(request.Description)
+			? null
+			: request.Description.Trim();
+		game.UpdatedAt = DateTime.UtcNow;
+
+		await _repository.UpdateAsync(game);
+		return GameMapper.ToResponse(game);
+	}
+
+	public async Task<GameResponse> UpdateTableAsync(
+		string gameId,
+		string tableId,
+		UpdateGameTableRequest request)
+	{
+		GameValidator.ValidateUpdateTable(request);
+
+		var game = await _repository.GetByIdAsync(gameId)
+			?? throw new DomainException("Session nicht gefunden.");
+
+		if (!await _authorization.CanManageSessionAsync(game))
+			throw new DomainException("Du darfst diese Session nicht bearbeiten.");
+
+		var table = GameServiceHelpers.GetTableOrThrow(game, tableId);
+
+		if (request.MaxPlayers < table.AssignedPlayers.Count)
+			throw new DomainException("Maximale Spielerzahl darf nicht kleiner als die bereits zugewiesenen Spieler sein.");
+
+		table.Name = request.Name.Trim();
+		table.MaxPlayers = request.MaxPlayers;
+		table.Systems = GameServiceHelpers.NormalizeSystems(request.Systems) ?? new List<string>();
+		table.Scenario = string.IsNullOrWhiteSpace(request.Scenario) ? null : request.Scenario.Trim();
+		table.Points = request.Points;
+		table.StartTimeUtc = request.StartTimeUtc;
+		table.Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim();
+
+		GameSessionRules.UpdateSessionState(game);
+		game.UpdatedAt = DateTime.UtcNow;
+
+		await _repository.UpdateAsync(game);
+		return GameMapper.ToResponse(game);
+	}
 }

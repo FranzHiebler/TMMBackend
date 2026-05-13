@@ -6,23 +6,26 @@ public static class GameValidator
 {
 	public static void ValidateCreate(CreateGameRequest request)
 	{
-		if (string.IsNullOrWhiteSpace(request.Title))
-			throw new DomainException("Titel ist erforderlich.");
-
-		if (request.Title.Trim().Length > 120)
-			throw new DomainException("Titel darf maximal 120 Zeichen lang sein.");
+		ValidateSessionBase(request.Title, request.StartTimeUtc);
 
 		if (string.IsNullOrWhiteSpace(request.LocationId))
 			throw new DomainException("Location ist erforderlich.");
-
-		if (request.StartTimeUtc == default)
-			throw new DomainException("Startzeit ist erforderlich.");
 
 		if (request.Tables == null || request.Tables.Count == 0)
 			throw new DomainException("Es muss mindestens ein Tisch angelegt werden.");
 
 		foreach (var table in request.Tables)
-			ValidateTable(table);
+			ValidateTable(table.Name, table.MaxPlayers, table.Systems, table.Points);
+	}
+
+	public static void ValidateUpdateSession(UpdateGameSessionRequest request)
+	{
+		ValidateSessionBase(request.Title, request.StartTimeUtc);
+	}
+
+	public static void ValidateUpdateTable(UpdateGameTableRequest table)
+	{
+		ValidateTable(table.Name, table.MaxPlayers, table.Systems, table.Points);
 	}
 
 	public static void ValidateSearch(SearchGamesRequest request)
@@ -53,21 +56,33 @@ public static class GameValidator
 			throw new DomainException("System darf maximal 80 Zeichen lang sein.");
 	}
 
-	private static void ValidateTable(CreateGameTableRequest table)
+	private static void ValidateSessionBase(string title, DateTime startTimeUtc)
 	{
-		if (string.IsNullOrWhiteSpace(table.Name))
+		if (string.IsNullOrWhiteSpace(title))
+			throw new DomainException("Titel ist erforderlich.");
+
+		if (title.Trim().Length > 120)
+			throw new DomainException("Titel darf maximal 120 Zeichen lang sein.");
+
+		if (startTimeUtc == default)
+			throw new DomainException("Startzeit ist erforderlich.");
+	}
+
+	private static void ValidateTable(string name, int maxPlayers, List<string> systems, int? points)
+	{
+		if (string.IsNullOrWhiteSpace(name))
 			throw new DomainException("Jeder Tisch braucht einen Namen.");
 
-		if (table.MaxPlayers < 1)
+		if (maxPlayers < 1)
 			throw new DomainException("Ein Tisch braucht mindestens einen Spielerplatz.");
 
-		if (table.MaxPlayers > 20)
+		if (maxPlayers > 20)
 			throw new DomainException("Ein Tisch darf maximal 20 Spielerplätze haben.");
 
-		if (table.Points is < 0)
+		if (points is < 0)
 			throw new DomainException("Punkte dürfen nicht negativ sein.");
 
-		if (table.Systems.Any(string.IsNullOrWhiteSpace))
+		if (systems.Any(string.IsNullOrWhiteSpace))
 			throw new DomainException("Systeme dürfen nicht leer sein.");
 	}
 

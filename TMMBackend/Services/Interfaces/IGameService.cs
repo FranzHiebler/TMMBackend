@@ -6,6 +6,8 @@ public interface IGameService
 {
 	Task<GameResponse> CreateAsync(CreateGameRequest request);
 	Task<GameResponse?> GetByIdAsync(string id);
+	Task<GameResponse> UpdateSessionAsync(string gameId, UpdateGameSessionRequest request);
+	Task<GameResponse> UpdateTableAsync(string gameId, string tableId, UpdateGameTableRequest request);
 	Task JoinTableAsync(string gameId, string tableId, JoinTableRequest request);
 	Task ApplyAsync(string gameId, ApplyToGameRequest request);
 	Task AssignPlayerToTableAsync(string gameId, string tableId, AssignPlayerToTableRequest request);

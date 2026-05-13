@@ -7,11 +7,12 @@ import {
   GameJoinMode,
 } from "../types/game";
 import { useGameCardActions } from "../hooks/useGameCardActions";
+import { combineDateWithTime, timeFromDate } from "../helpers/dateTime";
 import GameCardHeader from "./GameCardHeader";
 import GameTableCard from "./GameTableCard";
 import ChangeProposalsList from "./ChangeProposalsList";
+import GameSessionEditForm from "./GameSessionEditForm";
 import Message from "./Message";
-import { combineDateWithTime, timeFromDate } from "../helpers/dateTime";
 
 type Props = {
   game: GameResponse;
@@ -32,6 +33,7 @@ export default function GameCard({
 }: Props) {
   const user = useUser();
 
+  const [isEditingSession, setIsEditingSession] = useState(false);
   const [openProposalTableId, setOpenProposalTableId] = useState<string | null>(null);
   const [proposalStartTime, setProposalStartTime] = useState("");
   const [proposalSystems, setProposalSystems] = useState<string[]>([]);
@@ -43,6 +45,8 @@ export default function GameCard({
     busyKey,
     message,
     setDraggedPlayerId,
+    saveSession,
+    saveTable,
     submitProposal,
     resolveProposal,
     acceptApplication,
@@ -87,6 +91,7 @@ export default function GameCard({
 
     setProposalSystems((prev) => {
       const withoutEgal = prev.filter((x) => x !== "egal");
+
       return withoutEgal.includes(system)
         ? withoutEgal.filter((x) => x !== system)
         : [...withoutEgal, system];
@@ -127,6 +132,23 @@ export default function GameCard({
 
       <Message text={message?.text} type={message?.type} />
 
+      {isHost && (
+        <div className="host-edit-bar">
+          <button type="button" onClick={() => setIsEditingSession((prev) => !prev)}>
+            {isEditingSession ? "Bearbeiten schließen" : "Session bearbeiten"}
+          </button>
+        </div>
+      )}
+
+      {isEditingSession && (
+        <GameSessionEditForm
+          game={game}
+          isBusy={busyKey === "session-edit"}
+          onCancel={() => setIsEditingSession(false)}
+          onSave={saveSession}
+        />
+      )}
+
       <div className="game-tables-grid">
         {game.tables.map((table) => (
           <GameTableCard
@@ -155,6 +177,7 @@ export default function GameCard({
             onProposalPointsChange={setProposalPoints}
             onProposalMessageChange={setProposalMessage}
             onSubmitProposal={handleSubmitProposal}
+            onUpdateTable={saveTable}
             onAcceptApplication={acceptApplication}
             onRejectApplication={declineApplication}
             onRemovePlayer={removeAssignedPlayer}

@@ -198,3 +198,19 @@ export interface UpdateUserProfileRequest {
   displayName: string;
   defaultLocationId?: string | null;
 }
+
+export interface UpdateGameSessionRequest {
+  title: string;
+  startTimeUtc: string;
+  description?: string | null;
+}
+
+export interface UpdateGameTableRequest {
+  name: string;
+  maxPlayers: number;
+  systems: string[];
+  scenario?: string | null;
+  points?: number | null;
+  startTimeUtc?: string | null;
+  notes?: string | null;
+}

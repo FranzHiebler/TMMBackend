@@ -120,4 +120,21 @@ public class GamesController : ControllerBase
 		await _service.MovePlayerToTableAsync(id, userId, request);
 		return NoContent();
 	}
+
+	[HttpPut("{id}")]
+	public async Task<ActionResult<GameResponse>> UpdateSession(
+	string id,
+	[FromBody] UpdateGameSessionRequest request)
+	{
+		return Ok(await _service.UpdateSessionAsync(id, request));
+	}
+
+	[HttpPut("{id}/tables/{tableId}")]
+	public async Task<ActionResult<GameResponse>> UpdateTable(
+		string id,
+		string tableId,
+		[FromBody] UpdateGameTableRequest request)
+	{
+		return Ok(await _service.UpdateTableAsync(id, tableId, request));
+	}
 }

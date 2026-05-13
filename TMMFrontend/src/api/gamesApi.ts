@@ -5,6 +5,8 @@ import type {
   GameResponse,
   JoinTableRequest,
   SearchNearbyGamesRequest,
+  UpdateGameSessionRequest,
+  UpdateGameTableRequest,
 } from "../types/game";
 import type { User } from "../context/UserContext";
 import { API, authHeaders, handleResponse, handleVoidResponse } from "./apiClient";
@@ -166,4 +168,33 @@ export async function movePlayerToTable(
   });
 
   return handleVoidResponse(res, "Spieler verschieben fehlgeschlagen");
+}
+
+export async function updateGameSession(
+  gameId: string,
+  request: UpdateGameSessionRequest,
+  user: User
+): Promise<GameResponse> {
+  const res = await fetch(`${API}/Games/${gameId}`, {
+    method: "PUT",
+    headers: authHeaders(user),
+    body: JSON.stringify(request),
+  });
+
+  return handleResponse<GameResponse>(res, "Game Session aktualisieren fehlgeschlagen");
+}
+
+export async function updateGameTable(
+  gameId: string,
+  tableId: string,
+  request: UpdateGameTableRequest,
+  user: User
+): Promise<GameResponse> {
+  const res = await fetch(`${API}/Games/${gameId}/tables/${tableId}`, {
+    method: "PUT",
+    headers: authHeaders(user),
+    body: JSON.stringify(request),
+  });
+
+  return handleResponse<GameResponse>(res, "Tisch aktualisieren fehlgeschlagen");
 }
