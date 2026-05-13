@@ -1,5 +1,6 @@
 import type { CreateGameTableRequest, SystemOption } from "../types/game";
 import GameTableSystemsPicker from "./GameTableSystemsPicker";
+import { combineLocalDateInputWithTime, timeFromDate } from "../helpers/dateTime";
 
 type Props = {
   table: CreateGameTableRequest;
@@ -13,25 +14,6 @@ type Props = {
   onToggleSystem: (index: number, key: string) => void;
   onCustomSystemsChange: (index: number, value: string) => void;
 };
-
-function getTimeValue(dateTime?: string | null) {
-  if (!dateTime) return "";
-
-  const date = new Date(dateTime);
-  const hours = date.getHours().toString().padStart(2, "0");
-  const minutes = date.getMinutes().toString().padStart(2, "0");
-
-  return `${hours}:${minutes}`;
-}
-
-function combineSessionDateWithTableTime(sessionStartTime: string, time: string) {
-  if (!sessionStartTime || !time) return null;
-
-  const [year, month, day] = sessionStartTime.slice(0, 10).split("-").map(Number);
-  const [hours, minutes] = time.split(":").map(Number);
-
-  return new Date(year, month - 1, day, hours, minutes).toISOString();
-}
 
 export default function GameTableEditor({
   table,
@@ -81,11 +63,11 @@ export default function GameTableEditor({
           <label>Startzeit am Tisch</label>
           <input
             type="time"
-            value={getTimeValue(table.startTimeUtc)}
+            value={timeFromDate(table.startTimeUtc)}
             disabled={!sessionStartTime}
             onChange={(e) =>
               onUpdateTable(index, {
-                startTimeUtc: combineSessionDateWithTableTime(
+                startTimeUtc: combineLocalDateInputWithTime(
                   sessionStartTime,
                   e.target.value
                 ),

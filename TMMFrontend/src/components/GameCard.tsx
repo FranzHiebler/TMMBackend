@@ -11,6 +11,7 @@ import GameCardHeader from "./GameCardHeader";
 import GameTableCard from "./GameTableCard";
 import ChangeProposalsList from "./ChangeProposalsList";
 import Message from "./Message";
+import { combineDateWithTime, timeFromDate } from "../helpers/dateTime";
 
 type Props = {
   game: GameResponse;
@@ -20,29 +21,6 @@ type Props = {
   onJoin: (gameId: string, tableId: string, joinMode: GameJoinMode, systemKey?: string) => void;
   onGameUpdated?: (game: GameResponse) => void;
 };
-
-function timeFromDate(dateTime?: string | null) {
-  if (!dateTime) return "";
-
-  const date = new Date(dateTime);
-  return `${date.getHours().toString().padStart(2, "0")}:${date
-    .getMinutes()
-    .toString()
-    .padStart(2, "0")}`;
-}
-
-function combineDateWithTime(baseDateTime: string, time: string) {
-  const base = new Date(baseDateTime);
-  const [hours, minutes] = time.split(":").map(Number);
-
-  return new Date(
-    base.getFullYear(),
-    base.getMonth(),
-    base.getDate(),
-    hours,
-    minutes
-  ).toISOString();
-}
 
 export default function GameCard({
   game,
