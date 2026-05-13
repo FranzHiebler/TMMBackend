@@ -15,6 +15,7 @@ import type {
   UserSearchResponse,
 } from "../types/game";
 import type { User } from "../context/UserContext";
+import { readApiError } from "./apiError";
 
 const API = import.meta.env.VITE_API_BASE_URL;
 
@@ -32,37 +33,30 @@ function authHeaders(user?: User): HeadersInit {
 
 export async function getAllGames(): Promise<GameResponse[]> {
   const res = await fetch(`${API}/Games/search?OnlyOpen=false`);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  if (!res.ok) throw await readApiError(res, "Games laden fehlgeschlagen");
   return res.json();
 }
 
-export async function createGame(
-  request: CreateGameRequest,
-  user: User
-): Promise<GameResponse> {
+export async function createGame(request: CreateGameRequest, user: User): Promise<GameResponse> {
   const res = await fetch(`${API}/Games`, {
     method: "POST",
     headers: authHeaders(user),
     body: JSON.stringify(request),
   });
 
-  if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
+  if (!res.ok) throw await readApiError(res, "Game erstellen fehlgeschlagen");
   return res.json();
 }
 
 export async function getGameById(gameId: string): Promise<GameResponse> {
   const res = await fetch(`${API}/Games/${gameId}`);
-
-  if (!res.ok) {
-    throw new Error((await res.text()) || `Game laden fehlgeschlagen: HTTP ${res.status}`);
-  }
-
+  if (!res.ok) throw await readApiError(res, "Game laden fehlgeschlagen");
   return res.json();
 }
 
 export async function getLocations(): Promise<LocationOption[]> {
   const res = await fetch(`${API}/Locations`);
-  if (!res.ok) throw new Error(`Locations fehlgeschlagen: HTTP ${res.status}`);
+  if (!res.ok) throw await readApiError(res, "Locations laden fehlgeschlagen");
   return res.json();
 }
 
@@ -71,13 +65,13 @@ export async function getMyLocations(user: User): Promise<LocationResponse[]> {
     headers: authHeaders(user),
   });
 
-  if (!res.ok) throw new Error(`Locations fehlgeschlagen: HTTP ${res.status}`);
+  if (!res.ok) throw await readApiError(res, "Meine Locations laden fehlgeschlagen");
   return res.json();
 }
 
 export async function getSystems(): Promise<SystemOption[]> {
   const res = await fetch(`${API}/Systems`);
-  if (!res.ok) throw new Error(`Systems fehlgeschlagen: HTTP ${res.status}`);
+  if (!res.ok) throw await readApiError(res, "Systeme laden fehlgeschlagen");
   return res.json();
 }
 
@@ -93,7 +87,7 @@ export async function joinTable(
     body: JSON.stringify(request),
   });
 
-  if (!res.ok) throw new Error((await res.text()) || "Join fehlgeschlagen");
+  if (!res.ok) throw await readApiError(res, "Join fehlgeschlagen");
 }
 
 export async function applyToGame(
@@ -107,7 +101,7 @@ export async function applyToGame(
     body: JSON.stringify(request),
   });
 
-  if (!res.ok) throw new Error((await res.text()) || "Bewerbung fehlgeschlagen");
+  if (!res.ok) throw await readApiError(res, "Bewerbung fehlgeschlagen");
 }
 
 export async function createChangeProposal(
@@ -121,21 +115,18 @@ export async function createChangeProposal(
     body: JSON.stringify(request),
   });
 
-  if (!res.ok) throw new Error((await res.text()) || "Vorschlag konnte nicht gesendet werden");
+  if (!res.ok) throw await readApiError(res, "Vorschlag konnte nicht gesendet werden");
   return res.json();
 }
 
-export async function createSystem(
-  request: SystemOption,
-  user: User
-): Promise<SystemOption> {
+export async function createSystem(request: SystemOption, user: User): Promise<SystemOption> {
   const res = await fetch(`${API}/Systems`, {
     method: "POST",
     headers: authHeaders(user),
     body: JSON.stringify(request),
   });
 
-  if (!res.ok) throw new Error((await res.text()) || "System konnte nicht angelegt werden");
+  if (!res.ok) throw await readApiError(res, "System konnte nicht angelegt werden");
   return res.json();
 }
 
@@ -149,7 +140,7 @@ export async function acceptChangeProposal(
     headers: authHeaders(user),
   });
 
-  if (!res.ok) throw new Error((await res.text()) || "Vorschlag konnte nicht angenommen werden");
+  if (!res.ok) throw await readApiError(res, "Vorschlag konnte nicht angenommen werden");
   return res.json();
 }
 
@@ -163,13 +154,11 @@ export async function rejectChangeProposal(
     headers: authHeaders(user),
   });
 
-  if (!res.ok) throw new Error((await res.text()) || "Vorschlag konnte nicht abgelehnt werden");
+  if (!res.ok) throw await readApiError(res, "Vorschlag konnte nicht abgelehnt werden");
   return res.json();
 }
 
-export async function searchNearbyGames(
-  request: SearchNearbyGamesRequest
-): Promise<GameResponse[]> {
+export async function searchNearbyGames(request: SearchNearbyGamesRequest): Promise<GameResponse[]> {
   const params = new URLSearchParams({
     latitude: request.latitude.toString(),
     longitude: request.longitude.toString(),
@@ -179,7 +168,7 @@ export async function searchNearbyGames(
   if (request.systemKey) params.append("systemKey", request.systemKey);
 
   const res = await fetch(`${API}/Games/nearby?${params.toString()}`);
-  if (!res.ok) throw new Error(`Nearby fehlgeschlagen: HTTP ${res.status}`);
+  if (!res.ok) throw await readApiError(res, "Nearby Games fehlgeschlagen");
   return res.json();
 }
 
@@ -195,7 +184,7 @@ export async function searchNearbyLocations(
   if (request.systemKey) params.append("systemKey", request.systemKey);
 
   const res = await fetch(`${API}/Locations/nearby?${params.toString()}`);
-  if (!res.ok) throw new Error(`Nearby Locations fehlgeschlagen: HTTP ${res.status}`);
+  if (!res.ok) throw await readApiError(res, "Nearby Locations fehlgeschlagen");
   return res.json();
 }
 
@@ -210,7 +199,7 @@ export async function requestLocationMembership(
     body: JSON.stringify({ message }),
   });
 
-  if (!res.ok) throw new Error((await res.text()) || "Anfrage konnte nicht gesendet werden");
+  if (!res.ok) throw await readApiError(res, "Anfrage konnte nicht gesendet werden");
 }
 
 export async function createLocation(
@@ -223,7 +212,7 @@ export async function createLocation(
     body: JSON.stringify(request),
   });
 
-  if (!res.ok) throw new Error(`Location erstellen fehlgeschlagen: HTTP ${res.status}`);
+  if (!res.ok) throw await readApiError(res, "Location erstellen fehlgeschlagen");
   return res.json();
 }
 
@@ -238,9 +227,8 @@ export async function updateLocation(
     body: JSON.stringify(request),
   });
 
-  if (!res.ok) throw new Error(`Location aktualisieren fehlgeschlagen: HTTP ${res.status}`);
+  if (!res.ok) throw await readApiError(res, "Location aktualisieren fehlgeschlagen");
 }
-
 export async function getLocationMembers(
   locationId: string,
   user: User
@@ -249,7 +237,7 @@ export async function getLocationMembers(
     headers: authHeaders(user),
   });
 
-  if (!res.ok) throw new Error(`Mitglieder laden fehlgeschlagen: HTTP ${res.status}`);
+  if (!res.ok) throw await readApiError(res, "Mitglieder laden fehlgeschlagen");
   return res.json();
 }
 
@@ -264,7 +252,7 @@ export async function upsertLocationMember(
     body: JSON.stringify(request),
   });
 
-  if (!res.ok) throw new Error((await res.text()) || "Mitglied speichern fehlgeschlagen");
+  if (!res.ok) throw await readApiError(res, "Mitglied speichern fehlgeschlagen");
 }
 
 export async function removeLocationMember(
@@ -277,7 +265,7 @@ export async function removeLocationMember(
     headers: authHeaders(user),
   });
 
-  if (!res.ok) throw new Error((await res.text()) || "Mitglied entfernen fehlgeschlagen");
+  if (!res.ok) throw await readApiError(res, "Mitglied entfernen fehlgeschlagen");
 }
 
 export async function searchUsers(query: string): Promise<UserSearchResponse[]> {
@@ -289,10 +277,7 @@ export async function searchUsers(query: string): Promise<UserSearchResponse[]> 
 
   const res = await fetch(`${API}/Users/search?${params.toString()}`);
 
-  if (!res.ok) {
-    throw new Error(`User-Suche fehlgeschlagen: HTTP ${res.status}`);
-  }
-
+  if (!res.ok) throw await readApiError(res, "User-Suche fehlgeschlagen");
   return res.json();
 }
 
@@ -308,7 +293,7 @@ export async function assignApplicationToTable(
     body: JSON.stringify({ applicationId }),
   });
 
-  if (!res.ok) throw new Error((await res.text()) || "Zuweisung fehlgeschlagen");
+  if (!res.ok) throw await readApiError(res, "Zuweisung fehlgeschlagen");
 }
 
 export async function rejectApplication(
@@ -321,7 +306,7 @@ export async function rejectApplication(
     headers: authHeaders(user),
   });
 
-  if (!res.ok) throw new Error((await res.text()) || "Ablehnen fehlgeschlagen");
+  if (!res.ok) throw await readApiError(res, "Ablehnen fehlgeschlagen");
 }
 
 export async function removePlayerFromTable(
@@ -335,7 +320,7 @@ export async function removePlayerFromTable(
     headers: authHeaders(user),
   });
 
-  if (!res.ok) throw new Error((await res.text()) || "Spieler entfernen fehlgeschlagen");
+  if (!res.ok) throw await readApiError(res, "Spieler entfernen fehlgeschlagen");
 }
 
 export async function movePlayerToTable(
@@ -350,5 +335,5 @@ export async function movePlayerToTable(
     body: JSON.stringify({ targetTableId }),
   });
 
-  if (!res.ok) throw new Error((await res.text()) || "Spieler verschieben fehlgeschlagen");
+  if (!res.ok) throw await readApiError(res, "Spieler verschieben fehlgeschlagen");
 }
