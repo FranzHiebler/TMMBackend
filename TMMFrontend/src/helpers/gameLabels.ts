@@ -1,4 +1,4 @@
-import { GameJoinMode, type GameTableDto, type GameSessionState } from "../types/game";
+import { GameJoinMode, type GameSessionState, type GameTableDto } from "../types/game";
 
 export function gameJoinModeLabel(joinMode: GameJoinMode) {
   if (joinMode === GameJoinMode.ApprovalRequired) return "Bewerbung erforderlich";

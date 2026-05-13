@@ -11,6 +11,8 @@ export function locationRoleLabel(role: LocationRole | string) {
 }
 
 export function locationMembershipLabel(location: LocationResponse) {
+  if (location.role === "Applicant") return "Anfrage läuft";
+
   if (location.role) {
     return `Deine Rolle: ${locationRoleLabel(location.role)}`;
   }

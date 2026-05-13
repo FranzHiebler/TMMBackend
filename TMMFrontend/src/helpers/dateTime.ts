@@ -2,6 +2,7 @@ export function timeFromDate(dateTime?: string | null) {
   if (!dateTime) return "";
 
   const date = new Date(dateTime);
+
   return `${date.getHours().toString().padStart(2, "0")}:${date
     .getMinutes()
     .toString()

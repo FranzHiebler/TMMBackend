@@ -49,6 +49,19 @@ export interface GameTableDto {
   openSlots: number;
 }
 
+export interface GameChangeProposalDto {
+  id: string;
+  tableId?: string | null;
+  proposedBy: ParticipantDto;
+  proposedStartTimeUtc?: string | null;
+  proposedSystems?: string[] | null;
+  proposedPoints?: number | null;
+  message?: string | null;
+  status: ChangeProposalStatus;
+  createdAt: string;
+  resolvedAt?: string | null;
+}
+
 export interface GameResponse {
   id: string;
   title: string;
@@ -65,19 +78,6 @@ export interface GameResponse {
   maxPlayers: number;
   assignedPlayers: number;
   openSlots: number;
-}
-
-export interface GameChangeProposalDto {
-  id: string;
-  tableId?: string | null;
-  proposedBy: ParticipantDto;
-  proposedStartTimeUtc?: string | null;
-  proposedSystems?: string[] | null;
-  proposedPoints?: number | null;
-  message?: string | null;
-  status: ChangeProposalStatus;
-  createdAt: string;
-  resolvedAt?: string | null;
 }
 
 export interface CreateGameTableRequest {
@@ -170,14 +170,13 @@ export const GameJoinMode = {
   FirstComeFirstServe: "FirstComeFirstServe",
 } as const;
 
+export type GameJoinMode = typeof GameJoinMode[keyof typeof GameJoinMode];
+
 export interface UserSearchResponse {
   userId: string;
   displayName: string;
   email?: string | null;
 }
-
-export type GameJoinMode =
-  typeof GameJoinMode[keyof typeof GameJoinMode];
 
 export interface LocationJoinRequestResponse {
   id: string;
