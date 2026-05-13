@@ -17,10 +17,13 @@ export default function App() {
       <nav className="app-nav">
         <div className="nav-brand">
           <span className="nav-brand-mark">TMM</span>
-          <span className="nav-brand-text">Tabletop Matchmaker</span>
         </div>
 
-        <div className="nav-links">
+        <div className="nav-links">          
+          <NavLink to="/my-games" className={navClass}>
+            Meine Spiele
+          </NavLink>
+
           <NavLink to="/nearby" className={navClass}>
             Entdecken
           </NavLink>
@@ -29,9 +32,6 @@ export default function App() {
             Spiele
           </NavLink>
 
-          <NavLink to="/my-games" className={navClass}>
-            Meine Spiele
-          </NavLink>
 
           <NavLink to="/locations" className={navClass}>
             Locations
@@ -52,7 +52,7 @@ export default function App() {
       </nav>
 
       <Routes>
-        <Route path="/" element={<GamesPage />} />
+        <Route path="/" element={<MyGamesPage />} />
         <Route path="/games" element={<GamesPage />} />
         <Route path="/my-games" element={<MyGamesPage />} />
         <Route path="/nearby" element={<NearbyPage />} />
