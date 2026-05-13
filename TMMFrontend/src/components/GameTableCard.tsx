@@ -1,10 +1,17 @@
-import type { GameResponse, GameTableDto, GameJoinMode } from "../types/game";
+import { useState } from "react";
+import type {
+  GameResponse,
+  GameTableDto,
+  GameJoinMode,
+  UpdateGameTableRequest,
+} from "../types/game";
+import { gameTableSystemsLabel } from "../helpers/gameLabels";
 import AssignedPlayersList from "./AssignedPlayersList";
 import ApplicationsList from "./ApplicationsList";
 import GameTableActions from "./GameTableActions";
 import GameProposalForm from "./GameProposalForm";
+import GameTableEditForm from "./GameTableEditForm";
 import Message from "./Message";
-import { gameTableSystemsLabel } from "../helpers/gameLabels";
 
 type Props = {
   game: GameResponse;
@@ -34,6 +41,7 @@ type Props = {
   onProposalMessageChange: (value: string) => void;
   onSubmitProposal: (table: GameTableDto) => void;
 
+  onUpdateTable: (tableId: string, request: UpdateGameTableRequest) => Promise<boolean>;
   onAcceptApplication: (tableId: string, applicationId: string) => void;
   onRejectApplication: (applicationId: string) => void;
 
@@ -68,6 +76,7 @@ export default function GameTableCard({
   onProposalPointsChange,
   onProposalMessageChange,
   onSubmitProposal,
+  onUpdateTable,
   onAcceptApplication,
   onRejectApplication,
   onRemovePlayer,
@@ -75,6 +84,8 @@ export default function GameTableCard({
   onDragPlayerEnd,
   onDropPlayer,
 }: Props) {
+  const [isEditingTable, setIsEditingTable] = useState(false);
+
   const key = `${game.id}_${table.id}`;
   const isFull = table.openSlots <= 0;
   const isJoining = joiningKey === key;
@@ -102,22 +113,30 @@ export default function GameTableCard({
           </div>
         </div>
 
-        <GameTableActions
-          isFull={isFull}
-          isJoining={isJoining}
-          alreadyInGame={alreadyInGame}
-          isApproval={isApproval}
-          isAssignedToTable={isAssignedToTable}
-          onJoin={() => onJoin(game.id, table.id, game.joinMode, systemKey)}
-          onToggleProposal={() => {
-            if (openProposalTableId === table.id) {
-              onOpenProposalTableIdChange(null);
-              return;
-            }
+        <div className="table-actions">
+          <GameTableActions
+            isFull={isFull}
+            isJoining={isJoining}
+            alreadyInGame={alreadyInGame}
+            isApproval={isApproval}
+            isAssignedToTable={isAssignedToTable}
+            onJoin={() => onJoin(game.id, table.id, game.joinMode, systemKey)}
+            onToggleProposal={() => {
+              if (openProposalTableId === table.id) {
+                onOpenProposalTableIdChange(null);
+                return;
+              }
 
-            onOpenProposalTable(table);
-          }}
-        />
+              onOpenProposalTable(table);
+            }}
+          />
+
+          {isHost && (
+            <button type="button" onClick={() => setIsEditingTable((prev) => !prev)}>
+              {isEditingTable ? "Bearbeiten schließen" : "Tisch bearbeiten"}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="game-table-meta">
@@ -149,6 +168,16 @@ export default function GameTableCard({
       </div>
 
       {table.notes && <div className="game-table-notes">{table.notes}</div>}
+
+      {isEditingTable && (
+        <GameTableEditForm
+          table={table}
+          gameStartTimeUtc={game.startTimeUtc}
+          isBusy={busyKey === `table-edit-${table.id}`}
+          onCancel={() => setIsEditingTable(false)}
+          onSave={(request) => onUpdateTable(table.id, request)}
+        />
+      )}
 
       <AssignedPlayersList
         table={table}

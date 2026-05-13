@@ -1,13 +1,33 @@
 @media (max-width: 1100px) {
   .app-nav {
-    grid-template-columns: 1fr;
-    gap: 10px;
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      "brand actions"
+      "links links";
+    gap: 10px 16px;
   }
 
-  .nav-links,
-  .nav-actions {
+  .nav-brand {
+    grid-area: brand;
+  }
+
+  .nav-links {
+    grid-area: links;
     justify-content: flex-start;
-    flex-wrap: wrap;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+  }
+
+  .nav-actions {
+    grid-area: actions;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+  }
+
+  .nav-link,
+  .nav-create-button {
+    white-space: nowrap;
   }
 
   .game-session-meta {
@@ -31,6 +51,15 @@
   .games-filter-grid {
     grid-template-columns: 1fr;
   }
+
+  .nav-actions {
+    gap: 8px;
+  }
+
+  .user-switcher {
+    min-width: 150px;
+    max-width: 190px;
+  }
 }
 
 @media (max-width: 700px) {
@@ -50,11 +79,35 @@
 
   .app-nav {
     position: static;
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "brand"
+      "links"
+      "actions";
     padding: 12px;
+    gap: 10px;
+  }
+
+  .nav-brand {
+    grid-area: brand;
   }
 
   .nav-brand-text {
     display: none;
+  }
+
+  .nav-links {
+    grid-area: links;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    overflow-x: visible;
+    padding-bottom: 0;
+  }
+
+  .nav-actions {
+    grid-area: actions;
+    justify-content: flex-start;
+    flex-wrap: wrap;
   }
 
   .nav-link,
@@ -64,8 +117,13 @@
     font-size: 14px;
   }
 
+  .nav-create-button {
+    order: -1;
+  }
+
   .user-switcher {
     width: 100%;
+    min-width: 0;
     max-width: none;
     border-radius: 12px;
   }
