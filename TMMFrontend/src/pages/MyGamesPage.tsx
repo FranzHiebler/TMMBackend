@@ -4,6 +4,7 @@ import GameList from "../components/GameList";
 import { useJoinGame } from "../api/useJoinGame";
 import { useUser } from "../context/UserContext";
 import type { GameResponse } from "../types/game";
+import Message from "../components/Message";
 
 function isMine(game: GameResponse, userId: string) {
   return game.host.userId === userId ||
@@ -50,8 +51,8 @@ export default function MyGamesPage() {
   return (
     <div className="container">
       <h1>Meine Spiele ({myGames.length})</h1>
-      {loading && <div className="message message-info">Lade Spiele...</div>}
-      {error && <div className="message message-error">{error}</div>}
+      <Message text={loading ? "Lade Spiele..." : ""} type="info" />
+      <Message text={error} type="error" />
       {!loading && !error && (
         <GameList
           games={myGames}

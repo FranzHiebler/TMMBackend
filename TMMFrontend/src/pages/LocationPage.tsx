@@ -4,6 +4,7 @@ import type { LocationResponse } from "../types/game";
 import LocationList from "../components/LocationList";
 import LocationModal from "../components/LocationModal";
 import { useUser } from "../context/UserContext";
+import Message from "../components/Message";
 
 export default function LocationsPage() {
   const user = useUser();
@@ -27,7 +28,6 @@ export default function LocationsPage() {
   }, [user]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadLocations();
   }, [loadLocations]);
 
@@ -41,8 +41,8 @@ export default function LocationsPage() {
         </button>
       </div>
 
-      {loading && <div className="message message-info">Lade Locations...</div>}
-      {error && <div className="message message-error">{error}</div>}
+      <Message text={loading ? "Lade Locations..." : ""} type="info" />
+      <Message text={error} type="error" />
 
       {!loading && !error && (
         <LocationList

@@ -4,13 +4,9 @@ import { useJoinGame } from "../api/useJoinGame";
 import GameList from "../components/GameList";
 import { useUser } from "../context/UserContext";
 import type { GameResponse } from "../types/game";
+import Message from "../components/Message";
 
 type ViewFilter = "all" | "own" | "joined";
-
-function Message({ text, type }: { text: string; type: "success" | "error" | "info" }) {
-  if (!text) return null;
-  return <div className={`message message-${type}`}>{text}</div>;
-}
 
 function isPast(game: GameResponse) {
   return new Date(game.startTimeUtc).getTime() < Date.now();

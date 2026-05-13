@@ -7,6 +7,7 @@ import {
 import type { LocationResponse, SystemOption } from "../types/game";
 import { useUser } from "../context/UserContext";
 import LocationPicker from "../components/LocationPicker";
+import Message from "../components/Message";
 
 export default function NearbyPage() {
   const [address, setAddress] = useState("");
@@ -111,7 +112,7 @@ export default function NearbyPage() {
     <div className="container">
       <h1>Locations in der Nähe</h1>
 
-      {message && <div className={`message message-${messageType}`}>{message}</div>}
+      <Message text={message} type={messageType} />
 
       <form onSubmit={handleSearch} className="form">
         <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Stadt" />
