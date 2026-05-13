@@ -5,9 +5,9 @@ import {
   getLocationMembers,
   rejectLocationJoinRequest,
   removeLocationMember,
-  searchUsers,
   upsertLocationMember,
-} from "../api/gamesService";
+} from "../api/locationsApi";
+import { searchUsers } from "../api/usersApi";
 import type {
   LocationJoinRequestResponse,
   LocationMemberResponse,

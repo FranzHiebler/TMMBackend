@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { getMyLocations } from "../api/gamesService";
+import { getMyLocations } from "../api/locationsApi";
 import type { LocationResponse } from "../types/game";
 import LocationList from "../components/LocationList";
 import LocationModal from "../components/LocationModal";
