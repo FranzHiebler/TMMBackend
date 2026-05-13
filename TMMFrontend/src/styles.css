@@ -171,6 +171,51 @@ nav a:hover {
   color: #374151;
 }
 
+/* Create Game Layout */
+.create-game-form {
+  display: grid;
+  gap: 18px;
+}
+
+.form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.game-table-editor {
+  display: grid;
+  grid-template-columns: 1.5fr 120px;
+  gap: 14px;
+  align-items: start;
+}
+
+.game-table-editor .systems-picker,
+.game-table-editor .table-wide {
+  grid-column: 1 / -1;
+}
+
+.systems-picker {
+  display: grid;
+  gap: 8px;
+}
+
+.systems-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+}
+
+.systems-checkboxes label {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.compact-input {
+  min-height: 42px;
+}
+
+/* Locations */
 .location-card-grid {
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
@@ -195,6 +240,7 @@ nav a:hover {
   background: #f9fafb;
 }
 
+/* Members */
 .member-list {
   display: grid;
   gap: 10px;
@@ -228,6 +274,7 @@ nav a:hover {
   white-space: nowrap;
 }
 
+/* Game Cards */
 .table-actions {
   display: flex;
   flex-wrap: wrap;
@@ -269,22 +316,6 @@ nav a:hover {
   gap: 8px;
 }
 
-.inline-location-editor {
-  display: grid;
-  gap: 14px;
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid #e5e7eb;
-}
-
-.inline-add-system {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px;
-  align-items: center;
-  margin-top: 10px;
-}
-
 .assigned-player-list {
   display: grid;
   gap: 10px;
@@ -324,6 +355,70 @@ nav a:hover {
   padding: 8px 12px;
 }
 
+/* Location Modal */
+.inline-location-editor {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.inline-add-system {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.location-select-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.location-select-row button {
+  white-space: nowrap;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.field label {
+  margin: 0;
+  font-weight: 700;
+  color: #111827;
+}
+
+.game-table-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px;
+  gap: 14px;
+  align-items: start;
+}
+
+.game-table-editor .systems-picker,
+.game-table-editor .table-wide {
+  grid-column: 1 / -1;
+}
+
+.notes-textarea {
+  min-height: 90px;
+}
+
+@media (max-width: 700px) {
+  .location-select-row,
+  .form-row-2,
+  .game-table-editor {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Responsive */
 @media (max-width: 850px) {
   .location-card-grid {
     grid-template-columns: 1fr;
@@ -353,6 +448,8 @@ nav a:hover {
     width: 100%;
   }
 
+  .form-row-2,
+  .game-table-editor,
   .member-row,
   .member-edit-row,
   .proposal-row {

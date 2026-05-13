@@ -67,6 +67,25 @@ export default function CreateGameForm() {
     setTables((prev) => prev.map((table, i) => (i === index ? { ...table, ...patch } : table)));
   }
 
+  function updateSessionStartTime(value: string) {
+    const previousIso = startTime ? new Date(startTime).toISOString() : null;
+    const nextIso = value ? new Date(value).toISOString() : null;
+
+    setStartTime(value);
+
+    if (!nextIso) return;
+
+    setTables((prev) =>
+      prev.map((table) => ({
+        ...table,
+        startTimeUtc:
+          !table.startTimeUtc || table.startTimeUtc === previousIso
+            ? nextIso
+            : table.startTimeUtc,
+      }))
+    );
+  }
+
   function addTable() {
     setTables((prev) => [...prev, newTable(prev.length + 1)]);
   }
@@ -143,6 +162,7 @@ export default function CreateGameForm() {
       alert("Game Session wurde erstellt.");
       setTitle("");
       setDescription("");
+      setStartTime("");
       setTables([newTable(1)]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Game konnte nicht erstellt werden");
@@ -155,32 +175,54 @@ export default function CreateGameForm() {
     <div className="container">
       <Message text={error} type="error" />
 
-      <form onSubmit={handleSubmit} className="form">
-        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Titel" />
+      <form onSubmit={handleSubmit} className="form create-game-form">
+        <div className="field">
+          <label>Titel der Game Session</label>
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="z.B. Warhammer-Abend im Club"
+          />
+        </div>
 
-        <LocationSelect
-          locations={locations}
-          value={locationId}
-          onChange={setLocationId}
-          onCreateClick={() => setShowLocationModal(true)}
-        />
+        <div className="field">
+          <label>Location</label>
+          <LocationSelect
+            locations={locations}
+            value={locationId}
+            onChange={setLocationId}
+            onCreateClick={() => setShowLocationModal(true)}
+          />
+        </div>
 
-        <select value={joinMode} onChange={(e) => setJoinMode(e.target.value as GameJoinMode)}>
-          <option value={GameJoinMode.FirstComeFirstServe}>First Come First Serve</option>
-          <option value={GameJoinMode.ApprovalRequired}>Approval Required</option>
-        </select>
+        <div className="form-row-2">
+          <div className="field">
+            <label>Beitrittsmodus</label>
+            <select value={joinMode} onChange={(e) => setJoinMode(e.target.value as GameJoinMode)}>
+              <option value={GameJoinMode.FirstComeFirstServe}>Direkter Beitritt</option>
+              <option value={GameJoinMode.ApprovalRequired}>Bewerbung erforderlich</option>
+            </select>
+          </div>
 
-        <input
-          type="datetime-local"
-          value={startTime}
-          onChange={(e) => setStartTime(e.target.value)}
-        />
+          <div className="field">
+            <label>Start der Game Session</label>
+            <input
+              type="datetime-local"
+              value={startTime}
+              onChange={(e) => updateSessionStartTime(e.target.value)}
+              title="Startzeitpunkt der Game Session"
+            />
+          </div>
+        </div>
 
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Beschreibung"
-        />
+        <div className="field">
+          <label>Beschreibung / grober Zeitrahmen</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="z.B. Aufbau ab 17:30 Uhr, Spielstart ca. 18 Uhr, Ende gegen 23 Uhr"
+          />
+        </div>
 
         <h2>Tische</h2>
 
@@ -190,6 +232,7 @@ export default function CreateGameForm() {
             table={table}
             index={index}
             canRemove={tables.length > 1}
+            sessionStartTime={startTime}
             locationSystemKeys={locationSystemKeys}
             locationSystems={locationSystems}
             onUpdateTable={updateTable}

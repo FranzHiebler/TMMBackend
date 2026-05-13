@@ -7,11 +7,31 @@ type Props = {
   canRemove: boolean;
   locationSystemKeys: string[];
   locationSystems: SystemOption[];
+  sessionStartTime: string;
   onUpdateTable: (index: number, patch: Partial<CreateGameTableRequest>) => void;
   onRemoveTable: (index: number) => void;
   onToggleSystem: (index: number, key: string) => void;
   onCustomSystemsChange: (index: number, value: string) => void;
 };
+
+function getTimeValue(dateTime?: string | null) {
+  if (!dateTime) return "";
+
+  const date = new Date(dateTime);
+  const hours = date.getHours().toString().padStart(2, "0");
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+
+  return `${hours}:${minutes}`;
+}
+
+function combineSessionDateWithTableTime(sessionStartTime: string, time: string) {
+  if (!sessionStartTime || !time) return null;
+
+  const [year, month, day] = sessionStartTime.slice(0, 10).split("-").map(Number);
+  const [hours, minutes] = time.split(":").map(Number);
+
+  return new Date(year, month - 1, day, hours, minutes).toISOString();
+}
 
 export default function GameTableEditor({
   table,
@@ -19,26 +39,33 @@ export default function GameTableEditor({
   canRemove,
   locationSystemKeys,
   locationSystems,
+  sessionStartTime,
   onUpdateTable,
   onRemoveTable,
   onToggleSystem,
   onCustomSystemsChange,
 }: Props) {
   return (
-    <div className="card form">
-      <input
-        value={table.name}
-        onChange={(e) => onUpdateTable(index, { name: e.target.value })}
-        placeholder="Tischname"
-      />
+    <div className="card game-table-editor">
+      <div className="field">
+        <label>Tischname</label>
+        <input
+          value={table.name}
+          onChange={(e) => onUpdateTable(index, { name: e.target.value })}
+          placeholder="z.B. Tisch 1"
+        />
+      </div>
 
-      <input
-        type="number"
-        min={1}
-        value={table.maxPlayers}
-        onChange={(e) => onUpdateTable(index, { maxPlayers: Number(e.target.value) })}
-        placeholder="Max Spieler"
-      />
+      <div className="field">
+        <label>Max. Spieler</label>
+        <input
+          type="number"
+          min={1}
+          value={table.maxPlayers}
+          onChange={(e) => onUpdateTable(index, { maxPlayers: Number(e.target.value) })}
+          placeholder="2"
+        />
+      </div>
 
       <GameTableSystemsPicker
         table={table}
@@ -49,42 +76,67 @@ export default function GameTableEditor({
         onCustomSystemsChange={onCustomSystemsChange}
       />
 
-      <input
-        type="datetime-local"
-        value={table.startTimeUtc ? table.startTimeUtc.slice(0, 16) : ""}
-        onChange={(e) =>
-          onUpdateTable(index, {
-            startTimeUtc: e.target.value ? new Date(e.target.value).toISOString() : null,
-          })
-        }
-        placeholder="Abweichende Tisch-Startzeit"
-      />
+      <div className="form-row-2 table-wide">
+        <div className="field">
+          <label>Startzeit am Tisch</label>
+          <input
+            type="time"
+            value={getTimeValue(table.startTimeUtc)}
+            disabled={!sessionStartTime}
+            onChange={(e) =>
+              onUpdateTable(index, {
+                startTimeUtc: combineSessionDateWithTableTime(
+                  sessionStartTime,
+                  e.target.value
+                ),
+              })
+            }
+          />
+          {!sessionStartTime && (
+            <small>Bitte zuerst Startdatum der Session wählen.</small>
+          )}
+        </div>
 
-      <input
-        value={table.scenario ?? ""}
-        onChange={(e) => onUpdateTable(index, { scenario: e.target.value })}
-        placeholder="Szenario optional"
-      />
+        <div className="field">
+          <label>Punkte</label>
+          <input
+            type="number"
+            value={table.points ?? ""}
+            onChange={(e) =>
+              onUpdateTable(index, {
+                points: e.target.value ? Number(e.target.value) : null,
+              })
+            }
+            placeholder="z.B. 2000"
+          />
+        </div>
+      </div>
 
-      <input
-        type="number"
-        value={table.points ?? ""}
-        onChange={(e) =>
-          onUpdateTable(index, {
-            points: e.target.value ? Number(e.target.value) : null,
-          })
-        }
-        placeholder="Punkte optional"
-      />
+      <div className="field table-wide">
+        <label>Szenario</label>
+        <input
+          value={table.scenario ?? ""}
+          onChange={(e) => onUpdateTable(index, { scenario: e.target.value })}
+          placeholder="Szenario optional"
+        />
+      </div>
 
-      <input
-        value={table.notes ?? ""}
-        onChange={(e) => onUpdateTable(index, { notes: e.target.value })}
-        placeholder="Notizen optional"
-      />
+      <div className="field table-wide">
+        <label>Notizen</label>
+        <textarea
+          className="notes-textarea"
+          value={table.notes ?? ""}
+          onChange={(e) => onUpdateTable(index, { notes: e.target.value })}
+          placeholder="Notizen optional, z.B. Gelände, Mission, Besonderheiten"
+        />
+      </div>
 
       {canRemove && (
-        <button type="button" onClick={() => onRemoveTable(index)}>
+        <button
+          type="button"
+          className="table-wide"
+          onClick={() => onRemoveTable(index)}
+        >
           Tisch entfernen
         </button>
       )}

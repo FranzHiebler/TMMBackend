@@ -14,7 +14,7 @@ export default function LocationSelect({
   onCreateClick,
 }: Props) {
   return (
-    <div>
+    <div className="location-select-row">
       <select value={value} onChange={(e) => onChange(e.target.value)}>
         <option value="">Location wählen</option>
 
@@ -22,7 +22,7 @@ export default function LocationSelect({
           <option key={l.id} value={l.id}>
             {l.name} ({l.city})
             {l.role ? ` - ${l.role}` : ""}
-            {l.isOpen ? " - Open" : ""}
+            {l.isOpen ? " - Öffentlich" : ""}
           </option>
         ))}
       </select>
