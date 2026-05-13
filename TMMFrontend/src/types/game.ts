@@ -160,8 +160,8 @@ export interface CreateLocationRequest {
   name: string;
   city: string;
   address?: string | null;
-  latitude?: number | null;
-  longitude?: number | null;
+  latitude: number;
+  longitude: number;
   systemKeys: string[];
 }
 

@@ -41,8 +41,8 @@ export default function LocationModal({ onClose, onCreated, location, inline = f
       name,
       city,
       address,
-      latitude,
-      longitude,
+      latitude: latitude!,
+      longitude: longitude!,
       systemKeys,
     };
 
