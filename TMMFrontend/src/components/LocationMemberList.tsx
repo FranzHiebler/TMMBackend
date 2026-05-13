@@ -1,4 +1,5 @@
 import type { LocationMemberResponse, LocationRole } from "../types/game";
+import { locationRoleLabel } from "../helpers/locationLabels";
 
 type Props = {
   members: LocationMemberResponse[];
@@ -9,15 +10,6 @@ type Props = {
   onChangeRole: (member: LocationMemberResponse, role: LocationRole) => void;
   onRemove: (userId: string) => void;
 };
-
-function roleLabel(role: LocationRole | string) {
-  if (role === "Owner") return "Besitzer";
-  if (role === "Admin") return "Admin";
-  if (role === "Manager") return "Verwalter";
-  if (role === "Member") return "Mitglied";
-  if (role === "Applicant") return "Bewerber";
-  return role;
-}
 
 export default function LocationMemberList({
   members,
@@ -47,7 +39,7 @@ export default function LocationMemberList({
               >
                 {assignableRoles.map((r) => (
                   <option key={r} value={r}>
-                    {roleLabel(r)}
+                    {locationRoleLabel(r)}
                   </option>
                 ))}
               </select>
@@ -61,7 +53,7 @@ export default function LocationMemberList({
               </button>
             </>
           ) : (
-            <strong>{roleLabel(m.role)}</strong>
+            <strong>{locationRoleLabel(m.role)}</strong>
           )}
         </div>
       ))}

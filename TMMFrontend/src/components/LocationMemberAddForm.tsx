@@ -1,4 +1,5 @@
 import type { LocationRole, UserSearchResponse } from "../types/game";
+import { locationRoleLabel } from "../helpers/locationLabels";
 
 type Props = {
   availableUsers: UserSearchResponse[];
@@ -10,15 +11,6 @@ type Props = {
   onRoleChange: (role: LocationRole) => void;
   onAddMember: () => void;
 };
-
-function roleLabel(role: LocationRole | string) {
-  if (role === "Owner") return "Besitzer";
-  if (role === "Admin") return "Admin";
-  if (role === "Manager") return "Verwalter";
-  if (role === "Member") return "Mitglied";
-  if (role === "Applicant") return "Bewerber";
-  return role;
-}
 
 export default function LocationMemberAddForm({
   availableUsers,
@@ -51,7 +43,7 @@ export default function LocationMemberAddForm({
       <select value={role} onChange={(e) => onRoleChange(e.target.value as LocationRole)}>
         {assignableRoles.map((r) => (
           <option key={r} value={r}>
-            {roleLabel(r)}
+            {locationRoleLabel(r)}
           </option>
         ))}
       </select>
