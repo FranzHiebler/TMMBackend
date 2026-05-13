@@ -14,6 +14,7 @@ import LocationModal from "./LocationModal";
 import GameTableEditor from "./GameTableEditor";
 import { useUser } from "../context/UserContext";
 import Message from "./Message";
+import { getCurrentUserProfile } from "../api/usersApi";
 
 function newTable(index: number): CreateGameTableRequest {
   return {
@@ -47,17 +48,26 @@ export default function CreateGameForm() {
 
   const loadInitialData = useCallback(async () => {
     try {
-      const [locationData, systemData] = await Promise.all([
+      const [locationData, systemData, profileData] = await Promise.all([
         getMyLocations(user),
         getSystems(),
+        getCurrentUserProfile(user),
       ]);
 
       setLocations(locationData);
       setSystems(systemData);
+
+      if (
+        !locationId &&
+        profileData.defaultLocationId &&
+        locationData.some((location) => location.id === profileData.defaultLocationId)
+      ) {
+        setLocationId(profileData.defaultLocationId);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Daten konnten nicht geladen werden");
     }
-  }, [user]);
+  }, [user, locationId]);
 
   useEffect(() => {
     void loadInitialData();

@@ -186,3 +186,15 @@ export interface LocationJoinRequestResponse {
   status: string;
   createdAt: string;
 }
+
+export interface UserProfileResponse {
+  userId: string;
+  displayName: string;
+  email?: string | null;
+  defaultLocationId?: string | null;
+}
+
+export interface UpdateUserProfileRequest {
+  displayName: string;
+  defaultLocationId?: string | null;
+}

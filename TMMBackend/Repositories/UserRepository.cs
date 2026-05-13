@@ -28,4 +28,17 @@ public class UserRepository : IUserRepository
 
 		return await _users.Find(filter).Limit(20).ToListAsync();
 	}
+
+	public async Task<UserProfile?> GetByIdAsync(string userId)
+	{
+		return await _users.Find(x => x.Id == userId).FirstOrDefaultAsync();
+	}
+
+	public async Task UpsertAsync(UserProfile user)
+	{
+		await _users.ReplaceOneAsync(
+			x => x.Id == user.Id,
+			user,
+			new ReplaceOptions { IsUpsert = true });
+	}
 }

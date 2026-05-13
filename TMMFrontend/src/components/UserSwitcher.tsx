@@ -1,6 +1,6 @@
-import { useUser } from "../context/UserContext";
+import { useUser, type User } from "../context/UserContext";
 
-const testUsers = [
+const testUsers: User[] = [
   { userId: "64f1a2b3c4d5e6f7890abc12", displayName: "Franz" },
   { userId: "69f900000000000000000001", displayName: "Max Bauer" },
   { userId: "69f900000000000000000002", displayName: "Anna Keller" },
@@ -11,16 +11,20 @@ const testUsers = [
 export default function UserSwitcher() {
   const user = useUser();
 
+  const users = testUsers.some((u) => u.userId === user.userId)
+    ? testUsers.map((u) => (u.userId === user.userId ? user : u))
+    : [user, ...testUsers];
+
   return (
     <select
       className="user-switcher"
       value={user.userId}
       onChange={(e) => {
-        const selected = testUsers.find((u) => u.userId === e.target.value);
+        const selected = users.find((u) => u.userId === e.target.value);
         if (selected) user.setUser(selected);
       }}
     >
-      {testUsers.map((u) => (
+      {users.map((u) => (
         <option key={u.userId} value={u.userId}>
           {u.displayName}
         </option>

@@ -15,6 +15,17 @@ const defaultUser: User = {
   displayName: "Franz",
 };
 
+function loadInitialUser(): User {
+  const stored = localStorage.getItem("tmm-current-user");
+  if (!stored) return defaultUser;
+
+  try {
+    return JSON.parse(stored) as User;
+  } catch {
+    return defaultUser;
+  }
+}
+
 const UserContext = createContext<UserContextValue>({
   ...defaultUser,
   setUser: () => {},
@@ -25,7 +36,12 @@ type Props = {
 };
 
 export function UserProvider({ children }: Props) {
-  const [user, setUser] = useState<User>(defaultUser);
+  const [user, setUserState] = useState<User>(loadInitialUser);
+
+  function setUser(nextUser: User) {
+    localStorage.setItem("tmm-current-user", JSON.stringify(nextUser));
+    setUserState(nextUser);
+  }
 
   return (
     <UserContext.Provider value={{ ...user, setUser }}>

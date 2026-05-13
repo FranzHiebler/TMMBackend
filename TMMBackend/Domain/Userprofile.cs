@@ -15,4 +15,8 @@ public class UserProfile
 
 	[BsonElement("email")]
 	public string? Email { get; set; }
+
+	[BsonElement("defaultLocationId")]
+	[BsonRepresentation(BsonType.ObjectId)]
+	public string? DefaultLocationId { get; set; }
 }

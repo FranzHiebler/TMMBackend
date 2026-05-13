@@ -4,6 +4,7 @@ import NearbyPage from "./pages/NearbyPage";
 import LocationsPage from "./pages/LocationPage";
 import CreateGamePage from "./pages/CreateGamePage";
 import MyGamesPage from "./pages/MyGamesPage";
+import ProfilePage from "./pages/ProfilePage";
 import UserSwitcher from "./components/UserSwitcher";
 
 export default function App() {
@@ -15,9 +16,10 @@ export default function App() {
         <Link to="/nearby">Nearby</Link>
         <Link to="/locations">Locations</Link>
         <Link to="/games/create">Game erstellen</Link>
+        <Link to="/profile">Profil</Link>
         <UserSwitcher />
       </nav>
-      
+
       <Routes>
         <Route path="/" element={<GamesPage />} />
         <Route path="/games" element={<GamesPage />} />
@@ -25,6 +27,7 @@ export default function App() {
         <Route path="/nearby" element={<NearbyPage />} />
         <Route path="/locations" element={<LocationsPage />} />
         <Route path="/games/create" element={<CreateGamePage />} />
+        <Route path="/profile" element={<ProfilePage />} />
       </Routes>
     </>
   );
