@@ -1,4 +1,5 @@
-import { GameJoinMode, type GameResponse } from "../types/game";
+import { type GameResponse } from "../types/game";
+import { gameJoinModeLabel } from "../helpers/gameLabels";
 
 type Props = {
   game: GameResponse;
@@ -35,9 +36,7 @@ export default function GameCardHeader({ game }: Props) {
         <div className="game-session-meta-item">
           <span className="meta-label">Modus</span>
           <span>
-            {game.joinMode === GameJoinMode.ApprovalRequired
-              ? "Bewerbung erforderlich"
-              : "Direkter Beitritt"}
+            {gameJoinModeLabel(game.joinMode)}
           </span>
         </div>
 

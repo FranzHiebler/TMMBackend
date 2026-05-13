@@ -4,6 +4,7 @@ import ApplicationsList from "./ApplicationsList";
 import GameTableActions from "./GameTableActions";
 import GameProposalForm from "./GameProposalForm";
 import Message from "./Message";
+import { gameTableSystemsLabel } from "../helpers/gameLabels";
 
 type Props = {
   game: GameResponse;
@@ -41,12 +42,6 @@ type Props = {
   onDragPlayerEnd: () => void;
   onDropPlayer: (targetTableId: string) => void;
 };
-
-function systemText(table: GameTableDto) {
-  if (!table.systems || table.systems.length === 0) return "Egal";
-  if (table.systems.some((x) => x.toLowerCase() === "egal")) return "Egal";
-  return table.systems.join(", ");
-}
 
 export default function GameTableCard({
   game,
@@ -127,7 +122,7 @@ export default function GameTableCard({
 
       <div className="game-table-meta">
         <div>
-          <b>System:</b> {systemText(table)}
+          <b>System:</b> {gameTableSystemsLabel(table)}
         </div>
 
         {table.startTimeUtc && (
