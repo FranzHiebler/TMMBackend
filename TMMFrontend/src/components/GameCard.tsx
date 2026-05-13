@@ -21,6 +21,29 @@ type Props = {
   onGameUpdated?: (game: GameResponse) => void;
 };
 
+function timeFromDate(dateTime?: string | null) {
+  if (!dateTime) return "";
+
+  const date = new Date(dateTime);
+  return `${date.getHours().toString().padStart(2, "0")}:${date
+    .getMinutes()
+    .toString()
+    .padStart(2, "0")}`;
+}
+
+function combineDateWithTime(baseDateTime: string, time: string) {
+  const base = new Date(baseDateTime);
+  const [hours, minutes] = time.split(":").map(Number);
+
+  return new Date(
+    base.getFullYear(),
+    base.getMonth(),
+    base.getDate(),
+    hours,
+    minutes
+  ).toISOString();
+}
+
 export default function GameCard({
   game,
   joiningKey,
@@ -33,7 +56,8 @@ export default function GameCard({
 
   const [openProposalTableId, setOpenProposalTableId] = useState<string | null>(null);
   const [proposalStartTime, setProposalStartTime] = useState("");
-  const [proposalSystems, setProposalSystems] = useState("");
+  const [proposalSystems, setProposalSystems] = useState<string[]>([]);
+  const [proposalCustomSystems, setProposalCustomSystems] = useState("");
   const [proposalPoints, setProposalPoints] = useState("");
   const [proposalMessage, setProposalMessage] = useState("");
 
@@ -60,21 +84,55 @@ export default function GameCard({
 
   function resetProposalForm() {
     setProposalStartTime("");
-    setProposalSystems("");
+    setProposalSystems([]);
+    setProposalCustomSystems("");
     setProposalPoints("");
     setProposalMessage("");
   }
 
+  function openProposalForm(table: GameTableDto) {
+    const startSource = table.startTimeUtc ?? game.startTimeUtc;
+
+    setOpenProposalTableId(table.id);
+    setProposalStartTime(timeFromDate(startSource));
+    setProposalSystems(table.systems.length ? table.systems : ["egal"]);
+    setProposalCustomSystems("");
+    setProposalPoints(table.points?.toString() ?? "");
+    setProposalMessage("");
+  }
+
+  function toggleProposalSystem(system: string) {
+    if (system === "egal") {
+      setProposalSystems((prev) => (prev.includes("egal") ? [] : ["egal"]));
+      return;
+    }
+
+    setProposalSystems((prev) => {
+      const withoutEgal = prev.filter((x) => x !== "egal");
+      return withoutEgal.includes(system)
+        ? withoutEgal.filter((x) => x !== system)
+        : [...withoutEgal, system];
+    });
+  }
+
   async function handleSubmitProposal(table: GameTableDto) {
-    const systems = proposalSystems
+    const customSystems = proposalCustomSystems
       .split(",")
       .map((x) => x.trim())
       .filter(Boolean);
 
+    const systems = [...proposalSystems.filter((x) => x !== "egal"), ...customSystems];
+
     const success = await submitProposal(table, {
       tableId: table.id,
-      proposedStartTimeUtc: proposalStartTime ? new Date(proposalStartTime).toISOString() : null,
-      proposedSystems: systems.length ? systems : null,
+      proposedStartTimeUtc: proposalStartTime
+        ? combineDateWithTime(table.startTimeUtc ?? game.startTimeUtc, proposalStartTime)
+        : null,
+      proposedSystems: proposalSystems.includes("egal")
+        ? ["egal"]
+        : systems.length
+          ? systems
+          : null,
       proposedPoints: proposalPoints ? Number(proposalPoints) : null,
       message: proposalMessage.trim() || null,
     });
@@ -87,11 +145,11 @@ export default function GameCard({
 
   return (
     <div className="card">
-      <GameCardHeader game={game} isApproval={isApproval} />
+      <GameCardHeader game={game} />
 
       <Message text={message?.text} type={message?.type} />
 
-      <div style={{ marginTop: 12 }}>
+      <div className="game-tables-grid">
         {game.tables.map((table) => (
           <GameTableCard
             key={table.id}
@@ -107,12 +165,15 @@ export default function GameCard({
             openProposalTableId={openProposalTableId}
             proposalStartTime={proposalStartTime}
             proposalSystems={proposalSystems}
+            proposalCustomSystems={proposalCustomSystems}
             proposalPoints={proposalPoints}
             proposalMessage={proposalMessage}
             onJoin={onJoin}
             onOpenProposalTableIdChange={setOpenProposalTableId}
+            onOpenProposalTable={openProposalForm}
             onProposalStartTimeChange={setProposalStartTime}
-            onProposalSystemsChange={setProposalSystems}
+            onToggleProposalSystem={toggleProposalSystem}
+            onProposalCustomSystemsChange={setProposalCustomSystems}
             onProposalPointsChange={setProposalPoints}
             onProposalMessageChange={setProposalMessage}
             onSubmitProposal={handleSubmitProposal}

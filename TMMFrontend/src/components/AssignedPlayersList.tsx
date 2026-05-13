@@ -20,33 +20,33 @@ export default function AssignedPlayersList({
   if (table.assignedPlayers.length === 0) return null;
 
   return (
-    <div className="assigned-player-list">
-      <b>Zugewiesen:</b>
+    <div className="assigned-player-section">
+      <h5>Zugewiesen</h5>
 
-      {table.assignedPlayers.map((player) => (
-        <div
-          key={player.userId}
-          className="assigned-player-row"
-          draggable={isHost}
-          onDragStart={() => onDragPlayerStart(player.userId)}
-          onDragEnd={onDragPlayerEnd}
-        >
-          <div className="assigned-player-name">
-            {player.displayName}
+      <div className="assigned-player-list compact">
+        {table.assignedPlayers.map((player) => (
+          <div
+            key={player.userId}
+            className="assigned-player-row compact"
+            draggable={isHost}
+            onDragStart={() => onDragPlayerStart(player.userId)}
+            onDragEnd={onDragPlayerEnd}
+          >
+            <div className="assigned-player-name">{player.displayName}</div>
+
+            {isHost && (
+              <button
+                type="button"
+                className="assigned-player-remove"
+                disabled={busyKey === `player-remove-${player.userId}`}
+                onClick={() => onRemovePlayer(table.id, player.userId)}
+              >
+                Entfernen
+              </button>
+            )}
           </div>
-
-          {isHost && (
-            <button
-              type="button"
-              className="assigned-player-remove"
-              disabled={busyKey === `player-remove-${player.userId}`}
-              onClick={() => onRemovePlayer(table.id, player.userId)}
-            >
-              Entfernen
-            </button>
-          )}
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }

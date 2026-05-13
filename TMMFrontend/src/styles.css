@@ -1,3 +1,4 @@
+
 :root {
   font-family: Inter, system-ui, Arial, sans-serif;
   color: #1f2933;
@@ -10,7 +11,7 @@ body {
 }
 
 .container {
-  max-width: 980px;
+  max-width: 1180px;
   margin: 0 auto;
   padding: 32px 20px;
 }
@@ -25,6 +26,12 @@ h4 {
 
 h1 {
   font-size: 32px;
+}
+
+h5 {
+  margin: 0;
+  font-size: 15px;
+  color: #111827;
 }
 
 .card {
@@ -156,6 +163,23 @@ nav a:hover {
   padding: 8px 12px;
 }
 
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.field label {
+  margin: 0;
+  font-weight: 700;
+  color: #111827;
+}
+
+.form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
 .input-with-unit {
   display: flex;
   align-items: center;
@@ -171,21 +195,26 @@ nav a:hover {
   color: #374151;
 }
 
-/* Create Game Layout */
+/* Create Game */
 .create-game-form {
   display: grid;
   gap: 18px;
 }
 
-.form-row-2 {
+.location-select-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.location-select-row button {
+  white-space: nowrap;
 }
 
 .game-table-editor {
   display: grid;
-  grid-template-columns: 1.5fr 120px;
+  grid-template-columns: minmax(0, 1fr) 120px;
   gap: 14px;
   align-items: start;
 }
@@ -211,8 +240,202 @@ nav a:hover {
   white-space: nowrap;
 }
 
-.compact-input {
-  min-height: 42px;
+.notes-textarea {
+  min-height: 90px;
+}
+
+/* Session Card */
+.game-session-header {
+  display: grid;
+  gap: 12px;
+}
+
+.game-session-header h3 {
+  margin-bottom: 2px;
+}
+
+.game-session-meta {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.game-session-meta-item {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #f9fafb;
+  font-size: 14px;
+  min-width: 0;
+}
+
+.meta-label {
+  font-size: 12px;
+  font-weight: 800;
+  color: #6b7280;
+  text-transform: uppercase;
+}
+
+.game-session-description {
+  margin: 0;
+  color: #374151;
+}
+
+/* Game Tables */
+.game-tables-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.game-table-card {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 18px;
+}
+
+.game-table-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.game-table-header h4 {
+  margin: 0 0 4px;
+}
+
+.game-table-subtitle {
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 700;
+}
+
+.table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 0;
+  justify-content: flex-end;
+}
+
+.table-actions button {
+  padding: 9px 13px;
+  white-space: nowrap;
+}
+
+.game-table-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  font-size: 14px;
+}
+
+.game-table-notes {
+  padding: 9px 11px;
+  border-left: 4px solid #d1d5db;
+  background: #f9fafb;
+  border-radius: 10px;
+  color: #374151;
+}
+
+/* Assigned Players */
+.assigned-player-section,
+.applications-section {
+  display: grid;
+  gap: 8px;
+}
+
+.assigned-player-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 0;
+}
+
+.assigned-player-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: auto;
+  min-height: auto;
+  padding: 8px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.assigned-player-row[draggable="true"] {
+  cursor: grab;
+}
+
+.assigned-player-row[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.assigned-player-name {
+  min-width: 0;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.assigned-player-remove {
+  width: auto;
+  white-space: nowrap;
+  padding: 7px 10px;
+}
+
+/* Proposals / Applications */
+.proposal-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.proposal-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.proposal-list.compact {
+  gap: 8px;
+  margin-top: 0;
+}
+
+.proposal-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #f9fafb;
+}
+
+.proposal-row.compact {
+  padding: 10px 12px;
+}
+
+.proposal-row p {
+  margin: 6px 0 0;
+}
+
+.proposal-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.proposal-actions button {
+  padding: 8px 12px;
+  white-space: nowrap;
 }
 
 /* Locations */
@@ -223,16 +446,13 @@ nav a:hover {
   align-items: start;
 }
 
-.location-main {
+.location-main,
+.location-members-side {
   min-width: 0;
 }
 
 .location-actions {
   margin-top: 12px;
-}
-
-.location-members-side {
-  min-width: 0;
 }
 
 .location-members-side > .card {
@@ -274,87 +494,6 @@ nav a:hover {
   white-space: nowrap;
 }
 
-/* Game Cards */
-.table-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.proposal-form {
-  display: grid;
-  gap: 10px;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #e5e7eb;
-}
-
-.proposal-list {
-  display: grid;
-  gap: 10px;
-  margin-top: 18px;
-}
-
-.proposal-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 14px;
-  align-items: center;
-  padding: 12px;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  background: #f9fafb;
-}
-
-.proposal-row p {
-  margin: 6px 0 0;
-}
-
-.proposal-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.assigned-player-list {
-  display: grid;
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.assigned-player-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: center;
-  min-height: 46px;
-  padding: 10px 12px;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  background: #ffffff;
-}
-
-.assigned-player-row[draggable="true"] {
-  cursor: grab;
-}
-
-.assigned-player-row[draggable="true"]:active {
-  cursor: grabbing;
-}
-
-.assigned-player-name {
-  min-width: 0;
-  font-weight: 700;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.assigned-player-remove {
-  white-space: nowrap;
-  padding: 8px 12px;
-}
-
 /* Location Modal */
 .inline-location-editor {
   display: grid;
@@ -372,53 +511,17 @@ nav a:hover {
   margin-top: 10px;
 }
 
-.location-select-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px;
-  align-items: center;
-}
+/* Responsive */
+@media (max-width: 1100px) {
+  .game-session-meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 
-.location-select-row button {
-  white-space: nowrap;
-}
-
-.field {
-  display: grid;
-  gap: 6px;
-}
-
-.field label {
-  margin: 0;
-  font-weight: 700;
-  color: #111827;
-}
-
-.game-table-editor {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 120px;
-  gap: 14px;
-  align-items: start;
-}
-
-.game-table-editor .systems-picker,
-.game-table-editor .table-wide {
-  grid-column: 1 / -1;
-}
-
-.notes-textarea {
-  min-height: 90px;
-}
-
-@media (max-width: 700px) {
-  .location-select-row,
-  .form-row-2,
-  .game-table-editor {
+  .game-tables-grid {
     grid-template-columns: 1fr;
   }
 }
 
-/* Responsive */
 @media (max-width: 850px) {
   .location-card-grid {
     grid-template-columns: 1fr;
@@ -448,15 +551,20 @@ nav a:hover {
     width: 100%;
   }
 
+  .location-select-row,
   .form-row-2,
   .game-table-editor,
+  .game-session-meta,
+  .game-table-header,
   .member-row,
   .member-edit-row,
   .proposal-row {
     grid-template-columns: 1fr;
   }
 
+  .table-actions,
   .proposal-actions {
+    justify-content: flex-start;
     flex-wrap: wrap;
   }
 
@@ -471,10 +579,11 @@ nav a:hover {
   }
 
   .assigned-player-row {
-    grid-template-columns: 1fr;
+    width: 100%;
+    justify-content: space-between;
   }
 
   .assigned-player-remove {
-    width: 100%;
+    width: auto;
   }
 }
