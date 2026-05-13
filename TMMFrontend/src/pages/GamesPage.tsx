@@ -17,9 +17,10 @@ function isOwn(game: GameResponse, userId: string) {
 }
 
 function isJoinedOrApplied(game: GameResponse, userId: string) {
-  return game.tables.some((table) =>
-    table.assignedPlayers.some((p) => p.userId === userId) ||
-    table.applications.some((a) => a.player.userId === userId)
+  return game.tables.some(
+    (table) =>
+      table.assignedPlayers.some((p) => p.userId === userId) ||
+      table.applications.some((a) => a.player.userId === userId)
   );
 }
 
@@ -85,9 +86,10 @@ export default function GamesPage() {
     return games
       .filter((game) => showPast || !isPast(game))
       .filter((game) => !onlyOpenSlots || hasOpenSlots(game))
-      .filter((game) =>
-        !cityFilter ||
-        game.location?.city?.toLowerCase().includes(cityFilter.toLowerCase())
+      .filter(
+        (game) =>
+          !cityFilter ||
+          game.location?.city?.toLowerCase().includes(cityFilter.toLowerCase())
       )
       .filter((game) => matchesSystem(game, systemFilter))
       .filter((game) => {
@@ -110,44 +112,80 @@ export default function GamesPage() {
       <Message text={error} type="error" />
       {loading && <Message text="Lade Games..." type="info" />}
 
-      <h1>Alle GameSessions ({filteredGames.length})</h1>
+      <div className="games-page-intro">
+        <div className="page-header page-header-stack">
+          <div>
+            <h1 className="games-page-title">
+              Alle GameSessions ({filteredGames.length})
+            </h1>
+            <p className="page-subtitle">
+              Finde offene Runden, filtere nach Ort und System und tritt direkt bei.
+            </p>
+          </div>
+        </div>
+      </div>
 
-      <div className="card form">
-        <select value={viewFilter} onChange={(e) => setViewFilter(e.target.value as ViewFilter)}>
-          <option value="all">Alle anzeigen</option>
-          <option value="own">Nur meine Sessions</option>
-          <option value="joined">Nur angemeldet / beworben</option>
-        </select>
+      <div className="card games-filter-card">
+        <div className="games-filter-header">
+          <div>
+            <h2 className="games-filter-title">Filter</h2>
+            <p className="games-filter-text">
+              Passe die Liste schnell nach Teilnahme, Stadt und System an.
+            </p>
+          </div>
+        </div>
 
-        <input
-          value={cityFilter}
-          onChange={(e) => setCityFilter(e.target.value)}
-          placeholder="Stadt filtern"
-        />
+        <div className="games-filter-grid">
+          <div className="field">
+            <label>Anzeige</label>
+            <select
+              value={viewFilter}
+              onChange={(e) => setViewFilter(e.target.value as ViewFilter)}
+            >
+              <option value="all">Alle anzeigen</option>
+              <option value="own">Nur meine Sessions</option>
+              <option value="joined">Nur angemeldet / beworben</option>
+            </select>
+          </div>
 
-        <input
-          value={systemFilter}
-          onChange={(e) => setSystemFilter(e.target.value)}
-          placeholder="System filtern, z.B. Warhammer"
-        />
+          <div className="field">
+            <label>Stadt</label>
+            <input
+              value={cityFilter}
+              onChange={(e) => setCityFilter(e.target.value)}
+              placeholder="z. B. Frankfurt"
+            />
+          </div>
 
-        <label>
-          <input
-            type="checkbox"
-            checked={onlyOpenSlots}
-            onChange={(e) => setOnlyOpenSlots(e.target.checked)}
-          />
-          Nur mit freien Plätzen
-        </label>
+          <div className="field">
+            <label>System</label>
+            <input
+              value={systemFilter}
+              onChange={(e) => setSystemFilter(e.target.value)}
+              placeholder="z. B. Warhammer"
+            />
+          </div>
+        </div>
 
-        <label>
-          <input
-            type="checkbox"
-            checked={showPast}
-            onChange={(e) => setShowPast(e.target.checked)}
-          />
-          Vergangene Sessions anzeigen
-        </label>
+        <div className="games-filter-toggles">
+          <label className="filter-toggle">
+            <input
+              type="checkbox"
+              checked={onlyOpenSlots}
+              onChange={(e) => setOnlyOpenSlots(e.target.checked)}
+            />
+            Nur mit freien Plätzen
+          </label>
+
+          <label className="filter-toggle">
+            <input
+              type="checkbox"
+              checked={showPast}
+              onChange={(e) => setShowPast(e.target.checked)}
+            />
+            Vergangene Sessions anzeigen
+          </label>
+        </div>
       </div>
 
       {!loading && !error && (

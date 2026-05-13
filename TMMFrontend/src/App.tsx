@@ -1,4 +1,4 @@
-import { Link, Route, Routes } from "react-router-dom";
+import { NavLink, Route, Routes } from "react-router-dom";
 import GamesPage from "./pages/GamesPage";
 import NearbyPage from "./pages/NearbyPage";
 import LocationsPage from "./pages/LocationPage";
@@ -7,17 +7,48 @@ import MyGamesPage from "./pages/MyGamesPage";
 import ProfilePage from "./pages/ProfilePage";
 import UserSwitcher from "./components/UserSwitcher";
 
+function navClass({ isActive }: { isActive: boolean }) {
+  return isActive ? "nav-link active" : "nav-link";
+}
+
 export default function App() {
   return (
     <>
-      <nav className="nav">
-        <Link to="/games">Games</Link>
-        <Link to="/my-games">Meine Spiele</Link>
-        <Link to="/nearby">Nearby</Link>
-        <Link to="/locations">Locations</Link>
-        <Link to="/games/create">Game erstellen</Link>
-        <Link to="/profile">Profil</Link>
-        <UserSwitcher />
+      <nav className="app-nav">
+        <div className="nav-brand">
+          <span className="nav-brand-mark">TMM</span>
+          <span className="nav-brand-text">Tabletop Matchmaker</span>
+        </div>
+
+        <div className="nav-links">
+          <NavLink to="/nearby" className={navClass}>
+            Entdecken
+          </NavLink>
+
+          <NavLink to="/games" className={navClass}>
+            Spiele
+          </NavLink>
+
+          <NavLink to="/my-games" className={navClass}>
+            Meine Spiele
+          </NavLink>
+
+          <NavLink to="/locations" className={navClass}>
+            Locations
+          </NavLink>
+        </div>
+
+        <div className="nav-actions">
+          <NavLink to="/games/create" className="nav-create-button">
+            + Spiel erstellen
+          </NavLink>
+
+          <NavLink to="/profile" className={navClass}>
+            Profil
+          </NavLink>
+
+          <UserSwitcher />
+        </div>
       </nav>
 
       <Routes>
