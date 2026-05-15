@@ -1,5 +1,6 @@
 import type { LocationMemberResponse, LocationRole } from "../types/game";
 import { locationRoleLabel } from "../helpers/locationLabels";
+import DirectMessageButton from "./DirectMessageButton";
 
 type Props = {
   members: LocationMemberResponse[];
@@ -51,9 +52,23 @@ export default function LocationMemberList({
               >
                 Entfernen
               </button>
+              <DirectMessageButton
+                recipientUserId={m.userId}
+                recipientDisplayName={m.displayName || m.userId}
+                contextLabel="aus der Location"
+                compact
+              />
             </>
           ) : (
-            <strong>{locationRoleLabel(m.role)}</strong>
+            <>
+              <strong>{locationRoleLabel(m.role)}</strong>
+              <DirectMessageButton
+                recipientUserId={m.userId}
+                recipientDisplayName={m.displayName || m.userId}
+                contextLabel="aus der Location"
+                compact
+              />
+            </>
           )}
         </div>
       ))}

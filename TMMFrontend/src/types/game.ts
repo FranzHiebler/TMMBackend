@@ -136,6 +136,34 @@ export interface SearchNearbyGamesRequest {
   systemKey?: string;
 }
 
+export interface DiscoveryGamesRequest {
+  fromUtc?: string;
+  toUtc?: string;
+  latitude?: number;
+  longitude?: number;
+  radiusKm?: number;
+}
+
+export interface GameDiscoveryResponse {
+  gameId: string;
+  title: string;
+  startTimeUtc: string;
+  locationId: string;
+  locationName: string;
+  city: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  status: GameSessionState;
+  isHost: boolean;
+  isParticipant: boolean;
+  isOwnLocation: boolean;
+  canEdit: boolean;
+  tablesSummary: string;
+  availableSeats: number;
+  joinMode: GameJoinMode;
+  applicationStatus?: string | null;
+}
+
 export interface SearchNearbyLocationsRequest {
   latitude: number;
   longitude: number;
@@ -154,6 +182,21 @@ export interface LocationResponse {
   isOpen?: boolean;
   systemKeys: string[];
   hasPendingJoinRequest?: boolean;
+}
+
+export interface LocationDiscoveryResponse {
+  locationId: string;
+  name: string;
+  city: string;
+  address?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  isOwnLocation: boolean;
+  isOpen: boolean;
+  role?: LocationRole | null;
+  systemKeys: string[];
+  upcomingGameCount: number;
+  nextGameStartTimeUtc?: string | null;
 }
 
 export interface CreateLocationRequest {
@@ -213,4 +256,89 @@ export interface UpdateGameTableRequest {
   points?: number | null;
   startTimeUtc?: string | null;
   notes?: string | null;
+}
+
+export type MessageKind = "Direct" | "GameSession" | "GameTable";
+export type NotificationKind =
+  | "DirectMessage"
+  | "GameSessionMessage"
+  | "GameTableMessage"
+  | "ApplicationAccepted"
+  | "ApplicationRejected"
+  | "FriendRequest"
+  | "FriendAccepted";
+
+export type FriendshipStatus = "Pending" | "Accepted" | "Rejected" | "Blocked";
+
+export interface MessageDto {
+  id: string;
+  kind: MessageKind;
+  conversationId?: string | null;
+  gameId?: string | null;
+  tableId?: string | null;
+  author: ParticipantDto;
+  body: string;
+  createdAtUtc: string;
+  isMine: boolean;
+}
+
+export interface ConversationDto {
+  id: string;
+  participants: ParticipantDto[];
+  lastMessagePreview?: string | null;
+  lastMessageAtUtc?: string | null;
+  unreadCount: number;
+}
+
+export interface ConversationDetailDto extends ConversationDto {
+  messages: MessageDto[];
+}
+
+export interface MessageRecipientRequest {
+  userId: string;
+  displayName: string;
+}
+
+export interface SendDirectMessageRequest {
+  conversationId?: string | null;
+  recipients: MessageRecipientRequest[];
+  body: string;
+}
+
+export interface SendGameSessionMessageRequest {
+  body: string;
+}
+
+export interface SendGameTableMessageRequest {
+  body: string;
+}
+
+export interface NotificationDto {
+  id: string;
+  kind: NotificationKind;
+  title: string;
+  body: string;
+  linkUrl?: string | null;
+  isRead: boolean;
+  createdAtUtc: string;
+}
+
+export interface FriendDto {
+  id: string;
+  userId: string;
+  displayName: string;
+  status: FriendshipStatus;
+  updatedAtUtc: string;
+}
+
+export interface FriendRequestDto {
+  id: string;
+  requesterUserId: string;
+  requesterDisplayName: string;
+  createdAtUtc: string;
+}
+
+export interface SendFriendRequestRequest {
+  receiverUserId: string;
+  receiverDisplayName: string;
 }

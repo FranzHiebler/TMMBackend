@@ -13,6 +13,7 @@ import GameTableCard from "./GameTableCard";
 import ChangeProposalsList from "./ChangeProposalsList";
 import GameSessionEditForm from "./GameSessionEditForm";
 import Message from "./Message";
+import GameSessionMessagesPanel from "./GameSessionMessagesPanel";
 
 type Props = {
   game: GameResponse;
@@ -195,6 +196,8 @@ export default function GameCard({
         busyKey={busyKey}
         onResolveProposal={resolveProposal}
       />
+
+      <GameSessionMessagesPanel gameId={game.id} />
     </div>
   );
 }

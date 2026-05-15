@@ -9,10 +9,14 @@ namespace TabletopMatchMaker.Controllers;
 public class GamesController : ControllerBase
 {
 	private readonly IGameService _service;
+	private readonly IMessageService _messages;
 
-	public GamesController(IGameService service)
+	public GamesController(
+		IGameService service,
+		IMessageService messages)
 	{
 		_service = service;
+		_messages = messages;
 	}
 
 	[HttpPost]
@@ -74,11 +78,46 @@ public class GamesController : ControllerBase
 		return Ok(await _service.SearchNearbyAsync(request));
 	}
 
+	[HttpGet("discovery")]
+	public async Task<ActionResult<List<GameDiscoveryResponse>>> Discovery([FromQuery] DiscoveryGamesRequest request)
+	{
+		return Ok(await _service.DiscoveryAsync(request));
+	}
+
 	[HttpPost("{id}/applications/{applicationId}/reject")]
 	public async Task<IActionResult> RejectApplication(string id, string applicationId)
 	{
 		await _service.RejectApplicationAsync(id, applicationId);
 		return NoContent();
+	}
+
+	[HttpGet("{id}/messages")]
+	public async Task<ActionResult<List<MessageResponse>>> GetMessages(string id)
+	{
+		return Ok(await _messages.GetGameMessagesAsync(id));
+	}
+
+	[HttpPost("{id}/messages")]
+	public async Task<ActionResult<MessageResponse>> SendMessage(
+		string id,
+		[FromBody] SendGameSessionMessageRequest request)
+	{
+		return Ok(await _messages.SendGameMessageAsync(id, request));
+	}
+
+	[HttpGet("{id}/tables/{tableId}/messages")]
+	public async Task<ActionResult<List<MessageResponse>>> GetTableMessages(string id, string tableId)
+	{
+		return Ok(await _messages.GetTableMessagesAsync(id, tableId));
+	}
+
+	[HttpPost("{id}/tables/{tableId}/messages")]
+	public async Task<ActionResult<MessageResponse>> SendTableMessage(
+		string id,
+		string tableId,
+		[FromBody] SendGameTableMessageRequest request)
+	{
+		return Ok(await _messages.SendTableMessageAsync(id, tableId, request));
 	}
 
 	[HttpPost("{id}/change-proposals")]

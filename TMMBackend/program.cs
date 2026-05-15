@@ -31,11 +31,17 @@ builder.Services.AddScoped<IGameRepository, GameRepository>();
 builder.Services.AddScoped<ILocationRepository, LocationRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ISystemRepository, SystemRepository>();
+builder.Services.AddScoped<IMessageRepository, MessageRepository>();
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<IFriendRepository, FriendRepository>();
 
 builder.Services.AddScoped<IGameService, GameService>();
 builder.Services.AddScoped<IGameAssignmentService, GameAssignmentService>();
 builder.Services.AddScoped<IGameProposalService, GameProposalService>();
 builder.Services.AddScoped<IGameSessionAuthorizationService, GameSessionAuthorizationService>();
+builder.Services.AddScoped<IMessageService, MessageService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IFriendService, FriendService>();
 
 builder.Services.AddScoped<ILocationService, LocationService>();
 builder.Services.AddScoped<ILocationLookupService>(sp => sp.GetRequiredService<ILocationService>());

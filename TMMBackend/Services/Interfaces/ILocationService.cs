@@ -10,6 +10,7 @@ public interface ILocationService : ILocationLookupService
 	Task UpdateAsync(string id, CreateLocationRequest request);
 	Task<List<LocationMemberResponse>> GetMembersAsync(string id);
 	Task<List<LocationResponse>> SearchNearbyAsync(SearchNearbyLocationsRequest request);
+	Task<List<LocationDiscoveryResponse>> DiscoveryAsync(LocationDiscoveryRequest request);
 	Task RequestMembershipAsync(string id, RequestLocationMembershipRequest request);
 	Task<List<LocationJoinRequestResponse>> GetJoinRequestsAsync(string id);
 	Task AcceptJoinRequestAsync(string id, string requestId);

@@ -1,4 +1,5 @@
 import type { TableApplicationDto, GameTableDto } from "../types/game";
+import DirectMessageButton from "./DirectMessageButton";
 
 type Props = {
   table: GameTableDto;
@@ -33,6 +34,13 @@ export default function ApplicationsList({
             </div>
 
             <div className="proposal-actions">
+              <DirectMessageButton
+                recipientUserId={application.player.userId}
+                recipientDisplayName={application.player.displayName}
+                contextLabel={`aus Bewerbung für ${table.name}`}
+                compact
+              />
+
               <button
                 type="button"
                 disabled={busyKey === `application-accept-${application.id}`}

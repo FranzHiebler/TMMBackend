@@ -53,6 +53,13 @@ public class LocationsController : ControllerBase
 		return Ok(await _service.SearchNearbyAsync(request));
 	}
 
+	[HttpGet("discovery")]
+	public async Task<ActionResult<List<LocationDiscoveryResponse>>> Discovery(
+		[FromQuery] LocationDiscoveryRequest request)
+	{
+		return Ok(await _service.DiscoveryAsync(request));
+	}
+
 	[HttpPost("{id}/join-requests")]
 	public async Task<IActionResult> RequestMembership(
 		string id,

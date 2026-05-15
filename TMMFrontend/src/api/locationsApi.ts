@@ -1,6 +1,7 @@
 import type {
   CreateLocationRequest,
   LocationJoinRequestResponse,
+  LocationDiscoveryResponse,
   LocationMemberResponse,
   LocationOption,
   LocationResponse,
@@ -159,4 +160,21 @@ export async function rejectLocationJoinRequest(
   });
 
   return handleVoidResponse(res, "Beitrittsanfrage ablehnen fehlgeschlagen");
+}
+
+export async function getDiscoveryLocations(
+  request: { latitude?: number; longitude?: number; radiusKm?: number },
+  user: User
+): Promise<LocationDiscoveryResponse[]> {
+  const params = new URLSearchParams();
+
+  if (request.latitude != null) params.append("latitude", request.latitude.toString());
+  if (request.longitude != null) params.append("longitude", request.longitude.toString());
+  if (request.radiusKm != null) params.append("radiusKm", request.radiusKm.toString());
+
+  const res = await fetch(`${API}/Locations/discovery?${params.toString()}`, {
+    headers: authHeaders(user),
+  });
+
+  return handleResponse<LocationDiscoveryResponse[]>(res, "Discovery Locations fehlgeschlagen");
 }

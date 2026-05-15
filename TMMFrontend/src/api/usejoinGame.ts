@@ -3,6 +3,7 @@ import { applyToGame, getGameById, joinTable } from "./gamesApi";
 import type { GameResponse } from "../types/game";
 import { GameJoinMode } from "../types/game";
 import { useUser } from "../context/UserContext";
+import { useToast } from "../context/ToastContext";
 
 type UseJoinGameOptions = {
   onJoined?: (gameId: string, tableId: string, systemKey?: string) => void;
@@ -16,6 +17,7 @@ export function useJoinGame(options: UseJoinGameOptions = {}) {
   const [successMessage, setSuccessMessage] = useState("");
   const [messageByKey, setMessageByKey] = useState<Record<string, string>>({});
   const user = useUser();
+  const { showToast } = useToast();
 
   useEffect(() => {
     if (!errorMessage && !successMessage) return;
@@ -54,6 +56,7 @@ export function useJoinGame(options: UseJoinGameOptions = {}) {
         }));
 
         setSuccessMessage("Erfolgreich beigetreten");
+        showToast("success", "Erfolgreich beigetreten");
       } else {
         await applyToGame(gameId, { tableId, systemKey: systemKey || null }, user);
 
@@ -66,12 +69,15 @@ export function useJoinGame(options: UseJoinGameOptions = {}) {
         }));
 
         setSuccessMessage("Bewerbung gesendet");
+        showToast("success", "Bewerbung gesendet");
       }
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : "Aktion fehlgeschlagen");
+      const message = err instanceof Error ? err.message : "Aktion fehlgeschlagen";
+      setErrorMessage(message);
+      showToast("error", message);
       setMessageByKey((prev) => ({
         ...prev,
-        [key]: err instanceof Error ? err.message : "Aktion fehlgeschlagen",
+        [key]: message,
       }));
     } finally {
       setJoiningKey(null);

@@ -12,6 +12,7 @@ import GameTableActions from "./GameTableActions";
 import GameProposalForm from "./GameProposalForm";
 import GameTableEditForm from "./GameTableEditForm";
 import Message from "./Message";
+import GameTableMessagesPanel from "./GameTableMessagesPanel";
 
 type Props = {
   game: GameResponse;
@@ -216,6 +217,8 @@ export default function GameTableCard({
         onAcceptApplication={onAcceptApplication}
         onRejectApplication={onRejectApplication}
       />
+
+      <GameTableMessagesPanel gameId={game.id} tableId={table.id} />
     </div>
   );
 }

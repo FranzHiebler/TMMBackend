@@ -1,6 +1,8 @@
 import type {
   ApplyToGameRequest,
   CreateChangeProposalRequest,
+  DiscoveryGamesRequest,
+  GameDiscoveryResponse,
   CreateGameRequest,
   GameResponse,
   JoinTableRequest,
@@ -111,6 +113,19 @@ export async function searchNearbyGames(request: SearchNearbyGamesRequest): Prom
 
   const res = await fetch(`${API}/Games/nearby?${params.toString()}`);
   return handleResponse<GameResponse[]>(res, "Nearby Games fehlgeschlagen");
+}
+
+export async function getDiscoveryGames(request: DiscoveryGamesRequest): Promise<GameDiscoveryResponse[]> {
+  const params = new URLSearchParams();
+
+  if (request.fromUtc) params.append("fromUtc", request.fromUtc);
+  if (request.toUtc) params.append("toUtc", request.toUtc);
+  if (request.latitude != null) params.append("latitude", request.latitude.toString());
+  if (request.longitude != null) params.append("longitude", request.longitude.toString());
+  if (request.radiusKm != null) params.append("radiusKm", request.radiusKm.toString());
+
+  const res = await fetch(`${API}/Games/discovery?${params.toString()}`);
+  return handleResponse<GameDiscoveryResponse[]>(res, "Discovery laden fehlgeschlagen");
 }
 
 export async function assignApplicationToTable(

@@ -1,4 +1,5 @@
 import type { GameTableDto } from "../types/game";
+import DirectMessageButton from "./DirectMessageButton";
 
 type Props = {
   table: GameTableDto;
@@ -34,7 +35,14 @@ export default function AssignedPlayersList({
           >
             <div className="assigned-player-name">{player.displayName}</div>
 
-            {isHost && (
+            <div className="assigned-player-actions">
+              <DirectMessageButton
+                recipientUserId={player.userId}
+                recipientDisplayName={player.displayName}
+                contextLabel={`vom Tisch ${table.name}`}
+                compact
+              />
+              {isHost && (
               <button
                 type="button"
                 className="assigned-player-remove"
@@ -43,7 +51,8 @@ export default function AssignedPlayersList({
               >
                 Entfernen
               </button>
-            )}
+              )}
+            </div>
           </div>
         ))}
       </div>

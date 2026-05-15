@@ -12,4 +12,5 @@ public interface ILocationRepository
 	Task<List<Location>> GetForUserAsync(string userId);
 	Task<List<NearbyLocationResult>> FindNearbyAsync(double lat, double lng, double radiusInMeters);
 	Task<List<Location>> FindNearbyLocationsAsync(double lat, double lng, double radiusInMeters);
+	Task<List<Location>> GetWithGeoAsync();
 }

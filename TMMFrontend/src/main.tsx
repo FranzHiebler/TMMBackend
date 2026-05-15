@@ -10,15 +10,19 @@ import "./styles/messages.css";
 import "./styles/games.css";
 import "./styles/locations.css";
 import "./styles/modals.css";
+import "./styles/map-discovery.css";
 import "./styles/responsive.css";
 
 import { UserProvider } from "./context/UserContext";
+import { ToastProvider } from "./context/ToastContext";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <BrowserRouter>
       <UserProvider>
-        <App />
+        <ToastProvider>
+          <App />
+        </ToastProvider>
       </UserProvider>
     </BrowserRouter>
   </React.StrictMode>

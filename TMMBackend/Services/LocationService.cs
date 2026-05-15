@@ -10,11 +10,16 @@ namespace TabletopMatchMaker.Services;
 public class LocationService : ILocationService
 {
 	private readonly ILocationRepository _repository;
+	private readonly IGameRepository _gameRepository;
 	private readonly ICurrentUserService _currentUser;
 
-	public LocationService(ILocationRepository repository, ICurrentUserService currentUser)
+	public LocationService(
+		ILocationRepository repository,
+		IGameRepository gameRepository,
+		ICurrentUserService currentUser)
 	{
 		_repository = repository;
+		_gameRepository = gameRepository;
 		_currentUser = currentUser;
 	}
 
@@ -123,6 +128,51 @@ public class LocationService : ILocationService
 				location.SystemKeys.Contains(request.SystemKey, StringComparer.OrdinalIgnoreCase))
 			.Select(location => LocationMapper.ToResponse(location, _currentUser.UserId))
 			.ToList();
+	}
+
+	public async Task<List<LocationDiscoveryResponse>> DiscoveryAsync(LocationDiscoveryRequest request)
+	{
+		var radiusInMeters = Math.Max(1, request.RadiusKm) * 1000;
+		var locations = request.Latitude.HasValue && request.Longitude.HasValue
+			? await _repository.FindNearbyLocationsAsync(
+				request.Latitude.Value,
+				request.Longitude.Value,
+				radiusInMeters)
+			: await _repository.GetWithGeoAsync();
+
+		var withGeo = locations
+			.Where(location => location.Id != null && location.Geo != null)
+			.ToList();
+
+		var upcomingGames = await _gameRepository.SearchUpcomingByLocationIdsAsync(
+			DateTime.UtcNow,
+			withGeo.Select(location => location.Id!).ToList());
+
+		var gamesByLocation = upcomingGames
+			.GroupBy(game => game.LocationId)
+			.ToDictionary(group => group.Key, group => group.OrderBy(game => game.StartTimeUtc).ToList());
+
+		return withGeo.Select(location =>
+		{
+			gamesByLocation.TryGetValue(location.Id!, out var games);
+			var member = location.Members.FirstOrDefault(m => m.UserId == _currentUser.UserId);
+
+			return new LocationDiscoveryResponse
+			{
+				LocationId = location.Id!,
+				Name = location.Name,
+				City = location.City,
+				Address = location.Address,
+				Latitude = location.Geo?.Coordinates.Latitude,
+				Longitude = location.Geo?.Coordinates.Longitude,
+				IsOwnLocation = member != null,
+				IsOpen = location.AccessMode == LocationAccessMode.Open,
+				Role = member?.Role.ToString(),
+				SystemKeys = location.SystemKeys,
+				UpcomingGameCount = games?.Count ?? 0,
+				NextGameStartTimeUtc = games?.FirstOrDefault()?.StartTimeUtc
+			};
+		}).ToList();
 	}
 
 	public async Task RequestMembershipAsync(string id, RequestLocationMembershipRequest request)

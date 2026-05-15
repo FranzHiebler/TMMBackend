@@ -4,8 +4,12 @@ import NearbyPage from "./pages/NearbyPage";
 import LocationsPage from "./pages/LocationPage";
 import CreateGamePage from "./pages/CreateGamePage";
 import MyGamesPage from "./pages/MyGamesPage";
+import MapDiscoveryPage from "./pages/MapDiscoveryPage";
 import ProfilePage from "./pages/ProfilePage";
 import UserSwitcher from "./components/UserSwitcher";
+import DirectMessagesPage from "./pages/DirectMessagesPage";
+import NotificationBell from "./components/NotificationBell";
+import FriendsPage from "./pages/FriendsPage";
 
 function navClass({ isActive }: { isActive: boolean }) {
   return isActive ? "nav-link active" : "nav-link";
@@ -25,16 +29,23 @@ export default function App() {
           </NavLink>
 
           <NavLink to="/nearby" className={navClass}>
-            Entdecken
+            Locations
           </NavLink>
 
           <NavLink to="/games" className={navClass}>
             Spiele
           </NavLink>
 
+          <NavLink to="/messages" className={navClass}>
+            Nachrichten
+          </NavLink>
+
+          <NavLink to="/friends" className={navClass}>
+            Freunde
+          </NavLink>
 
           <NavLink to="/locations" className={navClass}>
-            Locations
+            Meine Locations
           </NavLink>
         </div>
 
@@ -47,17 +58,20 @@ export default function App() {
             Profil
           </NavLink>
 
+          <NotificationBell />
           <UserSwitcher />
         </div>
       </nav>
 
       <Routes>
-        <Route path="/" element={<MyGamesPage />} />
+        <Route path="/" element={<MapDiscoveryPage />} />
         <Route path="/games" element={<GamesPage />} />
         <Route path="/my-games" element={<MyGamesPage />} />
         <Route path="/nearby" element={<NearbyPage />} />
         <Route path="/locations" element={<LocationsPage />} />
         <Route path="/games/create" element={<CreateGamePage />} />
+        <Route path="/messages" element={<DirectMessagesPage />} />
+        <Route path="/friends" element={<FriendsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
       </Routes>
     </>

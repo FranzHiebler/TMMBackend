@@ -16,6 +16,12 @@ public class GameRepository : IGameRepository
 		var client = new MongoClient(settings.Value.ConnectionString);
 		var database = client.GetDatabase(settings.Value.DatabaseName);
 		_games = database.GetCollection<GameSession>(settings.Value.GamesCollectionName);
+		_games.Indexes.CreateMany(new[]
+		{
+			new CreateIndexModel<GameSession>(Builders<GameSession>.IndexKeys.Ascending(x => x.StartTimeUtc)),
+			new CreateIndexModel<GameSession>(Builders<GameSession>.IndexKeys.Ascending(x => x.LocationId)),
+			new CreateIndexModel<GameSession>(Builders<GameSession>.IndexKeys.Ascending(x => x.Status))
+		});
 	}
 
 	public async Task CreateAsync(GameSession game)
@@ -83,6 +89,41 @@ public class GameRepository : IGameRepository
 		}
 
 		return games;
+	}
+
+	public async Task<List<GameSession>> SearchDiscoveryAsync(
+		DateTime fromUtc,
+		DateTime toUtc,
+		List<string>? locationIds)
+	{
+		var f = Builders<GameSession>.Filter.Gte(x => x.StartTimeUtc, fromUtc) &
+				Builders<GameSession>.Filter.Lte(x => x.StartTimeUtc, toUtc) &
+				Builders<GameSession>.Filter.In(x => x.Status, new[] { GameSessionState.Open, GameSessionState.Full });
+
+		if (locationIds is { Count: > 0 })
+			f &= Builders<GameSession>.Filter.In(x => x.LocationId, locationIds);
+
+		return await _games
+			.Find(f)
+			.SortBy(x => x.StartTimeUtc)
+			.ToListAsync();
+	}
+
+	public async Task<List<GameSession>> SearchUpcomingByLocationIdsAsync(
+		DateTime fromUtc,
+		List<string> locationIds)
+	{
+		if (locationIds.Count == 0)
+			return new List<GameSession>();
+
+		var f = Builders<GameSession>.Filter.Gte(x => x.StartTimeUtc, fromUtc) &
+				Builders<GameSession>.Filter.In(x => x.LocationId, locationIds) &
+				Builders<GameSession>.Filter.In(x => x.Status, new[] { GameSessionState.Open, GameSessionState.Full });
+
+		return await _games
+			.Find(f)
+			.SortBy(x => x.StartTimeUtc)
+			.ToListAsync();
 	}
 
 	public async Task UpdateAsync(GameSession game)

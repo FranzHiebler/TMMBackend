@@ -28,6 +28,7 @@ export default function LocationsPage() {
   }, [user]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadLocations();
   }, [loadLocations]);
 

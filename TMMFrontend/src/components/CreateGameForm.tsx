@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   GameJoinMode,
   type CreateGameRequest,
@@ -13,6 +14,7 @@ import LocationSelect from "./LocationSelect";
 import LocationModal from "./LocationModal";
 import GameTableEditor from "./GameTableEditor";
 import { useUser } from "../context/UserContext";
+import { useToast } from "../context/ToastContext";
 import Message from "./Message";
 import { getCurrentUserProfile } from "../api/usersApi";
 
@@ -29,6 +31,9 @@ function newTable(index: number): CreateGameTableRequest {
 
 export default function CreateGameForm() {
   const user = useUser();
+  const { showToast } = useToast();
+  const [searchParams] = useSearchParams();
+  const requestedLocationId = searchParams.get("locationId");
 
   const [locations, setLocations] = useState<LocationResponse[]>([]);
   const [systems, setSystems] = useState<SystemOption[]>([]);
@@ -57,7 +62,9 @@ export default function CreateGameForm() {
       setLocations(locationData);
       setSystems(systemData);
 
-      if (
+      if (!locationId && requestedLocationId && locationData.some((location) => location.id === requestedLocationId)) {
+        setLocationId(requestedLocationId);
+      } else if (
         !locationId &&
         profileData.defaultLocationId &&
         locationData.some((location) => location.id === profileData.defaultLocationId)
@@ -67,9 +74,10 @@ export default function CreateGameForm() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Daten konnten nicht geladen werden");
     }
-  }, [user, locationId]);
+  }, [user, locationId, requestedLocationId]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadInitialData();
   }, [loadInitialData]);
 
@@ -169,13 +177,15 @@ export default function CreateGameForm() {
       setLoading(true);
       setError("");
       await createGame(request, user);
-      alert("Game Session wurde erstellt.");
+      showToast("success", "Session gespeichert");
       setTitle("");
       setDescription("");
       setStartTime("");
       setTables([newTable(1)]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Game konnte nicht erstellt werden");
+      const message = err instanceof Error ? err.message : "Game konnte nicht erstellt werden";
+      setError(message);
+      showToast("error", message);
     } finally {
       setLoading(false);
     }

@@ -16,6 +16,8 @@ public class LocationRepository : ILocationRepository
 		var client = new MongoClient(settings.Value.ConnectionString);
 		var database = client.GetDatabase(settings.Value.DatabaseName);
 		_locations = database.GetCollection<Location>("locations");
+		_locations.Indexes.CreateOne(new CreateIndexModel<Location>(
+			Builders<Location>.IndexKeys.Geo2DSphere(x => x.Geo)));
 	}
 
 	public async Task<List<Location>> GetAllAsync()
@@ -112,5 +114,11 @@ public class LocationRepository : ILocationRepository
 		return locations
 			.OrderBy(location => ids.IndexOf(location.Id!))
 			.ToList();
+	}
+
+	public async Task<List<Location>> GetWithGeoAsync()
+	{
+		var filter = Builders<Location>.Filter.Ne(x => x.Geo, null);
+		return await _locations.Find(filter).ToListAsync();
 	}
 }

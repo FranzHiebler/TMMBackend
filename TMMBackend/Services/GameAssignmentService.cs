@@ -10,15 +10,18 @@ public class GameAssignmentService : IGameAssignmentService
 	private readonly IGameRepository _repository;
 	private readonly ICurrentUserService _currentUser;
 	private readonly IGameSessionAuthorizationService _authorization;
+	private readonly INotificationService _notifications;
 
 	public GameAssignmentService(
 		IGameRepository repository,
 		ICurrentUserService currentUser,
-		IGameSessionAuthorizationService authorization)
+		IGameSessionAuthorizationService authorization,
+		INotificationService notifications)
 	{
 		_repository = repository;
 		_currentUser = currentUser;
 		_authorization = authorization;
+		_notifications = notifications;
 	}
 
 	public async Task JoinTableAsync(string gameId, string tableId, JoinTableRequest request)
@@ -115,6 +118,16 @@ public class GameAssignmentService : IGameAssignmentService
 
 		GameSessionRules.UpdateSessionState(game);
 		await SaveAsync(game);
+
+		if (application != null)
+		{
+			await _notifications.NotifyAsync(
+				player.UserId,
+				NotificationKind.ApplicationAccepted,
+				"Bewerbung angenommen",
+				$"Du bist bei \"{game.Title}\" dabei.",
+				$"/games?gameId={game.Id}");
+		}
 	}
 
 	public async Task RejectApplicationAsync(string gameId, string applicationId)
@@ -134,6 +147,13 @@ public class GameAssignmentService : IGameAssignmentService
 
 		application.Status = ApplicationStatus.Rejected;
 		await SaveAsync(game);
+
+		await _notifications.NotifyAsync(
+			application.Player.UserId,
+			NotificationKind.ApplicationRejected,
+			"Bewerbung abgelehnt",
+			$"Deine Bewerbung für \"{game.Title}\" wurde abgelehnt.",
+			$"/games?gameId={game.Id}");
 	}
 
 	public async Task RemovePlayerFromTableAsync(string gameId, string tableId, string userId)
