@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   GameJoinMode,
@@ -51,35 +51,47 @@ export default function CreateGameForm() {
   const locationSystemKeys = selectedLocation?.systemKeys ?? [];
   const locationSystems = systems.filter((system) => locationSystemKeys.includes(system.key));
 
-  const loadInitialData = useCallback(async () => {
-    try {
-      const [locationData, systemData, profileData] = await Promise.all([
-        getMyLocations(user),
-        getSystems(),
-        getCurrentUserProfile(user),
-      ]);
-
-      setLocations(locationData);
-      setSystems(systemData);
-
-      if (!locationId && requestedLocationId && locationData.some((location) => location.id === requestedLocationId)) {
-        setLocationId(requestedLocationId);
-      } else if (
-        !locationId &&
-        profileData.defaultLocationId &&
-        locationData.some((location) => location.id === profileData.defaultLocationId)
-      ) {
-        setLocationId(profileData.defaultLocationId);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Daten konnten nicht geladen werden");
-    }
-  }, [user, locationId, requestedLocationId]);
-
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    let isMounted = true;
+
+    async function loadInitialData() {
+      try {
+        const [locationData, systemData, profileData] = await Promise.all([
+          getMyLocations(user),
+          getSystems(),
+          getCurrentUserProfile(user),
+        ]);
+
+        if (!isMounted) return;
+
+        setLocations(locationData);
+        setSystems(systemData);
+
+        const queryLocationExists =
+          requestedLocationId &&
+          locationData.some((location) => location.id === requestedLocationId);
+
+        const defaultLocationExists =
+          profileData.defaultLocationId &&
+          locationData.some((location) => location.id === profileData.defaultLocationId);
+
+        if (queryLocationExists) {
+          setLocationId(requestedLocationId);
+        } else if (defaultLocationExists) {
+          setLocationId(profileData.defaultLocationId!);
+        }
+      } catch (err) {
+        if (!isMounted) return;
+        setError(err instanceof Error ? err.message : "Daten konnten nicht geladen werden");
+      }
+    }
+
     void loadInitialData();
-  }, [loadInitialData]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user, requestedLocationId]);
 
   function updateTable(index: number, patch: Partial<CreateGameTableRequest>) {
     setTables((prev) => prev.map((table, i) => (i === index ? { ...table, ...patch } : table)));

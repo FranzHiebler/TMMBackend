@@ -19,6 +19,7 @@ import type {
   UpdateGameTableRequest,
 } from "../types/game";
 import type { User } from "../context/UserContext";
+import { useToast } from "../context/ToastContext";
 
 type MessageState = {
   type: "success" | "error";
@@ -35,10 +36,22 @@ export function useGameCardActions({ game, user, onGameUpdated }: Options) {
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [message, setMessage] = useState<MessageState>(null);
   const [draggedPlayerId, setDraggedPlayerId] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   async function refreshGame() {
     const updated = await getGameById(game.id);
     onGameUpdated?.(updated);
+  }
+
+  function showSuccess(text: string) {
+    setMessage(null);
+    showToast("success", text);
+  }
+
+  function showError(err: unknown, fallback: string) {
+    const text = err instanceof Error ? err.message : fallback;
+    setMessage({ type: "error", text });
+    showToast("error", text);
   }
 
   async function saveSession(request: UpdateGameSessionRequest): Promise<boolean> {
@@ -48,36 +61,27 @@ export function useGameCardActions({ game, user, onGameUpdated }: Options) {
 
       const updated = await updateGameSession(game.id, request, user);
       onGameUpdated?.(updated);
-      setMessage({ type: "success", text: "Session gespeichert" });
+      showSuccess("Session gespeichert");
       return true;
     } catch (err) {
-      setMessage({
-        type: "error",
-        text: err instanceof Error ? err.message : "Session konnte nicht gespeichert werden",
-      });
+      showError(err, "Session konnte nicht gespeichert werden");
       return false;
     } finally {
       setBusyKey(null);
     }
   }
 
-  async function saveTable(
-    tableId: string,
-    request: UpdateGameTableRequest
-  ): Promise<boolean> {
+  async function saveTable(tableId: string, request: UpdateGameTableRequest): Promise<boolean> {
     try {
       setBusyKey(`table-edit-${tableId}`);
       setMessage(null);
 
       const updated = await updateGameTable(game.id, tableId, request, user);
       onGameUpdated?.(updated);
-      setMessage({ type: "success", text: "Tisch gespeichert" });
+      showSuccess("Tisch gespeichert");
       return true;
     } catch (err) {
-      setMessage({
-        type: "error",
-        text: err instanceof Error ? err.message : "Tisch konnte nicht gespeichert werden",
-      });
+      showError(err, "Tisch konnte nicht gespeichert werden");
       return false;
     } finally {
       setBusyKey(null);
@@ -94,14 +98,10 @@ export function useGameCardActions({ game, user, onGameUpdated }: Options) {
 
       const updated = await createChangeProposal(game.id, request, user);
       onGameUpdated?.(updated);
-
-      setMessage({ type: "success", text: "Vorschlag gesendet" });
+      showSuccess("Vorschlag gesendet");
       return true;
     } catch (err) {
-      setMessage({
-        type: "error",
-        text: err instanceof Error ? err.message : "Vorschlag konnte nicht gesendet werden",
-      });
+      showError(err, "Vorschlag konnte nicht gesendet werden");
       return false;
     } finally {
       setBusyKey(null);
@@ -119,15 +119,9 @@ export function useGameCardActions({ game, user, onGameUpdated }: Options) {
           : await rejectChangeProposal(game.id, proposalId, user);
 
       onGameUpdated?.(updated);
-      setMessage({
-        type: "success",
-        text: action === "accept" ? "Vorschlag angenommen" : "Vorschlag abgelehnt",
-      });
+      showSuccess(action === "accept" ? "Vorschlag angenommen" : "Vorschlag abgelehnt");
     } catch (err) {
-      setMessage({
-        type: "error",
-        text: err instanceof Error ? err.message : "Vorschlag konnte nicht bearbeitet werden",
-      });
+      showError(err, "Vorschlag konnte nicht bearbeitet werden");
     } finally {
       setBusyKey(null);
     }
@@ -140,13 +134,9 @@ export function useGameCardActions({ game, user, onGameUpdated }: Options) {
 
       await assignApplicationToTable(game.id, tableId, applicationId, user);
       await refreshGame();
-
-      setMessage({ type: "success", text: "Bewerbung angenommen" });
+      showSuccess("Bewerbung angenommen");
     } catch (err) {
-      setMessage({
-        type: "error",
-        text: err instanceof Error ? err.message : "Bewerbung konnte nicht angenommen werden",
-      });
+      showError(err, "Bewerbung konnte nicht angenommen werden");
     } finally {
       setBusyKey(null);
     }
@@ -159,13 +149,9 @@ export function useGameCardActions({ game, user, onGameUpdated }: Options) {
 
       await rejectApplication(game.id, applicationId, user);
       await refreshGame();
-
-      setMessage({ type: "success", text: "Bewerbung abgelehnt" });
+      showSuccess("Bewerbung abgelehnt");
     } catch (err) {
-      setMessage({
-        type: "error",
-        text: err instanceof Error ? err.message : "Bewerbung konnte nicht abgelehnt werden",
-      });
+      showError(err, "Bewerbung konnte nicht abgelehnt werden");
     } finally {
       setBusyKey(null);
     }
@@ -178,13 +164,9 @@ export function useGameCardActions({ game, user, onGameUpdated }: Options) {
 
       await removePlayerFromTable(game.id, tableId, userId, user);
       await refreshGame();
-
-      setMessage({ type: "success", text: "Spieler entfernt" });
+      showSuccess("Spieler entfernt");
     } catch (err) {
-      setMessage({
-        type: "error",
-        text: err instanceof Error ? err.message : "Spieler konnte nicht entfernt werden",
-      });
+      showError(err, "Spieler konnte nicht entfernt werden");
     } finally {
       setBusyKey(null);
     }
@@ -199,11 +181,9 @@ export function useGameCardActions({ game, user, onGameUpdated }: Options) {
 
       await movePlayerToTable(game.id, draggedPlayerId, targetTableId, user);
       await refreshGame();
+      showSuccess("Spieler verschoben");
     } catch (err) {
-      setMessage({
-        type: "error",
-        text: err instanceof Error ? err.message : "Spieler konnte nicht verschoben werden",
-      });
+      showError(err, "Spieler konnte nicht verschoben werden");
     } finally {
       setBusyKey(null);
       setDraggedPlayerId(null);
