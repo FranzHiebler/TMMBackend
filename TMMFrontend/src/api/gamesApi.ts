@@ -115,7 +115,10 @@ export async function searchNearbyGames(request: SearchNearbyGamesRequest): Prom
   return handleResponse<GameResponse[]>(res, "Nearby Games fehlgeschlagen");
 }
 
-export async function getDiscoveryGames(request: DiscoveryGamesRequest): Promise<GameDiscoveryResponse[]> {
+export async function getDiscoveryGames(
+  request: DiscoveryGamesRequest,
+  user: User
+): Promise<GameDiscoveryResponse[]> {
   const params = new URLSearchParams();
 
   if (request.fromUtc) params.append("fromUtc", request.fromUtc);
@@ -124,7 +127,10 @@ export async function getDiscoveryGames(request: DiscoveryGamesRequest): Promise
   if (request.longitude != null) params.append("longitude", request.longitude.toString());
   if (request.radiusKm != null) params.append("radiusKm", request.radiusKm.toString());
 
-  const res = await fetch(`${API}/Games/discovery?${params.toString()}`);
+  const res = await fetch(`${API}/Games/discovery?${params.toString()}`, {
+    headers: authHeaders(user),
+  });
+
   return handleResponse<GameDiscoveryResponse[]>(res, "Discovery laden fehlgeschlagen");
 }
 

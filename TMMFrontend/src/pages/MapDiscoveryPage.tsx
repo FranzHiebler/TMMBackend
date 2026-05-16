@@ -120,7 +120,7 @@ export default function MapDiscoveryPage() {
           latitude: center[0],
           longitude: center[1],
           radiusKm,
-        }),
+        }, user),
       ]);
 
       setLocations(locationData);
