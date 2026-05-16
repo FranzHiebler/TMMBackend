@@ -9,10 +9,14 @@ namespace TabletopMatchMaker.Controllers;
 public class LocationsController : ControllerBase
 {
 	private readonly ILocationService _service;
+	private readonly IDiscoveryService _discovery;
 
-	public LocationsController(ILocationService service)
+	public LocationsController(
+		ILocationService service,
+		IDiscoveryService discovery)
 	{
 		_service = service;
+		_discovery = discovery;
 	}
 
 	[HttpGet]
@@ -57,7 +61,7 @@ public class LocationsController : ControllerBase
 	public async Task<ActionResult<List<LocationDiscoveryResponse>>> Discovery(
 		[FromQuery] LocationDiscoveryRequest request)
 	{
-		return Ok(await _service.DiscoveryAsync(request));
+		return Ok(await _discovery.GetLocationsAsync(request));
 	}
 
 	[HttpPost("{id}/join-requests")]

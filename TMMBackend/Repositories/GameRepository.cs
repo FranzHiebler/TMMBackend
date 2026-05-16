@@ -16,12 +16,6 @@ public class GameRepository : IGameRepository
 		var client = new MongoClient(settings.Value.ConnectionString);
 		var database = client.GetDatabase(settings.Value.DatabaseName);
 		_games = database.GetCollection<GameSession>(settings.Value.GamesCollectionName);
-		_games.Indexes.CreateMany(new[]
-		{
-			new CreateIndexModel<GameSession>(Builders<GameSession>.IndexKeys.Ascending(x => x.StartTimeUtc)),
-			new CreateIndexModel<GameSession>(Builders<GameSession>.IndexKeys.Ascending(x => x.LocationId)),
-			new CreateIndexModel<GameSession>(Builders<GameSession>.IndexKeys.Ascending(x => x.Status))
-		});
 	}
 
 	public async Task CreateAsync(GameSession game)

@@ -42,6 +42,8 @@ builder.Services.AddScoped<IGameSessionAuthorizationService, GameSessionAuthoriz
 builder.Services.AddScoped<IMessageService, MessageService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IFriendService, FriendService>();
+builder.Services.AddScoped<IDiscoveryService, DiscoveryService>();
+builder.Services.AddSingleton<MongoIndexInitializer>();
 
 builder.Services.AddScoped<ILocationService, LocationService>();
 builder.Services.AddScoped<ILocationLookupService>(sp => sp.GetRequiredService<ILocationService>());
@@ -106,6 +108,12 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+	var indexInitializer = scope.ServiceProvider.GetRequiredService<MongoIndexInitializer>();
+	await indexInitializer.EnsureIndexesAsync();
+}
 
 if (app.Environment.IsDevelopment())
 {

@@ -15,11 +15,6 @@ public class NotificationRepository : INotificationRepository
 		var client = new MongoClient(settings.Value.ConnectionString);
 		var database = client.GetDatabase(settings.Value.DatabaseName);
 		_notifications = database.GetCollection<Notification>("notifications");
-		_notifications.Indexes.CreateOne(new CreateIndexModel<Notification>(
-			Builders<Notification>.IndexKeys
-				.Ascending(x => x.UserId)
-				.Ascending(x => x.IsRead)
-				.Descending(x => x.CreatedAtUtc)));
 	}
 
 	public async Task CreateAsync(Notification notification)

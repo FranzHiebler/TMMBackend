@@ -149,79 +149,9 @@ public class GameService : IGameService
 			.ToList();
 	}
 
-	public async Task<List<GameDiscoveryResponse>> DiscoveryAsync(DiscoveryGamesRequest request)
-	{
-		var fromUtc = request.FromUtc ?? DateTime.UtcNow;
-		var toUtc = request.ToUtc ?? fromUtc.AddDays(30);
-		List<string>? nearbyLocationIds = null;
-
-		if (request.Latitude.HasValue && request.Longitude.HasValue)
-		{
-			var nearby = await _locationService.FindNearbyAsync(
-				request.Latitude.Value,
-				request.Longitude.Value,
-				request.RadiusKm * 1000);
-
-			nearbyLocationIds = nearby.Select(x => x.LocationId).ToList();
-
-			if (nearbyLocationIds.Count == 0)
-				return new List<GameDiscoveryResponse>();
-		}
-
-		var games = await _repository.SearchDiscoveryAsync(fromUtc, toUtc, nearbyLocationIds);
-		var result = new List<GameDiscoveryResponse>();
-
-		foreach (var game in games)
-		{
-			var location = await _locationService.GetByIdAsync(game.LocationId);
-			var isHost = game.Host.UserId == _currentUser.UserId;
-			var isParticipant = game.Tables.Any(table =>
-				table.AssignedPlayers.Any(player => player.UserId == _currentUser.UserId));
-			var application = game.Tables
-				.SelectMany(table => table.Applications)
-				.FirstOrDefault(app => app.Player.UserId == _currentUser.UserId);
-			var isOwnLocation = location?.Members.Any(member => member.UserId == _currentUser.UserId) ?? false;
-
-			result.Add(new GameDiscoveryResponse
-			{
-				GameId = game.Id!,
-				Title = game.Title,
-				StartTimeUtc = game.StartTimeUtc,
-				LocationId = game.LocationId,
-				LocationName = location?.Name ?? game.LocationSnapshot.Name,
-				City = location?.City ?? game.LocationSnapshot.City,
-				Latitude = location?.Geo?.Coordinates.Latitude,
-				Longitude = location?.Geo?.Coordinates.Longitude,
-				Status = game.Status,
-				IsHost = isHost,
-				IsParticipant = isParticipant,
-				IsOwnLocation = isOwnLocation,
-				CanEdit = isHost || await _authorization.CanManageSessionAsync(game),
-				TablesSummary = BuildTablesSummary(game),
-				AvailableSeats = game.Tables.Sum(table => Math.Max(0, table.MaxPlayers - table.AssignedPlayers.Count)),
-				JoinMode = game.JoinMode,
-				ApplicationStatus = application?.Status.ToString()
-			});
-		}
-
-		return result;
-	}
-
 	public Task RejectApplicationAsync(string gameId, string applicationId)
 	{
 		return _assignmentService.RejectApplicationAsync(gameId, applicationId);
-	}
-
-	private static string BuildTablesSummary(GameSession game)
-	{
-		return string.Join(" · ", game.Tables.Select(table =>
-		{
-			var systems = table.Systems.Count == 0
-				? "Egal"
-				: string.Join(", ", table.Systems);
-			var points = table.Points.HasValue ? $" · {table.Points} Punkte" : "";
-			return $"{table.Name}: {systems}{points}";
-		}));
 	}
 
 	public Task<GameResponse> CreateChangeProposalAsync(

@@ -15,12 +15,6 @@ public class FriendRepository : IFriendRepository
 		var client = new MongoClient(settings.Value.ConnectionString);
 		var database = client.GetDatabase(settings.Value.DatabaseName);
 		_friendships = database.GetCollection<Friendship>("friendships");
-		_friendships.Indexes.CreateMany(new[]
-		{
-			new CreateIndexModel<Friendship>(Builders<Friendship>.IndexKeys.Ascending(x => x.RequesterUserId)),
-			new CreateIndexModel<Friendship>(Builders<Friendship>.IndexKeys.Ascending(x => x.ReceiverUserId)),
-			new CreateIndexModel<Friendship>(Builders<Friendship>.IndexKeys.Ascending(x => x.Status))
-		});
 	}
 
 	public async Task<List<Friendship>> GetAcceptedForUserAsync(string userId)

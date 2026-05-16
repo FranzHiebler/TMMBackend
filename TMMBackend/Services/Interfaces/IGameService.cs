@@ -13,7 +13,6 @@ public interface IGameService
 	Task AssignPlayerToTableAsync(string gameId, string tableId, AssignPlayerToTableRequest request);
 	Task<List<GameResponse>> SearchAsync(SearchGamesRequest request);
 	Task<List<GameResponse>> SearchNearbyAsync(SearchNearbyGamesRequest request);
-	Task<List<GameDiscoveryResponse>> DiscoveryAsync(DiscoveryGamesRequest request);
 	Task RejectApplicationAsync(string gameId, string applicationId);
 	Task<GameResponse> CreateChangeProposalAsync(string gameId, CreateChangeProposalRequest request);
 	Task<GameResponse> AcceptChangeProposalAsync(string gameId, string proposalId);

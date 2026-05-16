@@ -17,18 +17,6 @@ public class MessageRepository : IMessageRepository
 		var database = client.GetDatabase(settings.Value.DatabaseName);
 		_threads = database.GetCollection<MessageThread>("messageThreads");
 		_messages = database.GetCollection<Message>("messages");
-		_threads.Indexes.CreateMany(new[]
-		{
-			new CreateIndexModel<MessageThread>(Builders<MessageThread>.IndexKeys.Ascending("participants.userId")),
-			new CreateIndexModel<MessageThread>(Builders<MessageThread>.IndexKeys.Descending(x => x.LastMessageAtUtc))
-		});
-		_messages.Indexes.CreateMany(new[]
-		{
-			new CreateIndexModel<Message>(Builders<Message>.IndexKeys.Ascending(x => x.ConversationId)),
-			new CreateIndexModel<Message>(Builders<Message>.IndexKeys.Ascending(x => x.GameId)),
-			new CreateIndexModel<Message>(Builders<Message>.IndexKeys.Ascending(x => x.GameId).Ascending(x => x.TableId)),
-			new CreateIndexModel<Message>(Builders<Message>.IndexKeys.Ascending(x => x.CreatedAtUtc))
-		});
 	}
 
 	public async Task<MessageThread?> GetThreadByIdAsync(string id)

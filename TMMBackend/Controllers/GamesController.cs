@@ -10,13 +10,16 @@ public class GamesController : ControllerBase
 {
 	private readonly IGameService _service;
 	private readonly IMessageService _messages;
+	private readonly IDiscoveryService _discovery;
 
 	public GamesController(
 		IGameService service,
-		IMessageService messages)
+		IMessageService messages,
+		IDiscoveryService discovery)
 	{
 		_service = service;
 		_messages = messages;
+		_discovery = discovery;
 	}
 
 	[HttpPost]
@@ -81,7 +84,7 @@ public class GamesController : ControllerBase
 	[HttpGet("discovery")]
 	public async Task<ActionResult<List<GameDiscoveryResponse>>> Discovery([FromQuery] DiscoveryGamesRequest request)
 	{
-		return Ok(await _service.DiscoveryAsync(request));
+		return Ok(await _discovery.GetGamesAsync(request));
 	}
 
 	[HttpPost("{id}/applications/{applicationId}/reject")]
