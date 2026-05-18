@@ -13,6 +13,9 @@ import "./styles/modals.css";
 import "./styles/map-discovery.css";
 import "./styles/responsive.css";
 import "./styles/profile.css";
+import "./styles/friends.css";
+import "./styles/profilepublic.css";
+
 
 import { UserProvider } from "./context/UserContext";
 import { ToastProvider } from "./context/ToastContext";

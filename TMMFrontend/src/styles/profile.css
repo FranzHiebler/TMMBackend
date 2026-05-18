@@ -64,6 +64,22 @@
   flex-wrap: wrap;
   margin-bottom: 0.75rem;
 }
+.profile-link {
+  color: inherit;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.profile-link:hover {
+  text-decoration: underline;
+}
+
+.friend-main .profile-link,
+.assigned-player-name.profile-link {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 @media (min-width: 900px) {
   .profile-field-with-visibility {

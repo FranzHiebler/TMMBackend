@@ -44,7 +44,6 @@ public class UpdateUserProfileRequest
 	public bool CanBeContacted { get; set; } = true;
 	public UserProfileVisibilityDto Visibility { get; set; } = new();
 }
-
 public class UserProfileVisibilityDto
 {
 	public ProfileFieldVisibility Email { get; set; } = ProfileFieldVisibility.Private;
@@ -57,4 +56,23 @@ public class UserProfileVisibilityDto
 	public ProfileFieldVisibility T3 { get; set; } = ProfileFieldVisibility.Public;
 	public ProfileFieldVisibility NewRecruit { get; set; } = ProfileFieldVisibility.Public;
 	public ProfileFieldVisibility BestSportsPairings { get; set; } = ProfileFieldVisibility.Public;
+}
+
+public class PublicUserProfileResponse
+{
+	public string UserId { get; set; } = default!;
+	public string DisplayName { get; set; } = default!;
+	public string? Email { get; set; }
+	public string? PhoneNumber { get; set; }
+	public string? StreetAddress { get; set; }
+	public string? PostalCode { get; set; }
+	public string? City { get; set; }
+	public string? TabletopTo { get; set; }
+	public string? TabletopHerald { get; set; }
+	public string? T3 { get; set; }
+	public string? NewRecruit { get; set; }
+	public string? BestSportsPairings { get; set; }
+	public string? ProfileImageUrl { get; set; }
+	public bool CanBeContacted { get; set; }
+	public bool IsFriend { get; set; }
 }

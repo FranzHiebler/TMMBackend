@@ -1,4 +1,5 @@
 import type { GameTableDto } from "../types/game";
+import { Link } from "react-router-dom";
 import DirectMessageButton from "./DirectMessageButton";
 
 type Props = {
@@ -33,7 +34,9 @@ export default function AssignedPlayersList({
             onDragStart={() => onDragPlayerStart(player.userId)}
             onDragEnd={onDragPlayerEnd}
           >
-            <div className="assigned-player-name">{player.displayName}</div>
+            <Link className="assigned-player-name profile-link" to={`/users/${player.userId}`}>
+              {player.displayName}
+            </Link>
 
             <div className="assigned-player-actions">
               <DirectMessageButton
@@ -43,14 +46,14 @@ export default function AssignedPlayersList({
                 compact
               />
               {isHost && (
-              <button
-                type="button"
-                className="assigned-player-remove"
-                disabled={busyKey === `player-remove-${player.userId}`}
-                onClick={() => onRemovePlayer(table.id, player.userId)}
-              >
-                Entfernen
-              </button>
+                <button
+                  type="button"
+                  className="assigned-player-remove"
+                  disabled={busyKey === `player-remove-${player.userId}`}
+                  onClick={() => onRemovePlayer(table.id, player.userId)}
+                >
+                  Entfernen
+                </button>
               )}
             </div>
           </div>

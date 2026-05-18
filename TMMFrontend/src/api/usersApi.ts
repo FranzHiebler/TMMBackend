@@ -1,4 +1,5 @@
 import type {
+  PublicUserProfileResponse,
   UpdateUserProfileRequest,
   UserProfileResponse,
   UserSearchResponse,
@@ -36,4 +37,15 @@ export async function updateCurrentUserProfile(
   });
 
   return handleResponse<UserProfileResponse>(res, "Profil speichern fehlgeschlagen");
+}
+
+export async function getPublicUserProfile(
+  userId: string,
+  user: User
+): Promise<PublicUserProfileResponse> {
+  const res = await fetch(`${API}/Users/${userId}/profile`, {
+    headers: authHeaders(user),
+  });
+
+  return handleResponse<PublicUserProfileResponse>(res, "Profil laden fehlgeschlagen");
 }

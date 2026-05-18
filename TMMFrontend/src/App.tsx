@@ -10,6 +10,7 @@ import UserSwitcher from "./components/UserSwitcher";
 import DirectMessagesPage from "./pages/DirectMessagesPage";
 import NotificationBell from "./components/NotificationBell";
 import FriendsPage from "./pages/FriendsPage";
+import PublicProfilePage from "./pages/PublicProfilePage";
 
 function navClass({ isActive }: { isActive: boolean }) {
   return isActive ? "nav-link active" : "nav-link";
@@ -72,6 +73,7 @@ export default function App() {
         <Route path="/games/create" element={<CreateGamePage />} />
         <Route path="/messages" element={<DirectMessagesPage />} />
         <Route path="/friends" element={<FriendsPage />} />
+        <Route path="/users/:userId" element={<PublicProfilePage />} />
         <Route path="/profile" element={<ProfilePage />} />
       </Routes>
     </>

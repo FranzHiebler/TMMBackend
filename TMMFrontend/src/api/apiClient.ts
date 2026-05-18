@@ -17,7 +17,14 @@ export function authHeaders(user?: User): HeadersInit {
 
 export async function handleResponse<T>(res: Response, fallback: string): Promise<T> {
   if (!res.ok) throw await readApiError(res, fallback);
-  return res.json();
+
+  const text = await res.text();
+
+  if (!text.trim()) {
+    return null as T;
+  }
+
+  return JSON.parse(text) as T;
 }
 
 export async function handleVoidResponse(res: Response, fallback: string): Promise<void> {

@@ -11,71 +11,123 @@ import { searchUsers } from "../api/usersApi";
 import DirectMessageButton from "../components/DirectMessageButton";
 import { useToast } from "../context/ToastContext";
 import { useUser } from "../context/UserContext";
+import { Link } from "react-router-dom";
 import type { FriendDto, FriendRequestDto, UserSearchResponse } from "../types/game";
 
 export default function FriendsPage() {
   const user = useUser();
   const { showToast } = useToast();
+
   const [friends, setFriends] = useState<FriendDto[]>([]);
   const [requests, setRequests] = useState<FriendRequestDto[]>([]);
   const [results, setResults] = useState<UserSearchResponse[]>([]);
   const [query, setQuery] = useState("");
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
 
-  const friendIds = useMemo(() => new Set(friends.map((friend) => friend.userId)), [friends]);
+  const friendIds = useMemo(
+    () => new Set(friends.map((friend) => friend.userId)),
+    [friends]
+  );
 
-  const visibleResults = results.filter((result) =>
-    result.userId !== user.userId &&
-    !friendIds.has(result.userId)
+  const requestUserIds = useMemo(
+    () => new Set(requests.map((request) => request.requesterUserId)),
+    [requests]
+  );
+
+  const visibleResults = results.filter(
+    (result) =>
+      result.userId !== user.userId &&
+      !friendIds.has(result.userId) &&
+      !requestUserIds.has(result.userId)
   );
 
   const load = useCallback(async () => {
     setLoading(true);
+
     try {
       const [nextFriends, nextRequests] = await Promise.all([
         getFriends(user),
         getFriendRequests(user),
       ]);
+
       setFriends(nextFriends);
       setRequests(nextRequests);
     } catch (error) {
-      showToast("error", error instanceof Error ? error.message : "Freunde konnten nicht geladen werden");
+      showToast(
+        "error",
+        error instanceof Error ? error.message : "Freunde konnten nicht geladen werden"
+      );
     } finally {
       setLoading(false);
     }
   }, [showToast, user]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
   }, [load]);
 
   useEffect(() => {
+    const normalizedQuery = query.trim();
+
+    if (normalizedQuery.length < 2) {
+      setResults([]);
+      setSearchLoading(false);
+      return;
+    }
+
+    let isCurrent = true;
+
     const timeout = window.setTimeout(async () => {
       try {
-        setResults(query.trim().length >= 2 ? await searchUsers(query) : []);
-      } catch (error) {
-        showToast("error", error instanceof Error ? error.message : "User-Suche fehlgeschlagen");
-      }
-    }, 250);
+        setSearchLoading(true);
+        const users = await searchUsers(normalizedQuery);
 
-    return () => window.clearTimeout(timeout);
+        if (isCurrent) {
+          setResults(users);
+        }
+      } catch (error) {
+        if (isCurrent) {
+          showToast(
+            "error",
+            error instanceof Error ? error.message : "User-Suche fehlgeschlagen"
+          );
+        }
+      } finally {
+        if (isCurrent) {
+          setSearchLoading(false);
+        }
+      }
+    }, 300);
+
+    return () => {
+      isCurrent = false;
+      window.clearTimeout(timeout);
+    };
   }, [query, showToast]);
 
   async function requestFriend(result: UserSearchResponse) {
     setBusyKey(`request-${result.userId}`);
+
     try {
-      await sendFriendRequest({
-        receiverUserId: result.userId,
-        receiverDisplayName: result.displayName,
-      }, user);
+      await sendFriendRequest(
+        {
+          receiverUserId: result.userId,
+          receiverDisplayName: result.displayName,
+        },
+        user
+      );
+
       showToast("success", "Freundschaftsanfrage gesendet");
       setQuery("");
       setResults([]);
       await load();
     } catch (error) {
-      showToast("error", error instanceof Error ? error.message : "Anfrage konnte nicht gesendet werden");
+      showToast(
+        "error",
+        error instanceof Error ? error.message : "Anfrage konnte nicht gesendet werden"
+      );
     } finally {
       setBusyKey(null);
     }
@@ -83,12 +135,16 @@ export default function FriendsPage() {
 
   async function accept(id: string) {
     setBusyKey(`accept-${id}`);
+
     try {
       await acceptFriendRequest(id, user);
       showToast("success", "Freundschaft angenommen");
       await load();
     } catch (error) {
-      showToast("error", error instanceof Error ? error.message : "Anfrage konnte nicht angenommen werden");
+      showToast(
+        "error",
+        error instanceof Error ? error.message : "Anfrage konnte nicht angenommen werden"
+      );
     } finally {
       setBusyKey(null);
     }
@@ -96,25 +152,36 @@ export default function FriendsPage() {
 
   async function reject(id: string) {
     setBusyKey(`reject-${id}`);
+
     try {
       await rejectFriendRequest(id, user);
       showToast("success", "Anfrage abgelehnt");
       await load();
     } catch (error) {
-      showToast("error", error instanceof Error ? error.message : "Anfrage konnte nicht abgelehnt werden");
+      showToast(
+        "error",
+        error instanceof Error ? error.message : "Anfrage konnte nicht abgelehnt werden"
+      );
     } finally {
       setBusyKey(null);
     }
   }
 
   async function remove(id: string) {
+    const confirmed = window.confirm("Freund wirklich entfernen?");
+    if (!confirmed) return;
+
     setBusyKey(`remove-${id}`);
+
     try {
       await removeFriend(id, user);
       showToast("success", "Freund entfernt");
       await load();
     } catch (error) {
-      showToast("error", error instanceof Error ? error.message : "Freund konnte nicht entfernt werden");
+      showToast(
+        "error",
+        error instanceof Error ? error.message : "Freund konnte nicht entfernt werden"
+      );
     } finally {
       setBusyKey(null);
     }
@@ -125,54 +192,90 @@ export default function FriendsPage() {
       <div className="page-header">
         <div>
           <h1>Freunde</h1>
-          <p className="page-subtitle">Finde Leute wieder, schreib sie direkt an und verwalte Anfragen.</p>
+          <p className="page-subtitle">
+            Finde Spieler wieder, verwalte Anfragen und schreibe direkt Nachrichten.
+          </p>
         </div>
+
+        <button type="button" onClick={load} disabled={loading}>
+          {loading ? "Lädt..." : "Aktualisieren"}
+        </button>
       </div>
 
       <section className="card friend-search-card">
-        <h3>Freund hinzufügen</h3>
+        <div className="friend-section-header">
+          <div>
+            <h3>Freund hinzufügen</h3>
+            <p className="field-hint">Suche nach Anzeigename. Mindestens zwei Zeichen.</p>
+          </div>
+        </div>
+
         <input
           value={query}
           placeholder="User suchen..."
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(event) => setQuery(event.target.value)}
         />
 
         {query.trim().length > 0 && query.trim().length < 2 && (
           <div className="thread-empty">Gib mindestens zwei Zeichen ein.</div>
         )}
 
-        <div className="friend-result-list">
-          {visibleResults.map((result) => (
-            <div key={result.userId} className="friend-row">
-              <div>
-                <b>{result.displayName}</b>
-                {result.email && <small>{result.email}</small>}
+        {searchLoading && <div className="thread-empty">Suche läuft...</div>}
+
+        {!searchLoading && query.trim().length >= 2 && visibleResults.length === 0 && (
+          <div className="thread-empty">Keine passenden User gefunden.</div>
+        )}
+
+        {visibleResults.length > 0 && (
+          <div className="friend-result-list">
+            {visibleResults.map((result) => (
+              <div key={result.userId} className="friend-row">
+                <div className="friend-main">
+                  <Link className="profile-link" to={`/users/${result.userId}`}>
+                    {result.displayName}
+                  </Link>
+                  <small>{result.userId}</small>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={busyKey === `request-${result.userId}`}
+                  onClick={() => requestFriend(result)}
+                >
+                  {busyKey === `request-${result.userId}` ? "Sendet..." : "Hinzufügen"}
+                </button>
               </div>
-              <button
-                type="button"
-                disabled={busyKey === `request-${result.userId}`}
-                onClick={() => requestFriend(result)}
-              >
-                Freund hinzufügen
-              </button>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
 
       <div className="friends-layout">
-        <section className="card">
-          <h3>Meine Freunde</h3>
+        <section className="card friend-card">
+          <div className="friend-section-header">
+            <div>
+              <h3>Meine Freunde</h3>
+              <p className="field-hint">{friends.length} Freund(e)</p>
+            </div>
+          </div>
+
           {loading && <div className="thread-empty">Freunde werden geladen...</div>}
-          {!loading && friends.length === 0 && <div className="thread-empty">Noch keine Freunde.</div>}
+          {!loading && friends.length === 0 && (
+            <div className="thread-empty">Noch keine Freunde.</div>
+          )}
 
           <div className="friend-list">
             {friends.map((friend) => (
               <div key={friend.id} className="friend-row">
-                <div>
-                  <b>{friend.displayName}</b>
-                  <small>Seit {new Date(friend.updatedAtUtc).toLocaleDateString("de-DE")}</small>
+                <div className="friend-main">
+                  <Link className="profile-link" to={`/users/${friend.userId}`}>
+                    {friend.displayName}
+                  </Link>
+                  <small>
+                    Verbunden seit {new Date(friend.updatedAtUtc).toLocaleDateString("de-DE")}
+                  </small>
                 </div>
+
                 <div className="friend-actions">
                   <DirectMessageButton
                     recipientUserId={friend.userId}
@@ -180,6 +283,7 @@ export default function FriendsPage() {
                     contextLabel="aus deiner Freundesliste"
                     compact
                   />
+
                   <button
                     type="button"
                     disabled={busyKey === `remove-${friend.id}`}
@@ -193,17 +297,24 @@ export default function FriendsPage() {
           </div>
         </section>
 
-        <section className="card">
-          <h3>Anfragen</h3>
+        <section className="card friend-card">
+          <div className="friend-section-header">
+            <div>
+              <h3>Anfragen</h3>
+              <p className="field-hint">{requests.length} offen</p>
+            </div>
+          </div>
+
           {requests.length === 0 && <div className="thread-empty">Keine offenen Anfragen.</div>}
 
           <div className="friend-list">
             {requests.map((request) => (
               <div key={request.id} className="friend-row">
-                <div>
+                <div className="friend-main">
                   <b>{request.requesterDisplayName}</b>
                   <small>{new Date(request.createdAtUtc).toLocaleString("de-DE")}</small>
                 </div>
+
                 <div className="friend-actions">
                   <button
                     type="button"
@@ -212,6 +323,7 @@ export default function FriendsPage() {
                   >
                     Annehmen
                   </button>
+
                   <button
                     type="button"
                     disabled={busyKey === `reject-${request.id}`}

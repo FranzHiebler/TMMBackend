@@ -1,4 +1,5 @@
 import type { TableApplicationDto, GameTableDto } from "../types/game";
+import { Link } from "react-router-dom";
 import DirectMessageButton from "./DirectMessageButton";
 
 type Props = {
@@ -28,7 +29,9 @@ export default function ApplicationsList({
         {pendingApplications.map((application) => (
           <div key={application.id} className="proposal-row compact">
             <div>
-              <b>{application.player.displayName}</b>
+                <Link className="profile-link" to={`/users/${application.player.userId}`}>
+                  {application.player.displayName}
+                </Link>
               {application.systemKey && <div>System: {application.systemKey}</div>}
               {application.message && <p>{application.message}</p>}
             </div>

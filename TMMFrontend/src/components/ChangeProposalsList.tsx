@@ -1,4 +1,5 @@
 import type { GameChangeProposalDto, GameTableDto } from "../types/game";
+import { Link } from "react-router-dom";
 
 type Props = {
   proposals: GameChangeProposalDto[];
@@ -46,7 +47,9 @@ export default function ChangeProposalsList({
         return (
           <div key={proposal.id} className="proposal-row">
             <div>
-              <b>{proposal.proposedBy.displayName}</b>{" "}
+              <Link className="profile-link" to={`/users/${proposal.proposedBy.userId}`}>
+                {proposal.proposedBy.displayName}
+              </Link>{" "}
               <span>{proposalSummary(proposal, table)}</span>
               {proposal.message && <p>{proposal.message}</p>}
             </div>

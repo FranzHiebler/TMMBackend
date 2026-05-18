@@ -1,6 +1,7 @@
 import { type GameResponse } from "../types/game";
 import { gameJoinModeLabel } from "../helpers/gameLabels";
 import DirectMessageButton from "./DirectMessageButton";
+import { Link } from "react-router-dom";
 
 type Props = {
   game: GameResponse;
@@ -19,7 +20,13 @@ export default function GameCardHeader({ game }: Props) {
         <div className="game-session-meta-item">
           <span className="meta-label">Host</span>
           <span className="inline-user-action">
-            {game.host?.displayName ?? "-"}
+            {game.host ? (
+              <Link className="profile-link" to={`/users/${game.host.userId}`}>
+                {game.host.displayName}
+              </Link>
+            ) : (
+              "-"
+            )}
             {game.host && (
               <DirectMessageButton
                 recipientUserId={game.host.userId}

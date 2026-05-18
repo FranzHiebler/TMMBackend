@@ -385,3 +385,21 @@ export interface SendFriendRequestRequest {
   receiverUserId: string;
   receiverDisplayName: string;
 }
+
+export interface PublicUserProfileResponse {
+  userId: string;
+  displayName: string;
+  email?: string | null;
+  phoneNumber?: string | null;
+  streetAddress?: string | null;
+  postalCode?: string | null;
+  city?: string | null;
+  tabletopTo?: string | null;
+  tabletopHerald?: string | null;
+  t3?: string | null;
+  newRecruit?: string | null;
+  bestSportsPairings?: string | null;
+  profileImageUrl?: string | null;
+  canBeContacted: boolean;
+  isFriend: boolean;
+}

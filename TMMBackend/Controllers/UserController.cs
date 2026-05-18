@@ -13,13 +13,16 @@ public class UsersController : ControllerBase
 {
 	private readonly IUserRepository _repository;
 	private readonly ICurrentUserService _currentUser;
+	private readonly IFriendRepository _friends;
 
 	public UsersController(
 		IUserRepository repository,
-		ICurrentUserService currentUser)
+		ICurrentUserService currentUser,
+		IFriendRepository friends)
 	{
 		_repository = repository;
 		_currentUser = currentUser;
+		_friends = friends;
 	}
 
 	[HttpGet("search")]
@@ -191,6 +194,50 @@ public class UsersController : ControllerBase
 			DefaultLocationId = user.DefaultLocationId,
 			CanBeContacted = user.CanBeContacted,
 			Visibility = ToVisibilityDto(user.Visibility ?? new UserProfileVisibility())
+		};
+	}
+	[HttpGet("{userId}/profile")]
+	public async Task<ActionResult<PublicUserProfileResponse>> GetPublicProfile(string userId)
+	{
+		var user = await _repository.GetByIdAsync(userId);
+
+		if (user == null)
+			return NotFound(new { error = "Profil wurde nicht gefunden." });
+
+		var friendship = await _friends.FindBetweenUsersAsync(_currentUser.UserId, userId);
+		var isFriend = friendship?.Status == FriendshipStatus.Accepted;
+		var isOwnProfile = _currentUser.UserId == userId;
+
+		return Ok(new PublicUserProfileResponse
+		{
+			UserId = user.Id!,
+			DisplayName = user.DisplayName,
+			ProfileImageUrl = user.ProfileImageUrl,
+			CanBeContacted = user.CanBeContacted,
+			IsFriend = isFriend,
+
+			Email = CanSee(user.Visibility?.Email, isFriend, isOwnProfile) ? user.Email : null,
+			PhoneNumber = CanSee(user.Visibility?.PhoneNumber, isFriend, isOwnProfile) ? user.PhoneNumber : null,
+			StreetAddress = CanSee(user.Visibility?.StreetAddress, isFriend, isOwnProfile) ? user.StreetAddress : null,
+			PostalCode = CanSee(user.Visibility?.PostalCode, isFriend, isOwnProfile) ? user.PostalCode : null,
+			City = CanSee(user.Visibility?.City, isFriend, isOwnProfile) ? user.City : null,
+			TabletopTo = CanSee(user.Visibility?.TabletopTo, isFriend, isOwnProfile) ? user.TabletopTo : null,
+			TabletopHerald = CanSee(user.Visibility?.TabletopHerald, isFriend, isOwnProfile) ? user.TabletopHerald : null,
+			T3 = CanSee(user.Visibility?.T3, isFriend, isOwnProfile) ? user.T3 : null,
+			NewRecruit = CanSee(user.Visibility?.NewRecruit, isFriend, isOwnProfile) ? user.NewRecruit : null,
+			BestSportsPairings = CanSee(user.Visibility?.BestSportsPairings, isFriend, isOwnProfile) ? user.BestSportsPairings : null
+		});
+	}
+
+	private static bool CanSee(ProfileFieldVisibility? visibility, bool isFriend, bool isOwnProfile)
+	{
+		if (isOwnProfile) return true;
+
+		return visibility switch
+		{
+			ProfileFieldVisibility.Public => true,
+			ProfileFieldVisibility.FriendsOnly => isFriend,
+			_ => false
 		};
 	}
 }
