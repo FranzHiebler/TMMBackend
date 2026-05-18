@@ -21,6 +21,7 @@ type Selection =
   | null;
 
 type CenterSource = "browser" | "defaultLocation" | "fallback";
+type SessionFilter = "all" | "mine" | "none";
 
 const DEFAULT_CENTER: [number, number] = [50.5558, 9.6808];
 
@@ -214,14 +215,12 @@ export default function MapDiscoveryPage() {
   const [timeWindowDays, setTimeWindowDays] = useState(7);
   const [radiusKm, setRadiusKm] = useState(80);
 
+  const [filterCollapsed, setFilterCollapsed] = useState(false);
   const [showLocations, setShowLocations] = useState(true);
-  const [showSessions, setShowSessions] = useState(true);
   const [showPlayers, setShowPlayers] = useState(true);
-  const [showMySessions, setShowMySessions] = useState(true);
+  const [sessionFilter, setSessionFilter] = useState<SessionFilter>("all");
 
-  const [playerQuery, setPlayerQuery] = useState("");
   const [players, setPlayers] = useState<UserSearchResponse[]>([]);
-
   const [games, setGames] = useState<GameDiscoveryResponse[]>([]);
   const [locations, setLocations] = useState<LocationDiscoveryResponse[]>([]);
   const [selection, setSelection] = useState<Selection>(null);
@@ -350,32 +349,22 @@ export default function MapDiscoveryPage() {
   }, [locations, showLocations]);
 
   const visibleGames = useMemo(() => {
-    if (!showSessions) return [];
+    if (sessionFilter === "none") return [];
 
     return games.filter((game) => {
-      if (!showMySessions && (game.isHost || game.isParticipant)) return false;
+      if (sessionFilter === "mine") return game.isHost || game.isParticipant;
       return true;
     });
-  }, [games, showMySessions, showSessions]);
+  }, [games, sessionFilter]);
 
   const visiblePlayers = useMemo(() => {
     if (!showPlayers) return [];
 
-    const query = playerQuery.trim().toLowerCase();
-
     return players.filter((player) => {
       if (player.latitude == null || player.longitude == null) return false;
-      if (distanceKm(center[0], center[1], player.latitude, player.longitude) > radiusKm) {
-        return false;
-      }
-
-      if (query && !player.displayName.toLowerCase().includes(query)) {
-        return false;
-      }
-
-      return true;
+      return distanceKm(center[0], center[1], player.latitude, player.longitude) <= radiusKm;
     });
-  }, [center, playerQuery, players, radiusKm, showPlayers]);
+  }, [center, players, radiusKm, showPlayers]);
 
   const gamesByLocation = useMemo(() => {
     const counts = new Map<string, number>();
@@ -514,82 +503,85 @@ export default function MapDiscoveryPage() {
           ))}
         </MapContainer>
 
-        <aside className="discovery-panel discovery-panel-compact">
-          <label className="day-slider">
-            <span>Zeitraum: {timeWindowDays} Tage</span>
-            <input
-              type="range"
-              min={1}
-              max={56}
-              value={timeWindowDays}
-              onChange={(event) => setTimeWindowDays(Number(event.target.value))}
-            />
-          </label>
+        <aside
+          className={`discovery-panel discovery-panel-compact ${
+            filterCollapsed ? "discovery-panel-collapsed" : ""
+          }`}
+        >
+          <button
+            type="button"
+            className="discovery-panel-toggle"
+            onClick={() => setFilterCollapsed((value) => !value)}
+          >
+            {filterCollapsed ? "Filter" : "Filter einklappen"}
+          </button>
 
-          <label className="day-slider">
-            <span>Radius: {radiusKm} km</span>
-            <input
-              type="range"
-              min={10}
-              max={250}
-              step={10}
-              value={radiusKm}
-              onChange={(event) => setRadiusKm(Number(event.target.value))}
-            />
-          </label>
+          {!filterCollapsed && (
+            <>
+              <label className="day-slider">
+                <span>Zeitraum: {timeWindowDays} Tage</span>
+                <input
+                  type="range"
+                  min={1}
+                  max={56}
+                  value={timeWindowDays}
+                  onChange={(event) => setTimeWindowDays(Number(event.target.value))}
+                />
+              </label>
 
-          <div className="discovery-filter-box">
-            <label>
-              <input
-                type="checkbox"
-                checked={showLocations}
-                onChange={(event) => setShowLocations(event.target.checked)}
-              />
-              Locations
-            </label>
+              <label className="day-slider">
+                <span>Radius: {radiusKm} km</span>
+                <input
+                  type="range"
+                  min={10}
+                  max={250}
+                  step={10}
+                  value={radiusKm}
+                  onChange={(event) => setRadiusKm(Number(event.target.value))}
+                />
+              </label>
 
-            <label>
-              <input
-                type="checkbox"
-                checked={showSessions}
-                onChange={(event) => setShowSessions(event.target.checked)}
-              />
-              Sessions
-            </label>
+              <div className="discovery-filter-box discovery-filter-box-compact">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={showLocations}
+                    onChange={(event) => setShowLocations(event.target.checked)}
+                  />
+                  Locations
+                </label>
 
-            <label>
-              <input
-                type="checkbox"
-                checked={showPlayers}
-                onChange={(event) => setShowPlayers(event.target.checked)}
-              />
-              Spieler
-            </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={showPlayers}
+                    onChange={(event) => setShowPlayers(event.target.checked)}
+                  />
+                  Spieler
+                </label>
 
-            <label>
-              <input
-                type="checkbox"
-                checked={showMySessions}
-                onChange={(event) => setShowMySessions(event.target.checked)}
-              />
-              Meine Sessions
-            </label>
-          </div>
+                <label className="session-filter-select">
+                  <span>Sessions</span>
+                  <select
+                    value={sessionFilter}
+                    onChange={(event) => setSessionFilter(event.target.value as SessionFilter)}
+                  >
+                    <option value="all">Alle</option>
+                    <option value="mine">Meine</option>
+                    <option value="none">Aus</option>
+                  </select>
+                </label>
+              </div>
 
-          <input
-            className="player-search-input"
-            value={playerQuery}
-            onChange={(event) => setPlayerQuery(event.target.value)}
-            placeholder="Spieler suchen..."
-          />
-
-          {banner && <div className="message message-error">{banner}</div>}
-          {isLoading && <div className="discovery-skeleton" />}
-          {!isLoading && !banner && (
-            <p className="discovery-count">
-              {visibleLocations.length} Locations · {visibleGames.length} Sessions ·{" "}
-              {visiblePlayers.length} Spieler · {CENTER_SOURCE_LABEL[centerSource]}
-            </p>
+              {banner && <div className="message message-error">{banner}</div>}
+              {isLoading && <div className="discovery-skeleton" />}
+              {!isLoading && !banner && (
+                <p className="discovery-count">
+                  {visibleLocations.length} Locations · {visibleGames.length} Sessions ·{" "}
+                  {visiblePlayers.length} Spieler · {CENTER_SOURCE_LABEL[centerSource]}
+                </p>
+              )}
+            </>
           )}
         </aside>
 
