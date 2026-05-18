@@ -65,15 +65,17 @@ export default function FriendsPage() {
   }, [showToast, user]);
 
   useEffect(() => {
-    void load();
+    const timeout = window.setTimeout(() => {
+      void load();
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
   }, [load]);
 
   useEffect(() => {
     const normalizedQuery = query.trim();
 
     if (normalizedQuery.length < 2) {
-      setResults([]);
-      setSearchLoading(false);
       return;
     }
 

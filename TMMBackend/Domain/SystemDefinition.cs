@@ -15,4 +15,13 @@ public class SystemDefinition
 
 	[BsonElement("name")]
 	public string Name { get; set; } = default!;
+
+	[BsonElement("shortCode")]
+	public string? ShortCode { get; set; }
+
+	[BsonElement("color")]
+	public string? Color { get; set; }
+
+	[BsonElement("markerColor")]
+	public string? MarkerColor { get; set; }
 }

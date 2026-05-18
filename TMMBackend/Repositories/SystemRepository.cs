@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using TabletopMatchMaker.Domain;
+using TabletopMatchMaker.Dtos;
 using TabletopMatchMaker.Infrastructure;
 using TabletopMatchMaker.Repositories.Interfaces;
 
@@ -19,12 +20,15 @@ public class SystemRepository : ISystemRepository
 
 	public async Task<List<SystemDefinition>> GetAllAsync()
 	{
-		return await _systems.Find(FilterDefinition<SystemDefinition>.Empty).ToListAsync();
+		return await _systems
+			.Find(FilterDefinition<SystemDefinition>.Empty)
+			.SortBy(x => x.Name)
+			.ToListAsync();
 	}
 
-	public async Task<SystemDefinition> CreateAsync(string key, string name)
+	public async Task<SystemDefinition> CreateAsync(CreateSystemRequest request)
 	{
-		var normalizedKey = key.Trim().ToLowerInvariant();
+		var normalizedKey = NormalizeRequired(request.Key, "Key").ToLowerInvariant();
 		var existing = await _systems.Find(x => x.Key == normalizedKey).FirstOrDefaultAsync();
 
 		if (existing != null)
@@ -33,10 +37,26 @@ public class SystemRepository : ISystemRepository
 		var system = new SystemDefinition
 		{
 			Key = normalizedKey,
-			Name = name.Trim()
+			Name = NormalizeRequired(request.Name, "Name"),
+			ShortCode = NormalizeOptional(request.ShortCode),
+			Color = NormalizeOptional(request.Color),
+			MarkerColor = NormalizeOptional(request.MarkerColor)
 		};
 
 		await _systems.InsertOneAsync(system);
 		return system;
+	}
+
+	private static string NormalizeRequired(string? value, string label)
+	{
+		if (string.IsNullOrWhiteSpace(value))
+			throw new ArgumentException($"{label} ist erforderlich.");
+
+		return value.Trim();
+	}
+
+	private static string? NormalizeOptional(string? value)
+	{
+		return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 	}
 }

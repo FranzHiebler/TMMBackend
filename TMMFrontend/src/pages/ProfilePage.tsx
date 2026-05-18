@@ -37,6 +37,39 @@ function visibilityValue(
   return visibility?.[key] ?? defaultVisibility[key];
 }
 
+type VisibilitySelectProps = {
+  field: keyof UserProfileVisibility;
+  visibility: UserProfileVisibility;
+  onChange: (field: keyof UserProfileVisibility, value: ProfileFieldVisibility) => void;
+};
+
+function VisibilitySelect({ field, visibility, onChange }: VisibilitySelectProps) {
+  const currentValue = visibilityValue(visibility, field);
+
+  const options: { value: ProfileFieldVisibility; label: string }[] = [
+    { value: "Public", label: "Öffentlich" },
+    { value: "FriendsOnly", label: "Nur Freunde" },
+    { value: "Private", label: "Privat" },
+  ];
+
+  return (
+    <div className="visibility-radio-list" role="radiogroup" aria-label="Sichtbarkeit">
+      {options.map((option) => (
+        <label key={option.value} className="visibility-radio-option">
+          <input
+            type="radio"
+            name={`visibility-${field}`}
+            value={option.value}
+            checked={currentValue === option.value}
+            onChange={() => onChange(field, option.value)}
+          />
+          {option.label}
+        </label>
+      ))}
+    </div>
+  );
+}
+
 export default function ProfilePage() {
   const user = useUser();
 
@@ -101,7 +134,11 @@ export default function ProfilePage() {
   }, [user]);
 
   useEffect(() => {
-    void loadProfile();
+    const timeout = window.setTimeout(() => {
+      void loadProfile();
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
   }, [loadProfile]);
 
   useEffect(() => {
@@ -164,33 +201,6 @@ export default function ProfilePage() {
     }
   }
 
-  function VisibilitySelect({ field }: { field: keyof UserProfileVisibility }) {
-    const currentValue = visibilityValue(visibility, field);
-
-    const options: { value: ProfileFieldVisibility; label: string }[] = [
-      { value: "Public", label: "Öffentlich" },
-      { value: "FriendsOnly", label: "Nur Freunde" },
-      { value: "Private", label: "Privat" },
-    ];
-
-    return (
-      <div className="visibility-radio-list" role="radiogroup" aria-label="Sichtbarkeit">
-        {options.map((option) => (
-          <label key={option.value} className="visibility-radio-option">
-            <input
-              type="radio"
-              name={`visibility-${field}`}
-              value={option.value}
-              checked={currentValue === option.value}
-              onChange={() => updateVisibility(field, option.value)}
-            />
-            {option.label}
-          </label>
-        ))}
-      </div>
-    );
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
@@ -241,6 +251,10 @@ export default function ProfilePage() {
     }
   }
 
+  const visibilitySelect = (field: keyof UserProfileVisibility) => (
+    <VisibilitySelect field={field} visibility={visibility} onChange={updateVisibility} />
+  );
+
   return (
     <main className="container">
       <h1>Mein Profil</h1>
@@ -290,13 +304,13 @@ export default function ProfilePage() {
             <div className="field">
               <label>E-Mail</label>
               <input value={email} onChange={(e) => setEmail(e.target.value)} />
-              <VisibilitySelect field="email" />
+              {visibilitySelect("email")}
             </div>
 
             <div className="field">
               <label>Telefonnummer</label>
               <input value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} />
-              <VisibilitySelect field="phoneNumber" />
+              {visibilitySelect("phoneNumber")}
             </div>
 
             <div className="field">
@@ -308,7 +322,7 @@ export default function ProfilePage() {
                   resetPosition();
                 }}
               />
-              <VisibilitySelect field="streetAddress" />
+              {visibilitySelect("streetAddress")}
             </div>
 
             <div className="field">
@@ -320,7 +334,7 @@ export default function ProfilePage() {
                   resetPosition();
                 }}
               />
-              <VisibilitySelect field="postalCode" />
+              {visibilitySelect("postalCode")}
             </div>
 
             <div className="field">
@@ -332,7 +346,7 @@ export default function ProfilePage() {
                   resetPosition();
                 }}
               />
-              <VisibilitySelect field="city" />
+              {visibilitySelect("city")}
             </div>
 
             <div className="field profile-geo-picker">
@@ -375,25 +389,25 @@ export default function ProfilePage() {
             <div className="field">
               <label>TabletopTO</label>
               <input value={tabletopTo} onChange={(e) => setTabletopTo(e.target.value)} />
-              <VisibilitySelect field="tabletopTo" />
+              {visibilitySelect("tabletopTo")}
             </div>
 
             <div className="field">
               <label>Tabletop Herald</label>
               <input value={tabletopHerald} onChange={(e) => setTabletopHerald(e.target.value)} />
-              <VisibilitySelect field="tabletopHerald" />
+              {visibilitySelect("tabletopHerald")}
             </div>
 
             <div className="field">
               <label>T3</label>
               <input value={t3} onChange={(e) => setT3(e.target.value)} />
-              <VisibilitySelect field="t3" />
+              {visibilitySelect("t3")}
             </div>
 
             <div className="field">
               <label>NewRecruit</label>
               <input value={newRecruit} onChange={(e) => setNewRecruit(e.target.value)} />
-              <VisibilitySelect field="newRecruit" />
+              {visibilitySelect("newRecruit")}
             </div>
 
             <div className="field">
@@ -402,7 +416,7 @@ export default function ProfilePage() {
                 value={bestSportsPairings}
                 onChange={(e) => setBestSportsPairings(e.target.value)}
               />
-              <VisibilitySelect field="bestSportsPairings" />
+              {visibilitySelect("bestSportsPairings")}
             </div>
           </div>
 

@@ -94,10 +94,15 @@ public class MongoIndexInitializer
 	{
 		var systems = database.GetCollection<SystemDefinition>("systems");
 
-		await systems.Indexes.CreateOneAsync(
+		await systems.Indexes.CreateManyAsync(new[]
+		{
 			new CreateIndexModel<SystemDefinition>(
 				Builders<SystemDefinition>.IndexKeys.Ascending(x => x.Key),
-				new CreateIndexOptions { Unique = true }));
+				new CreateIndexOptions { Unique = true }),
+
+			new CreateIndexModel<SystemDefinition>(
+				Builders<SystemDefinition>.IndexKeys.Ascending(x => x.Name))
+		});
 	}
 
 	private async Task EnsureUserIndexesAsync(IMongoDatabase database)

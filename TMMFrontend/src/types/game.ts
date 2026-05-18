@@ -125,10 +125,13 @@ export interface LocationOption {
   city: string;
 }
 
-export interface SystemOption {
+export type SystemOption = {
   key: string;
   name: string;
-}
+  shortCode?: string | null;
+  color?: string | null;
+  markerColor?: string | null;
+};
 
 export interface SearchNearbyGamesRequest {
   latitude: number;

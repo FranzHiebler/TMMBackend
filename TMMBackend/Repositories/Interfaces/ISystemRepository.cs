@@ -1,9 +1,10 @@
 ﻿using TabletopMatchMaker.Domain;
+using TabletopMatchMaker.Dtos;
 
 namespace TabletopMatchMaker.Repositories.Interfaces;
 
 public interface ISystemRepository
 {
 	Task<List<SystemDefinition>> GetAllAsync();
-	Task<SystemDefinition> CreateAsync(string key, string name);
+	Task<SystemDefinition> CreateAsync(CreateSystemRequest request);
 }

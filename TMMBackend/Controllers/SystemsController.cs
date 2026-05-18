@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using TabletopMatchMaker.Domain;
 using TabletopMatchMaker.Dtos;
 using TabletopMatchMaker.Repositories.Interfaces;
 using TabletopMatchMaker.Services;
@@ -22,21 +23,60 @@ public class SystemsController : ControllerBase
 	}
 
 	[HttpGet]
-	public async Task<IActionResult> GetAll()
+	public async Task<ActionResult<List<SystemResponse>>> GetAll()
 	{
 		var systems = await _repository.GetAllAsync();
-		return Ok(systems.Select(x => new { key = x.Key, name = x.Name }));
+		return Ok(systems.Select(ToResponse).ToList());
 	}
 
 	[HttpPost]
-	public async Task<IActionResult> Create([FromBody] CreateSystemRequest request)
+	public async Task<ActionResult<SystemResponse>> Create([FromBody] CreateSystemRequest request)
 	{
 		_adminAuthorization.EnsureCurrentUserIsAdmin();
+		Validate(request);
 
+		var system = await _repository.CreateAsync(request);
+		return Ok(ToResponse(system));
+	}
+
+	private static void Validate(CreateSystemRequest request)
+	{
 		if (string.IsNullOrWhiteSpace(request.Key) || string.IsNullOrWhiteSpace(request.Name))
 			throw new DomainException("Key und Name sind erforderlich.");
 
-		var system = await _repository.CreateAsync(request.Key, request.Name);
-		return Ok(new { key = system.Key, name = system.Name });
+		if (request.Key.Trim().Length > 80)
+			throw new DomainException("Key darf maximal 80 Zeichen lang sein.");
+
+		if (request.Name.Trim().Length > 120)
+			throw new DomainException("Name darf maximal 120 Zeichen lang sein.");
+
+		if (!string.IsNullOrWhiteSpace(request.ShortCode) && request.ShortCode.Trim().Length > 8)
+			throw new DomainException("Kürzel darf maximal 8 Zeichen lang sein.");
+
+		ValidateColor(request.Color, "Farbe");
+		ValidateColor(request.MarkerColor, "Markerfarbe");
+	}
+
+	private static void ValidateColor(string? value, string label)
+	{
+		if (string.IsNullOrWhiteSpace(value))
+			return;
+
+		var color = value.Trim();
+
+		if (!color.StartsWith("#") || color.Length != 7)
+			throw new DomainException($"{label} muss im Format #RRGGBB angegeben werden.");
+	}
+
+	private static SystemResponse ToResponse(SystemDefinition system)
+	{
+		return new SystemResponse
+		{
+			Key = system.Key,
+			Name = system.Name,
+			ShortCode = system.ShortCode,
+			Color = system.Color,
+			MarkerColor = system.MarkerColor
+		};
 	}
 }
