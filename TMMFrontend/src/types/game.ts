@@ -223,6 +223,11 @@ export interface UserSearchResponse {
   userId: string;
   displayName: string;
   email?: string | null;
+  streetAddress?: string | null;
+  postalCode?: string | null;
+  city?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface LocationJoinRequestResponse {

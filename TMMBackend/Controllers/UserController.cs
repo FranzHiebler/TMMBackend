@@ -33,7 +33,13 @@ public class UsersController : ControllerBase
 		return Ok(users.Select(u => new
 		{
 			userId = u.Id,
-			displayName = u.DisplayName
+			displayName = u.DisplayName,
+			email = u.Email,
+			streetAddress = u.StreetAddress,
+			postalCode = u.PostalCode,
+			city = u.City,
+			latitude = u.Latitude,
+			longitude = u.Longitude
 		}));
 	}
 

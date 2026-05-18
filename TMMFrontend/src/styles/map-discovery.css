@@ -449,4 +449,38 @@
     align-items: stretch;
     flex-direction: column;
   }
+  .player-search-input {
+  width: 100%;
+  min-height: 38px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  padding: 8px 10px;
+  font-weight: 700;
+}
+
+.player-marker {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 14px;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.22);
+}
+
+.player-marker-default,
+.legend-dot.player {
+  background: #db2777;
+}
+
+.player-marker-me,
+.legend-dot.player-me {
+  background: #0f172a;
+}
+
+.player-preview {
+  border-color: rgba(219, 39, 119, 0.35);
+}
 }

@@ -5,14 +5,19 @@ import { Link, useNavigate } from "react-router-dom";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import { getDiscoveryGames, getGameById } from "../api/gamesApi";
 import { getDiscoveryLocations, getMyLocations } from "../api/locationsApi";
-import { getCurrentUserProfile } from "../api/usersApi";
+import { getCurrentUserProfile, searchUsers } from "../api/usersApi";
 import { useJoinGame } from "../api/useJoinGame";
 import { useUser } from "../context/UserContext";
-import type { GameDiscoveryResponse, LocationDiscoveryResponse } from "../types/game";
+import type {
+  GameDiscoveryResponse,
+  LocationDiscoveryResponse,
+  UserSearchResponse,
+} from "../types/game";
 
 type Selection =
   | { type: "game"; id: string }
   | { type: "location"; id: string }
+  | { type: "player"; id: string }
   | null;
 
 type CenterSource = "browser" | "defaultLocation" | "fallback";
@@ -58,6 +63,7 @@ function timeHint(startTimeUtc: string) {
   const today = startOfToday();
   const startDay = new Date(start);
   startDay.setHours(0, 0, 0, 0);
+
   const diffDays = Math.round((startDay.getTime() - today.getTime()) / 86400000);
 
   if (diffDays === 0) return "Heute";
@@ -82,7 +88,6 @@ function dateTimeText(startTimeUtc: string) {
 function gameMarkerState(game: GameDiscoveryResponse) {
   if (game.isHost) return "host";
   if (game.isParticipant) return "participant";
-  if (game.isOwnLocation) return "own-location";
   return "event";
 }
 
@@ -153,12 +158,34 @@ function locationMarkerIcon(location: LocationDiscoveryResponse) {
   });
 }
 
+function playerMarkerIcon(isMe: boolean) {
+  return L.divIcon({
+    className: "",
+    html: `<div class="player-marker ${isMe ? "player-marker-me" : "player-marker-default"}">👤</div>`,
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
+  });
+}
+
+function distanceKm(aLat: number, aLng: number, bLat: number, bLng: number) {
+  const r = 6371;
+  const dLat = ((bLat - aLat) * Math.PI) / 180;
+  const dLng = ((bLng - aLng) * Math.PI) / 180;
+  const lat1 = (aLat * Math.PI) / 180;
+  const lat2 = (bLat * Math.PI) / 180;
+
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+
+  return 2 * r * Math.asin(Math.sqrt(h));
+}
+
 function statusText(game: GameDiscoveryResponse) {
   if (game.isHost) return "Du hostest";
   if (game.isParticipant) return "Du nimmst teil";
   if (game.applicationStatus) return `Bewerbung: ${game.applicationStatus}`;
-  if (game.isOwnLocation) return "Eigene Location";
-  return "Spielrunde";
+  return "Session";
 }
 
 function getBrowserPosition(): Promise<[number, number]> {
@@ -186,17 +213,21 @@ export default function MapDiscoveryPage() {
 
   const [timeWindowDays, setTimeWindowDays] = useState(7);
   const [radiusKm, setRadiusKm] = useState(80);
+
   const [showLocations, setShowLocations] = useState(true);
-  const [showGames, setShowGames] = useState(true);
-  const [showOwnLocations, setShowOwnLocations] = useState(true);
-  const [showParticipantSessions, setShowParticipantSessions] = useState(true);
-  const [showHostedSessions, setShowHostedSessions] = useState(true);
+  const [showSessions, setShowSessions] = useState(true);
+  const [showPlayers, setShowPlayers] = useState(true);
+  const [showMySessions, setShowMySessions] = useState(true);
+
+  const [playerQuery, setPlayerQuery] = useState("");
+  const [players, setPlayers] = useState<UserSearchResponse[]>([]);
 
   const [games, setGames] = useState<GameDiscoveryResponse[]>([]);
   const [locations, setLocations] = useState<LocationDiscoveryResponse[]>([]);
   const [selection, setSelection] = useState<Selection>(null);
   const [loadingGames, setLoadingGames] = useState(true);
   const [loadingLocations, setLoadingLocations] = useState(true);
+  const [loadingPlayers, setLoadingPlayers] = useState(true);
   const [banner, setBanner] = useState("");
   const [center, setCenter] = useState<[number, number]>(DEFAULT_CENTER);
   const [centerSource, setCenterSource] = useState<CenterSource>("fallback");
@@ -246,9 +277,10 @@ export default function MapDiscoveryPage() {
     setBanner("");
     setLoadingGames(true);
     setLoadingLocations(true);
+    setLoadingPlayers(true);
 
     try {
-      const [locationData, gameData] = await Promise.all([
+      const [locationData, gameData, playerData] = await Promise.all([
         getDiscoveryLocations({ latitude: center[0], longitude: center[1], radiusKm }, user),
         getDiscoveryGames(
           {
@@ -260,10 +292,12 @@ export default function MapDiscoveryPage() {
           },
           user
         ),
+        searchUsers(""),
       ]);
 
       setLocations(locationData);
       setGames(gameData);
+      setPlayers(playerData);
 
       setSelection((current) => {
         if (current?.type === "game" && gameData.some((game) => game.gameId === current.id)) {
@@ -277,6 +311,10 @@ export default function MapDiscoveryPage() {
           return current;
         }
 
+        if (current?.type === "player" && playerData.some((player) => player.userId === current.id)) {
+          return current;
+        }
+
         if (gameData[0]) return { type: "game", id: gameData[0].gameId };
         if (locationData[0]) return { type: "location", id: locationData[0].locationId };
 
@@ -287,6 +325,7 @@ export default function MapDiscoveryPage() {
     } finally {
       setLoadingGames(false);
       setLoadingLocations(false);
+      setLoadingPlayers(false);
     }
   }, [center, centerReady, from, radiusKm, to, user]);
 
@@ -307,22 +346,36 @@ export default function MapDiscoveryPage() {
 
   const visibleLocations = useMemo(() => {
     if (!showLocations) return [];
-
-    return locations.filter((location) => {
-      if (!showOwnLocations && location.isOwnLocation) return false;
-      return true;
-    });
-  }, [locations, showLocations, showOwnLocations]);
+    return locations;
+  }, [locations, showLocations]);
 
   const visibleGames = useMemo(() => {
-    if (!showGames) return [];
+    if (!showSessions) return [];
 
     return games.filter((game) => {
-      if (!showParticipantSessions && game.isParticipant) return false;
-      if (!showHostedSessions && game.isHost) return false;
+      if (!showMySessions && (game.isHost || game.isParticipant)) return false;
       return true;
     });
-  }, [games, showGames, showHostedSessions, showParticipantSessions]);
+  }, [games, showMySessions, showSessions]);
+
+  const visiblePlayers = useMemo(() => {
+    if (!showPlayers) return [];
+
+    const query = playerQuery.trim().toLowerCase();
+
+    return players.filter((player) => {
+      if (player.latitude == null || player.longitude == null) return false;
+      if (distanceKm(center[0], center[1], player.latitude, player.longitude) > radiusKm) {
+        return false;
+      }
+
+      if (query && !player.displayName.toLowerCase().includes(query)) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [center, playerQuery, players, radiusKm, showPlayers]);
 
   const gamesByLocation = useMemo(() => {
     const counts = new Map<string, number>();
@@ -345,7 +398,12 @@ export default function MapDiscoveryPage() {
       ? visibleLocations.find((location) => location.locationId === selection.id) ?? null
       : null;
 
-  const isLoading = loadingGames || loadingLocations || !centerReady;
+  const selectedPlayer =
+    selection?.type === "player"
+      ? visiblePlayers.find((player) => player.userId === selection.id) ?? null
+      : null;
+
+  const isLoading = loadingGames || loadingLocations || loadingPlayers || !centerReady;
 
   async function quickJoin(game: GameDiscoveryResponse) {
     const fullGame = await getGameById(game.gameId);
@@ -436,6 +494,24 @@ export default function MapDiscoveryPage() {
                 </Popup>
               </Marker>
             ))}
+
+          {visiblePlayers.map((player) => (
+            <Marker
+              key={player.userId}
+              position={[player.latitude!, player.longitude!]}
+              icon={playerMarkerIcon(player.userId === user.userId)}
+              zIndexOffset={300}
+              eventHandlers={{
+                click: () => setSelection({ type: "player", id: player.userId }),
+              }}
+            >
+              <Popup>
+                <strong>{player.displayName}</strong>
+                <br />
+                {player.city ?? "Ort unbekannt"}
+              </Popup>
+            </Marker>
+          ))}
         </MapContainer>
 
         <aside className="discovery-panel discovery-panel-compact">
@@ -444,7 +520,7 @@ export default function MapDiscoveryPage() {
             <input
               type="range"
               min={1}
-              max={30}
+              max={56}
               value={timeWindowDays}
               onChange={(event) => setTimeWindowDays(Number(event.target.value))}
             />
@@ -475,46 +551,44 @@ export default function MapDiscoveryPage() {
             <label>
               <input
                 type="checkbox"
-                checked={showGames}
-                onChange={(event) => setShowGames(event.target.checked)}
+                checked={showSessions}
+                onChange={(event) => setShowSessions(event.target.checked)}
               />
-              Spielrunden
+              Sessions
             </label>
 
             <label>
               <input
                 type="checkbox"
-                checked={showOwnLocations}
-                onChange={(event) => setShowOwnLocations(event.target.checked)}
+                checked={showPlayers}
+                onChange={(event) => setShowPlayers(event.target.checked)}
               />
-              Eigene Locations
+              Spieler
             </label>
 
             <label>
               <input
                 type="checkbox"
-                checked={showParticipantSessions}
-                onChange={(event) => setShowParticipantSessions(event.target.checked)}
+                checked={showMySessions}
+                onChange={(event) => setShowMySessions(event.target.checked)}
               />
-              Teilnahme
-            </label>
-
-            <label>
-              <input
-                type="checkbox"
-                checked={showHostedSessions}
-                onChange={(event) => setShowHostedSessions(event.target.checked)}
-              />
-              Host
+              Meine Sessions
             </label>
           </div>
+
+          <input
+            className="player-search-input"
+            value={playerQuery}
+            onChange={(event) => setPlayerQuery(event.target.value)}
+            placeholder="Spieler suchen..."
+          />
 
           {banner && <div className="message message-error">{banner}</div>}
           {isLoading && <div className="discovery-skeleton" />}
           {!isLoading && !banner && (
             <p className="discovery-count">
               {visibleLocations.length} Locations · {visibleGames.length} Sessions ·{" "}
-              {CENTER_SOURCE_LABEL[centerSource]}
+              {visiblePlayers.length} Spieler · {CENTER_SOURCE_LABEL[centerSource]}
             </p>
           )}
         </aside>
@@ -527,13 +601,19 @@ export default function MapDiscoveryPage() {
             <i className="legend-dot own-location-base" /> Eigene Location
           </span>
           <span>
-            <i className="legend-dot event" /> Spielrunde
+            <i className="legend-dot event" /> Session
           </span>
           <span>
-            <i className="legend-dot participant" /> Teilnahme
+            <i className="legend-dot participant" /> Meine Teilnahme
           </span>
           <span>
-            <i className="legend-dot host" /> Host
+            <i className="legend-dot host" /> Mein Host
+          </span>
+          <span>
+            <i className="legend-dot player" /> Spieler
+          </span>
+          <span>
+            <i className="legend-dot player-me" /> Ich
           </span>
         </div>
 
@@ -570,7 +650,9 @@ export default function MapDiscoveryPage() {
               {renderSystemBadges(systemLabelsFromSummary(selectedGame.tablesSummary))}
             </div>
 
-            {selectedGame.tablesSummary && <p className="preview-summary">{selectedGame.tablesSummary}</p>}
+            {selectedGame.tablesSummary && (
+              <p className="preview-summary">{selectedGame.tablesSummary}</p>
+            )}
 
             <div className="preview-actions">
               <Link to={`/games?gameId=${encodeURIComponent(selectedGame.gameId)}`}>
@@ -642,6 +724,32 @@ export default function MapDiscoveryPage() {
               </button>
 
               {selectedLocation.isOwnLocation && <Link to="/locations">Mitglieder</Link>}
+            </div>
+          </article>
+        )}
+
+        {selectedPlayer && (
+          <article className="session-preview player-preview">
+            <button
+              className="preview-close"
+              type="button"
+              onClick={() => setSelection(null)}
+              aria-label="Vorschau schließen"
+            >
+              ×
+            </button>
+
+            <p className="panel-kicker">Spieler</p>
+            <h2>{selectedPlayer.displayName}</h2>
+
+            <div className="preview-meta-grid">
+              {selectedPlayer.city && <span>📍 {selectedPlayer.city}</span>}
+              {selectedPlayer.streetAddress && <span>🏠 {selectedPlayer.streetAddress}</span>}
+              {selectedPlayer.postalCode && <span>✉️ {selectedPlayer.postalCode}</span>}
+            </div>
+
+            <div className="preview-actions">
+              <Link to={`/users/${encodeURIComponent(selectedPlayer.userId)}`}>Profil öffnen</Link>
             </div>
           </article>
         )}
