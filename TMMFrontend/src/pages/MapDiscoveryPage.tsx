@@ -553,9 +553,8 @@ export default function MapDiscoveryPage() {
         </MapContainer>
 
         <aside
-          className={`discovery-panel discovery-panel-compact ${
-            filterCollapsed ? "discovery-panel-collapsed" : ""
-          }`}
+          className={`discovery-panel discovery-panel-compact ${filterCollapsed ? "discovery-panel-collapsed" : ""
+            }`}
         >
           <button
             type="button"
@@ -727,11 +726,11 @@ export default function MapDiscoveryPage() {
             )}
 
             <div className="preview-actions">
-              <Link to={`/games?gameId=${encodeURIComponent(selectedGame.gameId)}`}>
+              <Link to={`/sessions/${encodeURIComponent(selectedGame.gameId)}`}>
                 Zur Session
               </Link>
 
-              <Link to={`/games?gameId=${encodeURIComponent(selectedGame.gameId)}&messages=1`}>
+              <Link to={`/sessions/${encodeURIComponent(selectedGame.gameId)}?messages=1`}>
                 Nachrichten
               </Link>
 
@@ -746,7 +745,7 @@ export default function MapDiscoveryPage() {
               )}
 
               {selectedGame.canEdit && (
-                <Link to={`/games?gameId=${encodeURIComponent(selectedGame.gameId)}`}>
+                <Link to={`/sessions/${encodeURIComponent(selectedGame.gameId)}`}>
                   Bearbeiten
                 </Link>
               )}

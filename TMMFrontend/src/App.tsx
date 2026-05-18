@@ -1,4 +1,4 @@
-import { NavLink, Route, Routes } from "react-router-dom";
+import { Link, NavLink, Route, Routes } from "react-router-dom";
 import GamesPage from "./pages/GamesPage";
 import NearbyPage from "./pages/NearbyPage";
 import LocationsPage from "./pages/LocationPage";
@@ -11,20 +11,28 @@ import DirectMessagesPage from "./pages/DirectMessagesPage";
 import NotificationBell from "./components/NotificationBell";
 import FriendsPage from "./pages/FriendsPage";
 import PublicProfilePage from "./pages/PublicProfilePage";
+import SessionDetailPage from "./pages/SessionDetailPage";
+import SystemsAdminPage from "./pages/SystemsAdminPage";
+import { useUser } from "./context/UserContext";
+
+const adminUserIds = ["64f1a2b3c4d5e6f7890abc12"];
 
 function navClass({ isActive }: { isActive: boolean }) {
   return isActive ? "nav-link active" : "nav-link";
 }
 
 export default function App() {
+  const user = useUser();
+  const isAdmin = adminUserIds.includes(user.userId);
+
   return (
     <>
       <nav className="app-nav">
-        <div className="nav-brand">
+        <Link className="nav-brand" to="/">
           <span className="nav-brand-mark">TMM</span>
-        </div>
+        </Link>
 
-        <div className="nav-links">          
+        <div className="nav-links">
           <NavLink to="/my-games" className={navClass}>
             Meine Spiele
           </NavLink>
@@ -48,6 +56,12 @@ export default function App() {
           <NavLink to="/locations" className={navClass}>
             Meine Locations
           </NavLink>
+
+          {isAdmin && (
+            <NavLink to="/admin/systems" className={navClass}>
+              Systeme verwalten
+            </NavLink>
+          )}
         </div>
 
         <div className="nav-actions">
@@ -66,6 +80,7 @@ export default function App() {
 
       <Routes>
         <Route path="/" element={<MapDiscoveryPage />} />
+        <Route path="/sessions/:gameId" element={<SessionDetailPage />} />
         <Route path="/games" element={<GamesPage />} />
         <Route path="/my-games" element={<MyGamesPage />} />
         <Route path="/nearby" element={<NearbyPage />} />
@@ -75,6 +90,7 @@ export default function App() {
         <Route path="/friends" element={<FriendsPage />} />
         <Route path="/users/:userId" element={<PublicProfilePage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        {isAdmin && <Route path="/admin/systems" element={<SystemsAdminPage />} />}
       </Routes>
     </>
   );
