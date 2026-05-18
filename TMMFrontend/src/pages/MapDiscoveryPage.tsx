@@ -10,6 +10,7 @@ import { useJoinGame } from "../api/useJoinGame";
 import { useUser } from "../context/UserContext";
 import type {
   GameDiscoveryResponse,
+  GameResponse,
   LocationDiscoveryResponse,
   UserSearchResponse,
 } from "../types/game";
@@ -35,10 +36,7 @@ function MapCenterController({ center }: { center: [number, number] }) {
   const map = useMap();
 
   useEffect(() => {
-    map.flyTo(center, map.getZoom(), {
-      animate: true,
-      duration: 0.6,
-    });
+    map.flyTo(center, map.getZoom(), { animate: true, duration: 0.6 });
   }, [center, map]);
 
   return null;
@@ -55,25 +53,7 @@ function rangeToDates(timeWindowDays: number) {
   const to = new Date(from);
   to.setDate(to.getDate() + timeWindowDays);
   to.setHours(23, 59, 59, 999);
-
   return { from, to };
-}
-
-function timeHint(startTimeUtc: string) {
-  const start = new Date(startTimeUtc);
-  const today = startOfToday();
-  const startDay = new Date(start);
-  startDay.setHours(0, 0, 0, 0);
-
-  const diffDays = Math.round((startDay.getTime() - today.getTime()) / 86400000);
-
-  if (diffDays === 0) return "Heute";
-  if (diffDays === 1) return "Morgen";
-  if (diffDays > 1 && diffDays < 7) {
-    return start.toLocaleDateString("de-DE", { weekday: "short" });
-  }
-
-  return start.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" });
 }
 
 function dateTimeText(startTimeUtc: string) {
@@ -86,6 +66,21 @@ function dateTimeText(startTimeUtc: string) {
   });
 }
 
+function timeHint(startTimeUtc: string) {
+  const start = new Date(startTimeUtc);
+  const today = startOfToday();
+  const startDay = new Date(start);
+  startDay.setHours(0, 0, 0, 0);
+
+  const diffDays = Math.round((startDay.getTime() - today.getTime()) / 86400000);
+
+  if (diffDays === 0) return "Heute";
+  if (diffDays === 1) return "Morgen";
+  if (diffDays > 1 && diffDays < 7) return start.toLocaleDateString("de-DE", { weekday: "short" });
+
+  return start.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" });
+}
+
 function gameMarkerState(game: GameDiscoveryResponse) {
   if (game.isHost) return "host";
   if (game.isParticipant) return "participant";
@@ -94,10 +89,8 @@ function gameMarkerState(game: GameDiscoveryResponse) {
 
 function cleanSystemLabel(value: string) {
   const cleaned = value.trim();
-
   if (!cleaned) return "";
   if (cleaned.toLowerCase() === "egal") return "Egal";
-
   return cleaned.length <= 8 ? cleaned : cleaned.slice(0, 8);
 }
 
@@ -116,9 +109,7 @@ function systemLabelsFromSummary(summary: string) {
 function systemBadgesHtml(labels: string[]) {
   if (labels.length === 0) return `<span class="map-system-badge">?</span>`;
 
-  return labels
-    .map((label) => `<span class="map-system-badge">${label}</span>`)
-    .join("");
+  return labels.map((label) => `<span class="map-system-badge">${label}</span>`).join("");
 }
 
 function gameMarkerIcon(game: GameDiscoveryResponse, indexAtLocation: number) {
@@ -199,11 +190,7 @@ function getBrowserPosition(): Promise<[number, number]> {
     navigator.geolocation.getCurrentPosition(
       (position) => resolve([position.coords.latitude, position.coords.longitude]),
       reject,
-      {
-        enableHighAccuracy: false,
-        timeout: 5000,
-        maximumAge: 300000,
-      }
+      { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 }
     );
   });
 }
@@ -214,7 +201,6 @@ export default function MapDiscoveryPage() {
 
   const [timeWindowDays, setTimeWindowDays] = useState(7);
   const [radiusKm, setRadiusKm] = useState(80);
-
   const [filterCollapsed, setFilterCollapsed] = useState(false);
   const [showLocations, setShowLocations] = useState(true);
   const [showPlayers, setShowPlayers] = useState(true);
@@ -224,6 +210,9 @@ export default function MapDiscoveryPage() {
   const [games, setGames] = useState<GameDiscoveryResponse[]>([]);
   const [locations, setLocations] = useState<LocationDiscoveryResponse[]>([]);
   const [selection, setSelection] = useState<Selection>(null);
+  const [selectedFullGame, setSelectedFullGame] = useState<GameResponse | null>(null);
+  const [selectedTableIndex, setSelectedTableIndex] = useState(0);
+
   const [loadingGames, setLoadingGames] = useState(true);
   const [loadingLocations, setLoadingLocations] = useState(true);
   const [loadingPlayers, setLoadingPlayers] = useState(true);
@@ -254,7 +243,7 @@ export default function MapDiscoveryPage() {
         return;
       }
     } catch {
-      // Profil- oder Location-Laden fehlgeschlagen -> Browser-Geolocation versuchen
+      // fallback unten
     }
 
     try {
@@ -263,7 +252,7 @@ export default function MapDiscoveryPage() {
       setCenterSource("browser");
       return;
     } catch {
-      // Browser-Geolocation abgelehnt/nicht verfügbar -> Fallback
+      // fallback unten
     }
 
     setCenter(DEFAULT_CENTER);
@@ -333,13 +322,11 @@ export default function MapDiscoveryPage() {
   });
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void resolveInitialCenter().finally(() => setCenterReady(true));
   }, [resolveInitialCenter]);
 
   useEffect(() => {
     if (!centerReady) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadDiscovery();
   }, [centerReady, loadDiscovery]);
 
@@ -391,6 +378,68 @@ export default function MapDiscoveryPage() {
     selection?.type === "player"
       ? visiblePlayers.find((player) => player.userId === selection.id) ?? null
       : null;
+
+  const selectedLocationGames = useMemo(() => {
+    if (!selectedGame) return [];
+
+    return visibleGames
+      .filter((game) => game.locationId === selectedGame.locationId)
+      .sort(
+        (a, b) =>
+          new Date(a.startTimeUtc).getTime() - new Date(b.startTimeUtc).getTime()
+      );
+  }, [selectedGame, visibleGames]);
+
+  const selectedGameIndex = selectedGame
+    ? selectedLocationGames.findIndex((game) => game.gameId === selectedGame.gameId)
+    : -1;
+
+  const selectedTables = selectedFullGame?.tables ?? [];
+  const selectedTable = selectedTables[selectedTableIndex] ?? null;
+
+  useEffect(() => {
+    if (!selectedGame) {
+      setSelectedFullGame(null);
+      setSelectedTableIndex(0);
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      void getGameById(selectedGame.gameId)
+        .then((game) => {
+          setSelectedFullGame(game);
+          setSelectedTableIndex(0);
+        })
+        .catch(() => {
+          setSelectedFullGame(null);
+          setSelectedTableIndex(0);
+        });
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
+  }, [selectedGame]);
+
+  function selectGameAtOffset(offset: number) {
+    if (!selectedGame || selectedLocationGames.length === 0) return;
+
+    const nextIndex =
+      (selectedGameIndex + offset + selectedLocationGames.length) %
+      selectedLocationGames.length;
+
+    setSelection({
+      type: "game",
+      id: selectedLocationGames[nextIndex].gameId,
+    });
+  }
+
+  function selectTableAtOffset(offset: number) {
+    if (selectedTables.length === 0) return;
+
+    const nextIndex =
+      (selectedTableIndex + offset + selectedTables.length) % selectedTables.length;
+
+    setSelectedTableIndex(nextIndex);
+  }
 
   const isLoading = loadingGames || loadingLocations || loadingPlayers || !centerReady;
 
@@ -586,27 +635,13 @@ export default function MapDiscoveryPage() {
         </aside>
 
         <div className="discovery-map-legend">
-          <span>
-            <i className="legend-dot location" /> Location
-          </span>
-          <span>
-            <i className="legend-dot own-location-base" /> Eigene Location
-          </span>
-          <span>
-            <i className="legend-dot event" /> Session
-          </span>
-          <span>
-            <i className="legend-dot participant" /> Meine Teilnahme
-          </span>
-          <span>
-            <i className="legend-dot host" /> Mein Host
-          </span>
-          <span>
-            <i className="legend-dot player" /> Spieler
-          </span>
-          <span>
-            <i className="legend-dot player-me" /> Ich
-          </span>
+          <span><i className="legend-dot location" /> Location</span>
+          <span><i className="legend-dot own-location-base" /> Eigene Location</span>
+          <span><i className="legend-dot event" /> Session</span>
+          <span><i className="legend-dot participant" /> Meine Teilnahme</span>
+          <span><i className="legend-dot host" /> Mein Host</span>
+          <span><i className="legend-dot player" /> Spieler</span>
+          <span><i className="legend-dot player-me" /> Ich</span>
         </div>
 
         {!isLoading && !banner && visibleGames.length === 0 && visibleLocations.length > 0 && (
@@ -617,23 +652,32 @@ export default function MapDiscoveryPage() {
 
         {selectedGame && (
           <article className="session-preview">
-            <button
-              className="preview-close"
-              type="button"
-              onClick={() => setSelection(null)}
-              aria-label="Vorschau schließen"
-            >
-              ×
-            </button>
+            <div className="session-preview-topbar">
+              <p className="panel-kicker">{statusText(selectedGame)}</p>
 
-            <p className="panel-kicker">{statusText(selectedGame)}</p>
+              {selectedLocationGames.length > 1 && (
+                <div className="session-preview-switcher">
+                  <button type="button" onClick={() => selectGameAtOffset(-1)}>←</button>
+                  <span>{selectedGameIndex + 1} / {selectedLocationGames.length}</span>
+                  <button type="button" onClick={() => selectGameAtOffset(1)}>→</button>
+                </div>
+              )}
+
+              <button
+                className="preview-close"
+                type="button"
+                onClick={() => setSelection(null)}
+                aria-label="Vorschau schließen"
+              >
+                ×
+              </button>
+            </div>
+
             <h2>{selectedGame.title}</h2>
 
             <div className="preview-meta-grid">
               <span>📅 {dateTimeText(selectedGame.startTimeUtc)}</span>
-              <span>
-                📍 {selectedGame.locationName}, {selectedGame.city}
-              </span>
+              <span>📍 {selectedGame.locationName}, {selectedGame.city}</span>
               <span>👥 {selectedGame.availableSeats} freie Plätze</span>
               <span>🎲 {selectedGame.status}</span>
             </div>
@@ -642,7 +686,43 @@ export default function MapDiscoveryPage() {
               {renderSystemBadges(systemLabelsFromSummary(selectedGame.tablesSummary))}
             </div>
 
-            {selectedGame.tablesSummary && (
+            {selectedTable && (
+              <section className="table-preview-box">
+                <div className="table-preview-head">
+                  <strong>{selectedTable.name}</strong>
+
+                  {selectedTables.length > 1 && (
+                    <div className="table-preview-switcher">
+                      <button type="button" onClick={() => selectTableAtOffset(-1)}>←</button>
+                      <span>{selectedTableIndex + 1} / {selectedTables.length}</span>
+                      <button type="button" onClick={() => selectTableAtOffset(1)}>→</button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="table-preview-meta">
+                  <span>
+                    🎲 {selectedTable.systems.length > 0 ? selectedTable.systems.join(", ") : "offen"}
+                  </span>
+
+                  {selectedTable.points != null && <span>⚔️ {selectedTable.points} Punkte</span>}
+
+                  <span>
+                    👥 {selectedTable.assignedPlayers.length} / {selectedTable.maxPlayers}
+                  </span>
+
+                  {selectedTable.scenario && <span>📘 {selectedTable.scenario}</span>}
+                </div>
+
+                {selectedTable.assignedPlayers.length > 0 && (
+                  <p className="table-preview-players">
+                    {selectedTable.assignedPlayers.map((player) => player.displayName).join(", ")}
+                  </p>
+                )}
+              </section>
+            )}
+
+            {!selectedTable && selectedGame.tablesSummary && (
               <p className="preview-summary">{selectedGame.tablesSummary}</p>
             )}
 
