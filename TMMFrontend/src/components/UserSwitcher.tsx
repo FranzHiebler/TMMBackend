@@ -1,19 +1,41 @@
+import { useEffect, useState } from "react";
+import { searchUsers } from "../api/usersApi";
 import { useUser, type User } from "../context/UserContext";
-
-const testUsers: User[] = [
-  { userId: "64f1a2b3c4d5e6f7890abc12", displayName: "Franz" },
-  { userId: "69f900000000000000000001", displayName: "Max Bauer" },
-  { userId: "69f900000000000000000002", displayName: "Anna Keller" },
-  { userId: "69f900000000000000000003", displayName: "Sophie Wagner" },
-  { userId: "69f900000000000000000004", displayName: "Jonas Becker" },
-];
 
 export default function UserSwitcher() {
   const user = useUser();
+  const [users, setUsers] = useState<User[]>([user]);
 
-  const users = testUsers.some((u) => u.userId === user.userId)
-    ? testUsers.map((u) => (u.userId === user.userId ? user : u))
-    : [user, ...testUsers];
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadUsers() {
+      try {
+        const result = await searchUsers("");
+
+        if (cancelled) return;
+
+        const loadedUsers = result.map((u) => ({
+          userId: u.userId,
+          displayName: u.displayName,
+        }));
+
+        const containsCurrentUser = loadedUsers.some((u) => u.userId === user.userId);
+
+        setUsers(containsCurrentUser ? loadedUsers : [user, ...loadedUsers]);
+      } catch {
+        if (!cancelled) {
+          setUsers([user]);
+        }
+      }
+    }
+
+    void loadUsers();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   return (
     <select

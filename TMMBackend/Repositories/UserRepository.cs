@@ -26,7 +26,11 @@ public class UserRepository : IUserRepository
 				x => x.DisplayName,
 				new BsonRegularExpression(query, "i"));
 
-		return await _users.Find(filter).Limit(20).ToListAsync();
+		return await _users
+			.Find(filter)
+			.SortBy(x => x.DisplayName)
+			.Limit(200)
+			.ToListAsync();
 	}
 
 	public async Task<UserProfile?> GetByIdAsync(string userId)
