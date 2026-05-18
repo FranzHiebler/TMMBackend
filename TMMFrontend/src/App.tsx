@@ -28,8 +28,9 @@ export default function App() {
   return (
     <>
       <nav className="app-nav">
-        <Link className="nav-brand" to="/">
+        <Link className="nav-brand" to="/" aria-label="Zur Startseite">
           <span className="nav-brand-mark">TMM</span>
+          <span className="nav-brand-text">Tabletop Matchmaker</span>
         </Link>
 
         <div className="nav-links">
@@ -37,44 +38,55 @@ export default function App() {
             Meine Spiele
           </NavLink>
 
-          <NavLink to="/nearby" className={navClass}>
-            Locations
-          </NavLink>
-
-          <NavLink to="/games" className={navClass}>
-            Spiele
-          </NavLink>
-
           <NavLink to="/messages" className={navClass}>
             Nachrichten
           </NavLink>
-
-          <NavLink to="/friends" className={navClass}>
-            Freunde
-          </NavLink>
-
-          <NavLink to="/locations" className={navClass}>
-            Meine Locations
-          </NavLink>
-
-          {isAdmin && (
-            <NavLink to="/admin/systems" className={navClass}>
-              Systeme verwalten
-            </NavLink>
-          )}
         </div>
 
         <div className="nav-actions">
           <NavLink to="/games/create" className="nav-create-button">
-            + Spiel erstellen
+            + Spiel
           </NavLink>
 
-          <NavLink to="/profile" className={navClass}>
-            Profil
-          </NavLink>
+          <details className="nav-more">
+            <summary>Mehr</summary>
+
+            <div className="nav-more-menu">
+              <NavLink to="/friends" className={navClass}>
+                Freunde
+              </NavLink>
+
+              <NavLink to="/locations" className={navClass}>
+                Meine Locations
+              </NavLink>
+
+              <NavLink to="/nearby" className={navClass}>
+                Locations suchen
+              </NavLink>
+
+              <NavLink to="/games" className={navClass}>
+                Alle Spiele
+              </NavLink>
+
+              <NavLink to="/profile" className={navClass}>
+                Profil
+              </NavLink>
+
+              {isAdmin && (
+                <NavLink to="/admin/systems" className={navClass}>
+                  Systeme verwalten
+                </NavLink>
+              )}
+
+              <div className="nav-more-divider" />
+
+              <div className="nav-user-switcher">
+                <UserSwitcher />
+              </div>
+            </div>
+          </details>
 
           <NotificationBell />
-          <UserSwitcher />
         </div>
       </nav>
 
