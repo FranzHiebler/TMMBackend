@@ -2,8 +2,40 @@ import { useCallback, useEffect, useState } from "react";
 import { getMyLocations } from "../api/locationsApi";
 import { getCurrentUserProfile, updateCurrentUserProfile } from "../api/usersApi";
 import Message from "../components/Message";
+import LocationPicker from "../components/LocationPicker";
 import { useUser } from "../context/UserContext";
-import type { LocationResponse, UserProfileResponse } from "../types/game";
+import type {
+    LocationResponse,
+    ProfileFieldVisibility,
+    UserProfileResponse,
+    UserProfileVisibility,
+} from "../types/game";
+import "leaflet/dist/leaflet.css";
+
+const defaultVisibility: UserProfileVisibility = {
+    email: "Private",
+    phoneNumber: "Private",
+    streetAddress: "Private",
+    postalCode: "Private",
+    city: "Private",
+    tabletopTo: "Public",
+    tabletopHerald: "Public",
+    t3: "Public",
+    newRecruit: "Public",
+    bestSportsPairings: "Public",
+};
+
+function emptyToNull(value: string): string | null {
+    const trimmed = value.trim();
+    return trimmed ? trimmed : null;
+}
+
+function visibilityValue(
+    visibility: UserProfileVisibility | undefined,
+    key: keyof UserProfileVisibility
+): ProfileFieldVisibility {
+    return visibility?.[key] ?? defaultVisibility[key];
+}
 
 export default function ProfilePage() {
     const user = useUser();
@@ -11,7 +43,22 @@ export default function ProfilePage() {
     const [profile, setProfile] = useState<UserProfileResponse | null>(null);
     const [locations, setLocations] = useState<LocationResponse[]>([]);
     const [displayName, setDisplayName] = useState("");
+    const [email, setEmail] = useState("");
+    const [phoneNumber, setPhoneNumber] = useState("");
+    const [streetAddress, setStreetAddress] = useState("");
+    const [postalCode, setPostalCode] = useState("");
+    const [city, setCity] = useState("");
+    const [latitude, setLatitude] = useState<number | null>(null);
+    const [longitude, setLongitude] = useState<number | null>(null);
+    const [tabletopTo, setTabletopTo] = useState("");
+    const [tabletopHerald, setTabletopHerald] = useState("");
+    const [t3, setT3] = useState("");
+    const [newRecruit, setNewRecruit] = useState("");
+    const [bestSportsPairings, setBestSportsPairings] = useState("");
+    const [profileImageUrl, setProfileImageUrl] = useState("");
     const [defaultLocationId, setDefaultLocationId] = useState("");
+    const [canBeContacted, setCanBeContacted] = useState(true);
+    const [visibility, setVisibility] = useState<UserProfileVisibility>(defaultVisibility);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
@@ -29,7 +76,22 @@ export default function ProfilePage() {
             setProfile(profileData);
             setLocations(locationData);
             setDisplayName(profileData.displayName);
+            setEmail(profileData.email ?? "");
+            setPhoneNumber(profileData.phoneNumber ?? "");
+            setStreetAddress(profileData.streetAddress ?? "");
+            setPostalCode(profileData.postalCode ?? "");
+            setCity(profileData.city ?? "");
+            setLatitude(profileData.latitude ?? null);
+            setLongitude(profileData.longitude ?? null);
+            setTabletopTo(profileData.tabletopTo ?? "");
+            setTabletopHerald(profileData.tabletopHerald ?? "");
+            setT3(profileData.t3 ?? "");
+            setNewRecruit(profileData.newRecruit ?? "");
+            setBestSportsPairings(profileData.bestSportsPairings ?? "");
+            setProfileImageUrl(profileData.profileImageUrl ?? "");
             setDefaultLocationId(profileData.defaultLocationId ?? "");
+            setCanBeContacted(profileData.canBeContacted ?? true);
+            setVisibility({ ...defaultVisibility, ...(profileData.visibility ?? {}) });
         } catch (err) {
             setError(err instanceof Error ? err.message : "Profil konnte nicht geladen werden.");
         } finally {
@@ -38,18 +100,74 @@ export default function ProfilePage() {
     }, [user]);
 
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         void loadProfile();
     }, [loadProfile]);
 
     useEffect(() => {
         if (!success) return;
-
         const timeout = window.setTimeout(() => setSuccess(""), 3500);
         return () => window.clearTimeout(timeout);
     }, [success]);
 
+    function updateVisibility(key: keyof UserProfileVisibility, value: ProfileFieldVisibility) {
+        setVisibility((prev) => ({ ...prev, [key]: value }));
+    }
+
+    function useCurrentPosition() {
+        if (!navigator.geolocation) {
+            setError("Browser-Geolocation ist nicht verfügbar.");
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                setLatitude(position.coords.latitude);
+                setLongitude(position.coords.longitude);
+                setSuccess("Position übernommen.");
+            },
+            () => setError("Position konnte nicht ermittelt werden."),
+            {
+                enableHighAccuracy: false,
+                timeout: 5000,
+                maximumAge: 300000,
+            }
+        );
+    }
+
+    function VisibilitySelect({ field }: { field: keyof UserProfileVisibility }) {
+        const currentValue = visibilityValue(visibility, field);
+
+        const options: { value: ProfileFieldVisibility; label: string }[] = [
+            { value: "Public", label: "Öffentlich" },
+            { value: "FriendsOnly", label: "Nur Freunde" },
+            { value: "Private", label: "Privat" },
+        ];
+
+        return (
+            <div className="visibility-radio-list" role="radiogroup" aria-label="Sichtbarkeit">
+                {options.map((option) => (
+                    <label key={option.value} className="visibility-radio-option">
+                        <input
+                            type="radio"
+                            name={`visibility-${field}`}
+                            value={option.value}
+                            checked={currentValue === option.value}
+                            onChange={() => updateVisibility(field, option.value)}
+                        />
+                        {option.label}
+                    </label>
+                ))}
+            </div>
+        );
+    }
+
     async function handleSubmit(e: React.FormEvent) {
+
+        if (latitude == null || longitude == null) {
+            setError("Bitte zuerst die Position aus der Adresse ermitteln.");
+            return;
+        }
+
         e.preventDefault();
 
         try {
@@ -60,7 +178,22 @@ export default function ProfilePage() {
             const updated = await updateCurrentUserProfile(
                 {
                     displayName,
+                    email: emptyToNull(email),
+                    phoneNumber: emptyToNull(phoneNumber),
+                    streetAddress: emptyToNull(streetAddress),
+                    postalCode: emptyToNull(postalCode),
+                    city: emptyToNull(city),
+                    latitude,
+                    longitude,
+                    tabletopTo: emptyToNull(tabletopTo),
+                    tabletopHerald: emptyToNull(tabletopHerald),
+                    t3: emptyToNull(t3),
+                    newRecruit: emptyToNull(newRecruit),
+                    bestSportsPairings: emptyToNull(bestSportsPairings),
+                    profileImageUrl: emptyToNull(profileImageUrl),
                     defaultLocationId: defaultLocationId || null,
+                    canBeContacted,
+                    visibility,
                 },
                 user
             );
@@ -78,6 +211,38 @@ export default function ProfilePage() {
             setSaving(false);
         }
     }
+    async function resolvePositionFromAddress() {
+        const address = [streetAddress, postalCode, city].map((x) => x.trim()).filter(Boolean).join(", ");
+
+        if (!streetAddress.trim() || !postalCode.trim() || !city.trim()) {
+            setError("Bitte Straße, PLZ und Ort ausfüllen.");
+            return;
+        }
+
+        try {
+            setError("");
+            const res = await fetch(
+                `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(address)}`
+            );
+
+            const data = (await res.json()) as { lat: string; lon: string }[];
+
+            if (data.length === 0) {
+                setLatitude(null);
+                setLongitude(null);
+                setError("Adresse konnte nicht gefunden werden.");
+                return;
+            }
+
+            setLatitude(Number(data[0].lat));
+            setLongitude(Number(data[0].lon));
+            setSuccess("Position aus Adresse ermittelt.");
+        } catch {
+            setLatitude(null);
+            setLongitude(null);
+            setError("Position konnte nicht ermittelt werden.");
+        }
+    }
 
     return (
         <main className="container">
@@ -88,34 +253,23 @@ export default function ProfilePage() {
             <Message text={success} type="success" />
 
             {!loading && profile && (
-                <form className="card form" onSubmit={handleSubmit}>
+                <form className="card form profile-form" onSubmit={handleSubmit}>
+                    <h2>Basisdaten</h2>
+
                     <div className="field">
                         <label>Anzeigename</label>
-                        <input
-                            value={displayName}
-                            onChange={(e) => setDisplayName(e.target.value)}
-                            placeholder="Dein Anzeigename"
-                        />
+                        <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
                     </div>
 
-                    <div className="profile-info-row">
-                        <span className="profile-info-label">E-Mail: </span>
-                        <span
-                            className="profile-info-value"
-                            title="Die E-Mail ist aktuell nicht änderbar, weil sie später als Login-/OAuth-Identitätsdatum behandelt werden soll."
-                        >
-                            {profile.email || "Noch nicht hinterlegt"}
-                        </span>
+                    <div className="field">
+                        <label>Profilbild-URL</label>
+                        <input value={profileImageUrl} onChange={(e) => setProfileImageUrl(e.target.value)} />
                     </div>
 
                     <div className="field">
                         <label>Standard-Location</label>
-                        <select
-                            value={defaultLocationId}
-                            onChange={(e) => setDefaultLocationId(e.target.value)}
-                        >
+                        <select value={defaultLocationId} onChange={(e) => setDefaultLocationId(e.target.value)}>
                             <option value="">Keine Standard-Location</option>
-
                             {locations.map((location) => (
                                 <option key={location.id} value={location.id}>
                                     {location.name} ({location.city})
@@ -124,7 +278,147 @@ export default function ProfilePage() {
                         </select>
                     </div>
 
-                    <button type="submit" disabled={saving}>
+                    <label className="checkbox-row">
+                        <input
+                            type="checkbox"
+                            checked={canBeContacted}
+                            onChange={(e) => setCanBeContacted(e.target.checked)}
+                        />
+                        Darf angeschrieben werden
+                    </label>
+
+                    <h2>Kontakt</h2>
+
+                    <div className="profile-field-with-visibility">
+                        <div className="field">
+                            <label>E-Mail</label>
+                            <input value={email} onChange={(e) => setEmail(e.target.value)} />
+                            <VisibilitySelect field="email" />
+                        </div>
+
+                        <div className="field">
+                            <label>Telefonnummer</label>
+                            <input value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} />
+                            <VisibilitySelect field="phoneNumber" />
+                        </div>
+
+                        <div className="field">
+                            <label>Straße / Adresse</label>
+                            <input
+                                value={streetAddress}
+                                onChange={(e) => {
+                                    setStreetAddress(e.target.value);
+                                    setLatitude(null);
+                                    setLongitude(null);
+                                }}
+                            />
+                            <VisibilitySelect field="streetAddress" />
+                        </div>
+
+                        <div className="field">
+                            <label>PLZ</label>
+                            <input
+                                value={postalCode}
+                                onChange={(e) => {
+                                    setPostalCode(e.target.value);
+                                    setLatitude(null);
+                                    setLongitude(null);
+                                }}
+                            />
+                            <VisibilitySelect field="postalCode" />
+                        </div>
+
+                        <div className="field">
+                            <label>Ort</label>
+                            <input
+                                value={city}
+                                onChange={(e) => {
+                                    setCity(e.target.value);
+                                    setLatitude(null);
+                                    setLongitude(null);
+                                }}
+                            />
+                            <VisibilitySelect field="city" />
+                        </div>
+
+                        <div className="field profile-geo-picker">
+                            <label>Position für Suche</label>
+
+                            <div className="profile-geo-actions">
+                                <button type="button" onClick={resolvePositionFromAddress}>
+                                    Position aus Adresse ermitteln
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setLatitude(null);
+                                        setLongitude(null);
+                                    }}
+                                >
+                                    Position zurücksetzen
+                                </button>
+                            </div>
+
+                            <LocationPicker
+                                latitude={latitude}
+                                longitude={longitude}
+                                onChange={(lat, lng) => {
+                                    setLatitude(lat);
+                                    setLongitude(lng);
+                                }}
+                            />
+
+                            {latitude != null && longitude != null ? (
+                                <p className="field-hint">
+                                    Lat: {latitude.toFixed(5)}, Lng: {longitude.toFixed(5)}
+                                </p>
+                            ) : (
+                                <p className="field-hint">
+                                    Noch keine Position gesetzt. Klicke in die Karte oder nutze deine aktuelle Position.
+                                </p>
+                            )}
+                        </div>
+                    </div>
+
+                    <h2>Tabletop-Profile</h2>
+
+                    <div className="profile-field-with-visibility">
+                        <div className="field">
+                            <label>TabletopTO</label>
+                            <input value={tabletopTo} onChange={(e) => setTabletopTo(e.target.value)} />
+                            <VisibilitySelect field="tabletopTo" />
+                        </div>
+
+                        <div className="field">
+                            <label>Tabletop Herald</label>
+                            <input value={tabletopHerald} onChange={(e) => setTabletopHerald(e.target.value)} />
+                            <VisibilitySelect field="tabletopHerald" />
+                        </div>
+
+                        <div className="field">
+                            <label>T3</label>
+                            <input value={t3} onChange={(e) => setT3(e.target.value)} />
+                            <VisibilitySelect field="t3" />
+                        </div>
+
+                        <div className="field">
+                            <label>NewRecruit</label>
+                            <input value={newRecruit} onChange={(e) => setNewRecruit(e.target.value)} />
+                            <VisibilitySelect field="newRecruit" />
+                        </div>
+
+                        <div className="field">
+                            <label>Best Coast Pairings / BCP</label>
+                            <input
+                                value={bestSportsPairings}
+                                onChange={(e) => setBestSportsPairings(e.target.value)}
+                            />
+                            <VisibilitySelect field="bestSportsPairings" />
+                        </div>
+                    </div>
+
+                    <button type="submit" disabled={saving || latitude == null || longitude == null}>
                         {saving ? "Speichert..." : "Profil speichern"}
                     </button>
                 </form>

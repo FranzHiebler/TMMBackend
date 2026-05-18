@@ -70,6 +70,8 @@ public class UsersController : ControllerBase
 		user.StreetAddress = NormalizeOptional(request.StreetAddress);
 		user.PostalCode = NormalizeOptional(request.PostalCode);
 		user.City = NormalizeOptional(request.City);
+		user.Latitude = request.Latitude;
+		user.Longitude = request.Longitude;
 		user.TabletopTo = NormalizeOptional(request.TabletopTo);
 		user.TabletopHerald = NormalizeOptional(request.TabletopHerald);
 		user.T3 = NormalizeOptional(request.T3);
@@ -104,12 +106,28 @@ public class UsersController : ControllerBase
 		ValidateLength(request.NewRecruit, 200, "NewRecruit");
 		ValidateLength(request.BestSportsPairings, 200, "Best Coast Pairings");
 		ValidateLength(request.ProfileImageUrl, 500, "Profilbild");
+		ValidateCoordinates(request.Latitude, request.Longitude);
 	}
 
 	private static void ValidateLength(string? value, int maxLength, string label)
 	{
 		if (!string.IsNullOrWhiteSpace(value) && value.Trim().Length > maxLength)
 			throw new DomainException($"{label} darf maximal {maxLength} Zeichen lang sein.");
+	}
+
+	private static void ValidateCoordinates(double? latitude, double? longitude)
+	{
+		if (latitude == null && longitude == null)
+			return;
+
+		if (latitude == null || longitude == null)
+			throw new DomainException("Latitude und Longitude müssen gemeinsam gesetzt werden.");
+
+		if (latitude < -90 || latitude > 90)
+			throw new DomainException("Latitude muss zwischen -90 und 90 liegen.");
+
+		if (longitude < -180 || longitude > 180)
+			throw new DomainException("Longitude muss zwischen -180 und 180 liegen.");
 	}
 
 	private static string? NormalizeOptional(string? value)
@@ -162,6 +180,8 @@ public class UsersController : ControllerBase
 			StreetAddress = user.StreetAddress,
 			PostalCode = user.PostalCode,
 			City = user.City,
+			Latitude = user.Latitude,
+			Longitude = user.Longitude,
 			TabletopTo = user.TabletopTo,
 			TabletopHerald = user.TabletopHerald,
 			T3 = user.T3,

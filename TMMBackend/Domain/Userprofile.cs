@@ -35,6 +35,12 @@ public class UserProfile
 	[BsonElement("city")]
 	public string? City { get; set; }
 
+	[BsonElement("latitude")]
+	public double? Latitude { get; set; }
+
+	[BsonElement("longitude")]
+	public double? Longitude { get; set; }
+
 	[BsonElement("tabletopTo")]
 	public string? TabletopTo { get; set; }
 

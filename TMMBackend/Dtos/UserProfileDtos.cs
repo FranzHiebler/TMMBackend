@@ -11,6 +11,8 @@ public class UserProfileResponse
 	public string? StreetAddress { get; set; }
 	public string? PostalCode { get; set; }
 	public string? City { get; set; }
+	public double? Latitude { get; set; }
+	public double? Longitude { get; set; }
 	public string? TabletopTo { get; set; }
 	public string? TabletopHerald { get; set; }
 	public string? T3 { get; set; }
@@ -30,6 +32,8 @@ public class UpdateUserProfileRequest
 	public string? StreetAddress { get; set; }
 	public string? PostalCode { get; set; }
 	public string? City { get; set; }
+	public double? Latitude { get; set; }
+	public double? Longitude { get; set; }
 	public string? TabletopTo { get; set; }
 	public string? TabletopHerald { get; set; }
 	public string? T3 { get; set; }

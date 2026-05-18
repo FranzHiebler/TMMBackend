@@ -2,6 +2,7 @@ export type GameSessionState = "Open" | "Full" | "Closed" | "Cancelled";
 export type ApplicationStatus = "Pending" | "Accepted" | "Rejected" | "Withdrawn";
 export type ChangeProposalStatus = "Pending" | "Accepted" | "Rejected";
 export type LocationRole = "Owner" | "Admin" | "Manager" | "Member" | "Applicant";
+export type ProfileFieldVisibility = "Public" | "FriendsOnly" | "Private";
 
 export interface ParticipantDto {
   userId: string;
@@ -230,16 +231,58 @@ export interface LocationJoinRequestResponse {
   createdAt: string;
 }
 
+export interface UserProfileVisibility {
+  email: ProfileFieldVisibility;
+  phoneNumber: ProfileFieldVisibility;
+  streetAddress: ProfileFieldVisibility;
+  postalCode: ProfileFieldVisibility;
+  city: ProfileFieldVisibility;
+  tabletopTo: ProfileFieldVisibility;
+  tabletopHerald: ProfileFieldVisibility;
+  t3: ProfileFieldVisibility;
+  newRecruit: ProfileFieldVisibility;
+  bestSportsPairings: ProfileFieldVisibility;
+}
+
 export interface UserProfileResponse {
   userId: string;
   displayName: string;
   email?: string | null;
+  phoneNumber?: string | null;
+  streetAddress?: string | null;
+  postalCode?: string | null;
+  city?: string | null;
+  tabletopTo?: string | null;
+  tabletopHerald?: string | null;
+  t3?: string | null;
+  newRecruit?: string | null;
+  bestSportsPairings?: string | null;
+  profileImageUrl?: string | null;
   defaultLocationId?: string | null;
+  canBeContacted: boolean;
+  visibility: UserProfileVisibility;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface UpdateUserProfileRequest {
   displayName: string;
+  email?: string | null;
+  phoneNumber?: string | null;
+  streetAddress?: string | null;
+  postalCode?: string | null;
+  city?: string | null;
+  tabletopTo?: string | null;
+  tabletopHerald?: string | null;
+  t3?: string | null;
+  newRecruit?: string | null;
+  bestSportsPairings?: string | null;
+  profileImageUrl?: string | null;
   defaultLocationId?: string | null;
+  canBeContacted: boolean;
+  visibility: UserProfileVisibility;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface UpdateGameSessionRequest {
