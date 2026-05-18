@@ -207,6 +207,7 @@ public class UsersController : ControllerBase
 		var friendship = await _friends.FindBetweenUsersAsync(_currentUser.UserId, userId);
 		var isFriend = friendship?.Status == FriendshipStatus.Accepted;
 		var isOwnProfile = _currentUser.UserId == userId;
+		var hiddenFields = BuildHiddenFields(user, isFriend, isOwnProfile);
 
 		return Ok(new PublicUserProfileResponse
 		{
@@ -215,6 +216,7 @@ public class UsersController : ControllerBase
 			ProfileImageUrl = user.ProfileImageUrl,
 			CanBeContacted = user.CanBeContacted,
 			IsFriend = isFriend,
+			HiddenFields = hiddenFields,
 
 			Email = CanSee(user.Visibility?.Email, isFriend, isOwnProfile) ? user.Email : null,
 			PhoneNumber = CanSee(user.Visibility?.PhoneNumber, isFriend, isOwnProfile) ? user.PhoneNumber : null,
@@ -227,6 +229,38 @@ public class UsersController : ControllerBase
 			NewRecruit = CanSee(user.Visibility?.NewRecruit, isFriend, isOwnProfile) ? user.NewRecruit : null,
 			BestSportsPairings = CanSee(user.Visibility?.BestSportsPairings, isFriend, isOwnProfile) ? user.BestSportsPairings : null
 		});
+	}
+	private static List<string> BuildHiddenFields(UserProfile user, bool isFriend, bool isOwnProfile)
+	{
+		var hidden = new List<string>();
+
+		AddIfHidden(hidden, "email", user.Email, user.Visibility?.Email, isFriend, isOwnProfile);
+		AddIfHidden(hidden, "phoneNumber", user.PhoneNumber, user.Visibility?.PhoneNumber, isFriend, isOwnProfile);
+		AddIfHidden(hidden, "streetAddress", user.StreetAddress, user.Visibility?.StreetAddress, isFriend, isOwnProfile);
+		AddIfHidden(hidden, "postalCode", user.PostalCode, user.Visibility?.PostalCode, isFriend, isOwnProfile);
+		AddIfHidden(hidden, "city", user.City, user.Visibility?.City, isFriend, isOwnProfile);
+		AddIfHidden(hidden, "tabletopTo", user.TabletopTo, user.Visibility?.TabletopTo, isFriend, isOwnProfile);
+		AddIfHidden(hidden, "tabletopHerald", user.TabletopHerald, user.Visibility?.TabletopHerald, isFriend, isOwnProfile);
+		AddIfHidden(hidden, "t3", user.T3, user.Visibility?.T3, isFriend, isOwnProfile);
+		AddIfHidden(hidden, "newRecruit", user.NewRecruit, user.Visibility?.NewRecruit, isFriend, isOwnProfile);
+		AddIfHidden(hidden, "bestSportsPairings", user.BestSportsPairings, user.Visibility?.BestSportsPairings, isFriend, isOwnProfile);
+
+		return hidden;
+	}
+
+	private static void AddIfHidden(
+		List<string> hidden,
+		string key,
+		string? value,
+		ProfileFieldVisibility? visibility,
+		bool isFriend,
+		bool isOwnProfile)
+	{
+		if (string.IsNullOrWhiteSpace(value))
+			return;
+
+		if (!CanSee(visibility, isFriend, isOwnProfile))
+			hidden.Add(key);
 	}
 
 	private static bool CanSee(ProfileFieldVisibility? visibility, bool isFriend, bool isOwnProfile)

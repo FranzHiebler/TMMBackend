@@ -75,4 +75,6 @@ public class PublicUserProfileResponse
 	public string? ProfileImageUrl { get; set; }
 	public bool CanBeContacted { get; set; }
 	public bool IsFriend { get; set; }
+
+	public List<string> HiddenFields { get; set; } = new();
 }

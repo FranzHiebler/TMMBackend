@@ -402,4 +402,5 @@ export interface PublicUserProfileResponse {
   profileImageUrl?: string | null;
   canBeContacted: boolean;
   isFriend: boolean;
+  hiddenFields: string[];
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getPublicUserProfile } from "../api/usersApi";
 import DirectMessageButton from "../components/DirectMessageButton";
@@ -6,13 +6,22 @@ import Message from "../components/Message";
 import { useUser } from "../context/UserContext";
 import type { PublicUserProfileResponse } from "../types/game";
 
-function ProfileValue({ label, value }: { label: string; value?: string | null }) {
-  if (!value) return null;
+function ProfileValue({
+  label,
+  value,
+  hidden,
+}: {
+  label: string;
+  value?: string | null;
+  hidden?: boolean;
+}) {
+  if (!value && !hidden) return null;
 
   return (
-    <div className="public-profile-row">
+    <div className={`public-profile-row ${hidden ? "is-hidden" : ""}`}>
       <span>{label}</span>
-      <b>{value}</b>
+      <b>{hidden ? "••••••" : value}</b>
+      {hidden && <small>Ausgeblendet</small>}
     </div>
   );
 }
@@ -24,6 +33,11 @@ export default function PublicProfilePage() {
   const [profile, setProfile] = useState<PublicUserProfileResponse | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+
+  const hiddenFields = useMemo(
+    () => new Set(profile?.hiddenFields ?? []),
+    [profile?.hiddenFields]
+  );
 
   useEffect(() => {
     async function load() {
@@ -84,20 +98,20 @@ export default function PublicProfilePage() {
 
           <h2>Kontakt</h2>
           <div className="public-profile-grid">
-            <ProfileValue label="E-Mail" value={profile.email} />
-            <ProfileValue label="Telefon" value={profile.phoneNumber} />
-            <ProfileValue label="Straße" value={profile.streetAddress} />
-            <ProfileValue label="PLZ" value={profile.postalCode} />
-            <ProfileValue label="Ort" value={profile.city} />
+            <ProfileValue label="E-Mail" value={profile.email} hidden={hiddenFields.has("email")} />
+            <ProfileValue label="Telefon" value={profile.phoneNumber} hidden={hiddenFields.has("phoneNumber")} />
+            <ProfileValue label="Straße" value={profile.streetAddress} hidden={hiddenFields.has("streetAddress")} />
+            <ProfileValue label="PLZ" value={profile.postalCode} hidden={hiddenFields.has("postalCode")} />
+            <ProfileValue label="Ort" value={profile.city} hidden={hiddenFields.has("city")} />
           </div>
 
           <h2>Tabletop-Profile</h2>
           <div className="public-profile-grid">
-            <ProfileValue label="TabletopTO" value={profile.tabletopTo} />
-            <ProfileValue label="Tabletop Herald" value={profile.tabletopHerald} />
-            <ProfileValue label="T3" value={profile.t3} />
-            <ProfileValue label="NewRecruit" value={profile.newRecruit} />
-            <ProfileValue label="Best Coast Pairings / BCP" value={profile.bestSportsPairings} />
+            <ProfileValue label="TabletopTO" value={profile.tabletopTo} hidden={hiddenFields.has("tabletopTo")} />
+            <ProfileValue label="Tabletop Herald" value={profile.tabletopHerald} hidden={hiddenFields.has("tabletopHerald")} />
+            <ProfileValue label="T3" value={profile.t3} hidden={hiddenFields.has("t3")} />
+            <ProfileValue label="NewRecruit" value={profile.newRecruit} hidden={hiddenFields.has("newRecruit")} />
+            <ProfileValue label="Best Coast Pairings / BCP" value={profile.bestSportsPairings} hidden={hiddenFields.has("bestSportsPairings")} />
           </div>
         </section>
       )}
