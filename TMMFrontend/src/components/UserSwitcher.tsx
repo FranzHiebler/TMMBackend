@@ -24,7 +24,10 @@ function mergeUsers(currentUser: User, loadedUsers: User[]) {
 
 export default function UserSwitcher() {
   const user = useUser();
-  const fallbackUsers = useMemo(() => mergeUsers(user, []), [user]);
+  const fallbackUsers = useMemo(
+    () => mergeUsers(user, []),
+    [user.userId, user.displayName]
+  );
   const [users, setUsers] = useState<User[]>(fallbackUsers);
 
   useEffect(() => {
