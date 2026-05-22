@@ -13,15 +13,24 @@ builder.Services.Configure<MongoDbSettings>(
 builder.Services.Configure<AdminSettings>(
 	builder.Configuration.GetSection("Admin"));
 
+var allowedOrigins = builder.Configuration
+	.GetSection("Cors:AllowedOrigins")
+	.Get<string[]>() ?? [];
+
 builder.Services.AddCors(options =>
 {
 	options.AddPolicy("Frontend", policy =>
 	{
-		policy
-			.WithOrigins(
+		var origins = allowedOrigins.Length > 0
+			? allowedOrigins
+			: new[]
+			{
 				"http://localhost:5173",
 				"http://localhost:5174"
-			)
+			};
+
+		policy
+			.WithOrigins(origins)
 			.AllowAnyHeader()
 			.AllowAnyMethod();
 	});
