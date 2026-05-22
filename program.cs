@@ -21,16 +21,12 @@ builder.Services.AddCors(options =>
 {
 	options.AddPolicy("Frontend", policy =>
 	{
-		var origins = allowedOrigins.Length > 0
-			? allowedOrigins
-			: new[]
-			{
-				"http://localhost:5173",
-				"http://localhost:5174"
-			};
-
 		policy
-			.WithOrigins(origins)
+			.WithOrigins(
+				"http://localhost:5173",
+				"http://localhost:5174",
+				"https://tmmfrontend-production.up.railway.app"
+			)
 			.AllowAnyHeader()
 			.AllowAnyMethod();
 	});
