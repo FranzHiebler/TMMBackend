@@ -21,7 +21,13 @@ public class UserProfileResponse
 	public string? ProfileImageUrl { get; set; }
 	public string? DefaultLocationId { get; set; }
 	public bool CanBeContacted { get; set; }
+	public bool HideProfile { get; set; }
+	public bool HideOnMap { get; set; }
+	public bool HideParticipation { get; set; }
 	public UserProfileVisibilityDto Visibility { get; set; } = new();
+	public List<string> FavoriteSystemKeys { get; set; } = new();
+	public List<UserArmyProfileDto> Armies { get; set; } = new();
+	public LookingForGameStatusDto LookingForGame { get; set; } = new();
 }
 
 public class UpdateUserProfileRequest
@@ -42,7 +48,28 @@ public class UpdateUserProfileRequest
 	public string? ProfileImageUrl { get; set; }
 	public string? DefaultLocationId { get; set; }
 	public bool CanBeContacted { get; set; } = true;
+	public bool HideProfile { get; set; }
+	public bool HideOnMap { get; set; }
+	public bool HideParticipation { get; set; }
 	public UserProfileVisibilityDto Visibility { get; set; } = new();
+	public List<string>? FavoriteSystemKeys { get; set; } = new();
+	public List<UserArmyProfileDto>? Armies { get; set; } = new();
+	public LookingForGameStatusDto? LookingForGame { get; set; } = new();
+}
+
+public class UserArmyProfileDto
+{
+	public string SystemKey { get; set; } = default!;
+	public string ArmyName { get; set; } = default!;
+}
+
+public class LookingForGameStatusDto
+{
+	public bool IsActive { get; set; }
+	public string? SystemKey { get; set; }
+	public int? RadiusKm { get; set; }
+	public string? TimeNote { get; set; }
+	public DateTime? UpdatedAtUtc { get; set; }
 }
 public class UserProfileVisibilityDto
 {
@@ -74,7 +101,11 @@ public class PublicUserProfileResponse
 	public string? BestSportsPairings { get; set; }
 	public string? ProfileImageUrl { get; set; }
 	public bool CanBeContacted { get; set; }
+	public bool HideProfile { get; set; }
 	public bool IsFriend { get; set; }
+	public List<string> FavoriteSystemKeys { get; set; } = new();
+	public List<UserArmyProfileDto> Armies { get; set; } = new();
+	public LookingForGameStatusDto LookingForGame { get; set; } = new();
 
 	public List<string> HiddenFields { get; set; } = new();
 }

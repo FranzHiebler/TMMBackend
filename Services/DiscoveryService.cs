@@ -113,6 +113,8 @@ public class DiscoveryService : IDiscoveryService
 				GameId = game.Id!,
 				Title = game.Title,
 				StartTimeUtc = game.StartTimeUtc,
+				TimingMode = game.TimingMode,
+				TimeLabel = game.TimeLabel,
 				LocationId = game.LocationId,
 				LocationName = location?.Name ?? game.LocationSnapshot.Name,
 				City = location?.City ?? game.LocationSnapshot.City,

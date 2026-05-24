@@ -15,18 +15,18 @@ builder.Services.Configure<AdminSettings>(
 
 var allowedOrigins = builder.Configuration
 	.GetSection("Cors:AllowedOrigins")
-	.Get<string[]>() ?? [];
+	.Get<string[]>() ?? [
+		"http://localhost:5173",
+		"http://localhost:5174",
+		"https://tmmfrontend-production.up.railway.app"
+	];
 
 builder.Services.AddCors(options =>
 {
 	options.AddPolicy("Frontend", policy =>
 	{
 		policy
-			.WithOrigins(
-				"http://localhost:5173",
-				"http://localhost:5174",
-				"https://tmmfrontend-production.up.railway.app"
-			)
+			.WithOrigins(allowedOrigins)
 			.AllowAnyHeader()
 			.AllowAnyMethod();
 	});
@@ -39,6 +39,8 @@ builder.Services.AddScoped<ISystemRepository, SystemRepository>();
 builder.Services.AddScoped<IMessageRepository, MessageRepository>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IFriendRepository, FriendRepository>();
+builder.Services.AddScoped<IPlayRequestRepository, PlayRequestRepository>();
+builder.Services.AddScoped<IEventSeriesRepository, EventSeriesRepository>();
 
 builder.Services.AddScoped<IGameService, GameService>();
 builder.Services.AddScoped<IGameAssignmentService, GameAssignmentService>();
@@ -46,8 +48,11 @@ builder.Services.AddScoped<IGameProposalService, GameProposalService>();
 builder.Services.AddScoped<IGameSessionAuthorizationService, GameSessionAuthorizationService>();
 builder.Services.AddScoped<IMessageService, MessageService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IMailNotificationService, NoopMailNotificationService>();
 builder.Services.AddScoped<IFriendService, FriendService>();
 builder.Services.AddScoped<IDiscoveryService, DiscoveryService>();
+builder.Services.AddScoped<IPlayRequestService, PlayRequestService>();
+builder.Services.AddScoped<IEventSeriesService, EventSeriesService>();
 builder.Services.AddSingleton<MongoIndexInitializer>();
 
 builder.Services.AddScoped<ILocationService, LocationService>();
@@ -133,6 +138,13 @@ app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseCors("Frontend");
 
 app.UseAuthorization();
+
+app.MapGet("/health", () => Results.Ok(new
+{
+	status = "ok",
+	service = "Tabletop Matchmaker Backend",
+	timeUtc = DateTime.UtcNow
+}));
 
 app.MapControllers();
 

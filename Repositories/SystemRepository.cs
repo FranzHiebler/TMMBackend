@@ -47,6 +47,25 @@ public class SystemRepository : ISystemRepository
 		return system;
 	}
 
+	public async Task<SystemDefinition> UpdateAsync(string key, CreateSystemRequest request)
+	{
+		var normalizedKey = NormalizeRequired(key, "Key").ToLowerInvariant();
+		var system = await _systems.Find(x => x.Key == normalizedKey).FirstOrDefaultAsync()
+			?? new SystemDefinition { Key = normalizedKey };
+
+		system.Name = NormalizeRequired(request.Name, "Name");
+		system.ShortCode = NormalizeOptional(request.ShortCode);
+		system.Color = NormalizeOptional(request.Color);
+		system.MarkerColor = NormalizeOptional(request.MarkerColor);
+
+		await _systems.ReplaceOneAsync(
+			x => x.Key == normalizedKey,
+			system,
+			new ReplaceOptions { IsUpsert = true });
+
+		return system;
+	}
+
 	private static string NormalizeRequired(string? value, string label)
 	{
 		if (string.IsNullOrWhiteSpace(value))

@@ -8,6 +8,8 @@ public class CreateGameRequest
 	public string LocationId { get; set; } = default!;
 	public string? ClubId { get; set; }
 	public DateTime StartTimeUtc { get; set; }
+	public SessionTimingMode TimingMode { get; set; } = SessionTimingMode.Fixed;
+	public string? TimeLabel { get; set; }
 	public string? Description { get; set; }
 	public GameJoinMode JoinMode { get; set; } = GameJoinMode.ApprovalRequired;
 	public List<CreateGameTableRequest> Tables { get; set; } = new();

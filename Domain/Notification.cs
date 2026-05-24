@@ -11,7 +11,17 @@ public enum NotificationKind
 	ApplicationAccepted,
 	ApplicationRejected,
 	FriendRequest,
-	FriendAccepted
+	FriendAccepted,
+	SessionInvitation,
+	SessionInvitationAccepted,
+	SessionInvitationRejected,
+	WaitlistJoined,
+	WaitlistPromoted,
+	DateOptionAdded,
+	DateOptionSelected,
+	SessionClosed,
+	PlayRequestCreated,
+	MailDigestPending
 }
 
 [BsonIgnoreExtraElements]

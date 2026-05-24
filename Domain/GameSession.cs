@@ -36,6 +36,12 @@ public class GameSession
 	[BsonElement("startTimeUtc")]
 	public DateTime StartTimeUtc { get; set; }
 
+	[BsonElement("timingMode")]
+	public SessionTimingMode TimingMode { get; set; } = SessionTimingMode.Fixed;
+
+	[BsonElement("timeLabel")]
+	public string? TimeLabel { get; set; }
+
 	[BsonElement("description")]
 	public string? Description { get; set; }
 
@@ -44,6 +50,25 @@ public class GameSession
 
 	[BsonElement("changeProposals")]
 	public List<GameChangeProposal> ChangeProposals { get; set; } = new();
+
+	[BsonElement("dateOptions")]
+	public List<SessionDateOption> DateOptions { get; set; } = new();
+
+	[BsonElement("invitations")]
+	public List<SessionInvitation> Invitations { get; set; } = new();
+
+	[BsonElement("waitlist")]
+	public List<WaitlistEntry> Waitlist { get; set; } = new();
+
+	[BsonElement("result")]
+	public GameResult? Result { get; set; }
+
+	[BsonElement("publicSlug")]
+	public string? PublicSlug { get; set; }
+
+	[BsonElement("seriesId")]
+	[BsonRepresentation(BsonType.ObjectId)]
+	public string? SeriesId { get; set; }
 
 	[BsonElement("createdAt")]
 	public DateTime CreatedAt { get; set; }

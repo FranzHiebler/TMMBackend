@@ -25,6 +25,8 @@ public class MongoIndexInitializer
 		await EnsureNotificationIndexesAsync(database);
 		await EnsureSystemIndexesAsync(database);
 		await EnsureUserIndexesAsync(database);
+		await EnsurePlayRequestIndexesAsync(database);
+		await EnsureEventSeriesIndexesAsync(database);
 	}
 
 	private async Task EnsureGameIndexesAsync(IMongoDatabase database)
@@ -35,7 +37,8 @@ public class MongoIndexInitializer
 		{
 			new CreateIndexModel<GameSession>(Builders<GameSession>.IndexKeys.Ascending(x => x.StartTimeUtc)),
 			new CreateIndexModel<GameSession>(Builders<GameSession>.IndexKeys.Ascending(x => x.LocationId)),
-			new CreateIndexModel<GameSession>(Builders<GameSession>.IndexKeys.Ascending(x => x.Status))
+			new CreateIndexModel<GameSession>(Builders<GameSession>.IndexKeys.Ascending(x => x.Status)),
+			new CreateIndexModel<GameSession>(Builders<GameSession>.IndexKeys.Ascending(x => x.PublicSlug))
 		});
 	}
 
@@ -112,5 +115,26 @@ public class MongoIndexInitializer
 		await users.Indexes.CreateOneAsync(
 			new CreateIndexModel<UserProfile>(
 				Builders<UserProfile>.IndexKeys.Ascending(x => x.DisplayName)));
+	}
+
+	private async Task EnsurePlayRequestIndexesAsync(IMongoDatabase database)
+	{
+		var requests = database.GetCollection<PlayRequest>("playRequests");
+		await requests.Indexes.CreateManyAsync(new[]
+		{
+			new CreateIndexModel<PlayRequest>(Builders<PlayRequest>.IndexKeys.Ascending(x => x.Status).Descending(x => x.UpdatedAtUtc)),
+			new CreateIndexModel<PlayRequest>(Builders<PlayRequest>.IndexKeys.Ascending(x => x.Owner.UserId)),
+			new CreateIndexModel<PlayRequest>(Builders<PlayRequest>.IndexKeys.Ascending(x => x.SystemKey))
+		});
+	}
+
+	private async Task EnsureEventSeriesIndexesAsync(IMongoDatabase database)
+	{
+		var series = database.GetCollection<EventSeries>("eventSeries");
+		await series.Indexes.CreateManyAsync(new[]
+		{
+			new CreateIndexModel<EventSeries>(Builders<EventSeries>.IndexKeys.Ascending(x => x.LocationId)),
+			new CreateIndexModel<EventSeries>(Builders<EventSeries>.IndexKeys.Ascending(x => x.Host.UserId))
+		});
 	}
 }

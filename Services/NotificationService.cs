@@ -10,13 +10,16 @@ public class NotificationService : INotificationService
 {
 	private readonly INotificationRepository _repository;
 	private readonly ICurrentUserService _currentUser;
+	private readonly IMailNotificationService _mail;
 
 	public NotificationService(
 		INotificationRepository repository,
-		ICurrentUserService currentUser)
+		ICurrentUserService currentUser,
+		IMailNotificationService mail)
 	{
 		_repository = repository;
 		_currentUser = currentUser;
+		_mail = mail;
 	}
 
 	public async Task<List<NotificationResponse>> GetMineAsync()
@@ -50,6 +53,7 @@ public class NotificationService : INotificationService
 		string? linkUrl)
 	{
 		await _repository.CreateAsync(Create(userId, kind, title, body, linkUrl));
+		await _mail.QueueAsync(userId, kind, title, body, linkUrl);
 	}
 
 	public async Task NotifyManyAsync(
@@ -66,6 +70,8 @@ public class NotificationService : INotificationService
 			.ToList();
 
 		await _repository.CreateManyAsync(notifications);
+		foreach (var notification in notifications)
+			await _mail.QueueAsync(notification.UserId, notification.Kind, notification.Title, notification.Body, notification.LinkUrl);
 	}
 
 	private static Notification Create(

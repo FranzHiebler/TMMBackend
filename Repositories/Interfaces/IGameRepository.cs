@@ -7,6 +7,8 @@ public interface IGameRepository
 {
 	Task CreateAsync(GameSession game);
 	Task<GameSession?> GetByIdAsync(string id);
+	Task<GameSession?> GetByPublicSlugOrIdAsync(string slugOrId);
+	Task<List<GameSession>> GetRelevantForUserAsync(string userId);
 	Task<List<GameSession>> SearchAsync(SearchGamesRequest request);
 	Task<List<GameSession>> SearchNearbyAsync(SearchNearbyGamesRequest request, List<string> locationIds);
 	Task<List<GameSession>> SearchDiscoveryAsync(DateTime fromUtc, DateTime toUtc, List<string>? locationIds);

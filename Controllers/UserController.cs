@@ -35,11 +35,13 @@ public class UsersController : ControllerBase
 			userId = u.Id,
 			displayName = u.DisplayName,
 			email = u.Email,
-			streetAddress = u.StreetAddress,
+			streetAddress = u.HideOnMap ? null : u.StreetAddress,
 			postalCode = u.PostalCode,
 			city = u.City,
-			latitude = u.Latitude,
-			longitude = u.Longitude
+			latitude = u.HideOnMap ? null : u.Latitude,
+			longitude = u.HideOnMap ? null : u.Longitude,
+			favoriteSystemKeys = u.FavoriteSystemKeys ?? new List<string>(),
+			lookingForGame = ToLookingForGameDto(u.LookingForGame ?? new LookingForGameStatus())
 		}));
 	}
 
@@ -89,7 +91,21 @@ public class UsersController : ControllerBase
 		user.ProfileImageUrl = NormalizeOptional(request.ProfileImageUrl);
 		user.DefaultLocationId = NormalizeOptional(request.DefaultLocationId);
 		user.CanBeContacted = request.CanBeContacted;
+		user.HideProfile = request.HideProfile;
+		user.HideOnMap = request.HideOnMap;
+		user.HideParticipation = request.HideParticipation;
 		user.Visibility = ToDomainVisibility(request.Visibility);
+		user.FavoriteSystemKeys = NormalizeStringList(request.FavoriteSystemKeys, 40, 80);
+		user.Armies = (request.Armies ?? new List<UserArmyProfileDto>())
+			.Where(a => !string.IsNullOrWhiteSpace(a.SystemKey) && !string.IsNullOrWhiteSpace(a.ArmyName))
+			.Take(100)
+			.Select(a => new UserArmyProfile
+			{
+				SystemKey = a.SystemKey.Trim(),
+				ArmyName = a.ArmyName.Trim()
+			})
+			.ToList();
+		user.LookingForGame = ToDomainLookingForGame(request.LookingForGame);
 
 		await _repository.UpsertAsync(user);
 
@@ -115,6 +131,7 @@ public class UsersController : ControllerBase
 		ValidateLength(request.NewRecruit, 200, "NewRecruit");
 		ValidateLength(request.BestSportsPairings, 200, "Best Coast Pairings");
 		ValidateLength(request.ProfileImageUrl, 500, "Profilbild");
+		ValidateLength(request.LookingForGame?.TimeNote, 500, "Suchstatus-Notiz");
 		ValidateCoordinates(request.Latitude, request.Longitude);
 	}
 
@@ -144,8 +161,10 @@ public class UsersController : ControllerBase
 		return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 	}
 
-	private static UserProfileVisibility ToDomainVisibility(UserProfileVisibilityDto dto)
+	private static UserProfileVisibility ToDomainVisibility(UserProfileVisibilityDto? dto)
 	{
+		dto ??= new UserProfileVisibilityDto();
+
 		return new UserProfileVisibility
 		{
 			Email = dto.Email,
@@ -178,6 +197,45 @@ public class UsersController : ControllerBase
 		};
 	}
 
+	private static List<string> NormalizeStringList(List<string>? values, int maxItems, int maxLength)
+	{
+		return (values ?? new List<string>())
+			.Select(NormalizeOptional)
+			.Where(value => !string.IsNullOrWhiteSpace(value))
+			.Select(value => value!)
+			.Distinct(StringComparer.OrdinalIgnoreCase)
+			.Take(maxItems)
+			.Select(value => value.Length > maxLength ? value[..maxLength] : value)
+			.ToList();
+	}
+
+	private static LookingForGameStatus ToDomainLookingForGame(LookingForGameStatusDto? dto)
+	{
+		if (dto == null)
+			return new LookingForGameStatus();
+
+		return new LookingForGameStatus
+		{
+			IsActive = dto.IsActive,
+			SystemKey = NormalizeOptional(dto.SystemKey),
+			RadiusKm = dto.RadiusKm is > 0 and <= 500 ? dto.RadiusKm : null,
+			TimeNote = NormalizeOptional(dto.TimeNote),
+			UpdatedAtUtc = dto.IsActive ? DateTime.UtcNow : dto.UpdatedAtUtc
+		};
+	}
+
+	private static LookingForGameStatusDto ToLookingForGameDto(LookingForGameStatus status)
+	{
+		return new LookingForGameStatusDto
+		{
+			IsActive = status.IsActive,
+			SystemKey = status.SystemKey,
+			RadiusKm = status.RadiusKm,
+			TimeNote = status.TimeNote,
+			UpdatedAtUtc = status.UpdatedAtUtc
+		};
+	}
+
 	private static UserProfileResponse ToResponse(UserProfile user)
 	{
 		return new UserProfileResponse
@@ -199,7 +257,17 @@ public class UsersController : ControllerBase
 			ProfileImageUrl = user.ProfileImageUrl,
 			DefaultLocationId = user.DefaultLocationId,
 			CanBeContacted = user.CanBeContacted,
-			Visibility = ToVisibilityDto(user.Visibility ?? new UserProfileVisibility())
+			HideProfile = user.HideProfile,
+			HideOnMap = user.HideOnMap,
+			HideParticipation = user.HideParticipation,
+			Visibility = ToVisibilityDto(user.Visibility ?? new UserProfileVisibility()),
+			FavoriteSystemKeys = user.FavoriteSystemKeys ?? new List<string>(),
+			Armies = (user.Armies ?? new List<UserArmyProfile>()).Select(a => new UserArmyProfileDto
+			{
+				SystemKey = a.SystemKey,
+				ArmyName = a.ArmyName
+			}).ToList(),
+			LookingForGame = ToLookingForGameDto(user.LookingForGame ?? new LookingForGameStatus())
 		};
 	}
 	[HttpGet("{userId}/profile")]
@@ -213,6 +281,8 @@ public class UsersController : ControllerBase
 		var friendship = await _friends.FindBetweenUsersAsync(_currentUser.UserId, userId);
 		var isFriend = friendship?.Status == FriendshipStatus.Accepted;
 		var isOwnProfile = _currentUser.UserId == userId;
+		if (user.HideProfile && !isOwnProfile && !isFriend)
+			throw new DomainException("Profil ist nicht öffentlich sichtbar.");
 		var hiddenFields = BuildHiddenFields(user, isFriend, isOwnProfile);
 
 		return Ok(new PublicUserProfileResponse
@@ -221,8 +291,16 @@ public class UsersController : ControllerBase
 			DisplayName = user.DisplayName,
 			ProfileImageUrl = user.ProfileImageUrl,
 			CanBeContacted = user.CanBeContacted,
+			HideProfile = user.HideProfile,
 			IsFriend = isFriend,
 			HiddenFields = hiddenFields,
+			FavoriteSystemKeys = user.FavoriteSystemKeys ?? new List<string>(),
+			Armies = (user.Armies ?? new List<UserArmyProfile>()).Select(a => new UserArmyProfileDto
+			{
+				SystemKey = a.SystemKey,
+				ArmyName = a.ArmyName
+			}).ToList(),
+			LookingForGame = ToLookingForGameDto(user.LookingForGame ?? new LookingForGameStatus()),
 
 			Email = CanSee(user.Visibility?.Email, isFriend, isOwnProfile) ? user.Email : null,
 			PhoneNumber = CanSee(user.Visibility?.PhoneNumber, isFriend, isOwnProfile) ? user.PhoneNumber : null,

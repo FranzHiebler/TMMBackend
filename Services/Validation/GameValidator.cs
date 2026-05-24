@@ -1,4 +1,5 @@
-﻿using TabletopMatchMaker.Dtos;
+﻿using TabletopMatchMaker.Domain;
+using TabletopMatchMaker.Dtos;
 
 namespace TabletopMatchMaker.Services.Validation;
 
@@ -6,7 +7,7 @@ public static class GameValidator
 {
 	public static void ValidateCreate(CreateGameRequest request)
 	{
-		ValidateSessionBase(request.Title, request.StartTimeUtc);
+		ValidateSessionBase(request.Title, request.StartTimeUtc, request.TimingMode);
 
 		if (string.IsNullOrWhiteSpace(request.LocationId))
 			throw new DomainException("Location ist erforderlich.");
@@ -20,7 +21,7 @@ public static class GameValidator
 
 	public static void ValidateUpdateSession(UpdateGameSessionRequest request)
 	{
-		ValidateSessionBase(request.Title, request.StartTimeUtc);
+		ValidateSessionBase(request.Title, request.StartTimeUtc, SessionTimingMode.Fixed);
 	}
 
 	public static void ValidateUpdateTable(UpdateGameTableRequest table)
@@ -56,7 +57,7 @@ public static class GameValidator
 			throw new DomainException("System darf maximal 80 Zeichen lang sein.");
 	}
 
-	private static void ValidateSessionBase(string title, DateTime startTimeUtc)
+	private static void ValidateSessionBase(string title, DateTime startTimeUtc, SessionTimingMode timingMode)
 	{
 		if (string.IsNullOrWhiteSpace(title))
 			throw new DomainException("Titel ist erforderlich.");
@@ -64,7 +65,7 @@ public static class GameValidator
 		if (title.Trim().Length > 120)
 			throw new DomainException("Titel darf maximal 120 Zeichen lang sein.");
 
-		if (startTimeUtc == default)
+		if (timingMode == SessionTimingMode.Fixed && startTimeUtc == default)
 			throw new DomainException("Startzeit ist erforderlich.");
 	}
 
@@ -98,3 +99,5 @@ public static class GameValidator
 			throw new DomainException("Bitte gültige Koordinaten setzen.");
 	}
 }
+
+

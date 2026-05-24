@@ -39,6 +39,17 @@ public class SystemsController : ControllerBase
 		return Ok(ToResponse(system));
 	}
 
+	[HttpPut("{key}")]
+	public async Task<ActionResult<SystemResponse>> Update(string key, [FromBody] CreateSystemRequest request)
+	{
+		_adminAuthorization.EnsureCurrentUserIsAdmin();
+		request.Key = key;
+		Validate(request);
+
+		var system = await _repository.UpdateAsync(key, request);
+		return Ok(ToResponse(system));
+	}
+
 	private static void Validate(CreateSystemRequest request)
 	{
 		if (string.IsNullOrWhiteSpace(request.Key) || string.IsNullOrWhiteSpace(request.Name))

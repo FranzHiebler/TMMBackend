@@ -17,6 +17,7 @@ public class CurrentUserService : ICurrentUserService
 
 	private string GetRequiredHeader(string name)
 	{
+		// Auth boundary: replace only this adapter when real authentication is introduced.
 		var value = _httpContextAccessor
 			.HttpContext?
 			.Request

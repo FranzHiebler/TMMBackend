@@ -66,8 +66,55 @@ public class UserProfile
 	[BsonElement("canBeContacted")]
 	public bool CanBeContacted { get; set; } = true;
 
+	[BsonElement("hideProfile")]
+	public bool HideProfile { get; set; }
+
+	[BsonElement("hideOnMap")]
+	public bool HideOnMap { get; set; }
+
+	[BsonElement("hideParticipation")]
+	public bool HideParticipation { get; set; }
+
 	[BsonElement("visibility")]
 	public UserProfileVisibility Visibility { get; set; } = new();
+
+	[BsonElement("favoriteSystemKeys")]
+	public List<string> FavoriteSystemKeys { get; set; } = new();
+
+	[BsonElement("armies")]
+	public List<UserArmyProfile> Armies { get; set; } = new();
+
+	[BsonElement("lookingForGame")]
+	public LookingForGameStatus LookingForGame { get; set; } = new();
+}
+
+[BsonIgnoreExtraElements]
+public class UserArmyProfile
+{
+	[BsonElement("systemKey")]
+	public string SystemKey { get; set; } = default!;
+
+	[BsonElement("armyName")]
+	public string ArmyName { get; set; } = default!;
+}
+
+[BsonIgnoreExtraElements]
+public class LookingForGameStatus
+{
+	[BsonElement("isActive")]
+	public bool IsActive { get; set; }
+
+	[BsonElement("systemKey")]
+	public string? SystemKey { get; set; }
+
+	[BsonElement("radiusKm")]
+	public int? RadiusKm { get; set; }
+
+	[BsonElement("timeNote")]
+	public string? TimeNote { get; set; }
+
+	[BsonElement("updatedAtUtc")]
+	public DateTime? UpdatedAtUtc { get; set; }
 }
 
 [BsonIgnoreExtraElements]

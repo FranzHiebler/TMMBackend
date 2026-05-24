@@ -40,6 +40,19 @@ public class GamesController : ControllerBase
 		return Ok(game);
 	}
 
+	[HttpGet("public/{slugOrId}")]
+	public async Task<ActionResult<PublicGameResponse>> GetPublic(string slugOrId)
+	{
+		var game = await _service.GetPublicAsync(slugOrId);
+		return game == null ? NotFound(new { error = "Session wurde nicht gefunden." }) : Ok(game);
+	}
+
+	[HttpGet("calendar")]
+	public async Task<ActionResult<List<CalendarItemResponse>>> Calendar()
+	{
+		return Ok(await _service.GetCalendarAsync());
+	}
+
 	[HttpPost("{id}/tables/{tableId}/join")]
 	public async Task<IActionResult> JoinTable(
 		string id,
@@ -178,5 +191,59 @@ public class GamesController : ControllerBase
 		[FromBody] UpdateGameTableRequest request)
 	{
 		return Ok(await _service.UpdateTableAsync(id, tableId, request));
+	}
+
+	[HttpPost("{id}/date-options")]
+	public async Task<ActionResult<GameResponse>> AddDateOption(string id, AddDateOptionRequest request)
+	{
+		return Ok(await _service.AddDateOptionAsync(id, request));
+	}
+
+	[HttpPost("{id}/date-options/{optionId}/vote")]
+	public async Task<ActionResult<GameResponse>> VoteDateOption(string id, string optionId)
+	{
+		return Ok(await _service.VoteDateOptionAsync(id, optionId));
+	}
+
+	[HttpPost("{id}/date-options/{optionId}/select")]
+	public async Task<ActionResult<GameResponse>> SelectDateOption(string id, string optionId)
+	{
+		return Ok(await _service.SelectDateOptionAsync(id, optionId));
+	}
+
+	[HttpPost("{id}/invitations")]
+	public async Task<ActionResult<GameResponse>> InviteFriend(string id, InviteFriendToSessionRequest request)
+	{
+		return Ok(await _service.InviteFriendAsync(id, request));
+	}
+
+	[HttpPost("{id}/invitations/{invitationId}/accept")]
+	public async Task<ActionResult<GameResponse>> AcceptInvitation(string id, string invitationId)
+	{
+		return Ok(await _service.RespondInvitationAsync(id, invitationId, true));
+	}
+
+	[HttpPost("{id}/invitations/{invitationId}/reject")]
+	public async Task<ActionResult<GameResponse>> RejectInvitation(string id, string invitationId)
+	{
+		return Ok(await _service.RespondInvitationAsync(id, invitationId, false));
+	}
+
+	[HttpPost("{id}/waitlist")]
+	public async Task<ActionResult<GameResponse>> JoinWaitlist(string id, JoinWaitlistRequest request)
+	{
+		return Ok(await _service.JoinWaitlistAsync(id, request));
+	}
+
+	[HttpPost("{id}/waitlist/{entryId}/promote")]
+	public async Task<ActionResult<GameResponse>> PromoteWaitlist(string id, string entryId, [FromQuery] string tableId)
+	{
+		return Ok(await _service.PromoteWaitlistEntryAsync(id, entryId, tableId));
+	}
+
+	[HttpPost("{id}/close")]
+	public async Task<ActionResult<GameResponse>> Close(string id, CloseGameRequest request)
+	{
+		return Ok(await _service.CloseGameAsync(id, request));
 	}
 }

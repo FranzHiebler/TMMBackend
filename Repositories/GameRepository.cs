@@ -28,6 +28,26 @@ public class GameRepository : IGameRepository
 		return await _games.Find(x => x.Id == id).FirstOrDefaultAsync();
 	}
 
+	public async Task<GameSession?> GetByPublicSlugOrIdAsync(string slugOrId)
+	{
+		return await _games
+			.Find(x => x.Id == slugOrId || x.PublicSlug == slugOrId)
+			.FirstOrDefaultAsync();
+	}
+
+	public async Task<List<GameSession>> GetRelevantForUserAsync(string userId)
+	{
+		var f =
+			Builders<GameSession>.Filter.Eq(x => x.Host.UserId, userId) |
+			Builders<GameSession>.Filter.ElemMatch(x => x.Invitations, i => i.User.UserId == userId) |
+			Builders<GameSession>.Filter.ElemMatch(x => x.Waitlist, w => w.Player.UserId == userId) |
+			Builders<GameSession>.Filter.ElemMatch(x => x.Tables, t =>
+				t.AssignedPlayers.Any(p => p.UserId == userId) ||
+				t.Applications.Any(a => a.Player.UserId == userId));
+
+		return await _games.Find(f).SortBy(x => x.StartTimeUtc).ToListAsync();
+	}
+
 	public async Task<List<GameSession>> SearchAsync(SearchGamesRequest r)
 	{
 		var f = Builders<GameSession>.Filter.Empty;

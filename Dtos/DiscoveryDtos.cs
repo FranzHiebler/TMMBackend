@@ -16,6 +16,8 @@ public class GameDiscoveryResponse
 	public string GameId { get; set; } = default!;
 	public string Title { get; set; } = default!;
 	public DateTime StartTimeUtc { get; set; }
+	public SessionTimingMode TimingMode { get; set; }
+	public string? TimeLabel { get; set; }
 	public string LocationId { get; set; } = default!;
 	public string LocationName { get; set; } = default!;
 	public string City { get; set; } = default!;
