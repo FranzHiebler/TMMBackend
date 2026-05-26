@@ -1,6 +1,7 @@
-﻿using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Options;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using System.Text.RegularExpressions;
 using TabletopMatchMaker.Domain;
 using TabletopMatchMaker.Infrastructure;
 using TabletopMatchMaker.Repositories.Interfaces;
@@ -20,11 +21,15 @@ public class UserRepository : IUserRepository
 
 	public async Task<List<UserProfile>> SearchAsync(string? query)
 	{
-		var filter = string.IsNullOrWhiteSpace(query)
+		var escapedQuery = string.IsNullOrWhiteSpace(query)
+			? null
+			: Regex.Escape(query.Trim());
+
+		var filter = string.IsNullOrWhiteSpace(escapedQuery)
 			? FilterDefinition<UserProfile>.Empty
 			: Builders<UserProfile>.Filter.Regex(
 				x => x.DisplayName,
-				new BsonRegularExpression(query, "i"));
+				new BsonRegularExpression(escapedQuery, "i"));
 
 		return await _users
 			.Find(filter)

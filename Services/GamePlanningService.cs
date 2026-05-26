@@ -11,17 +11,20 @@ public class GamePlanningService : IGamePlanningService
 	private readonly ICurrentUserService _currentUser;
 	private readonly IGameSessionAuthorizationService _authorization;
 	private readonly INotificationService _notifications;
+	private readonly IFriendRepository _friends;
 
 	public GamePlanningService(
 		IGameRepository repository,
 		ICurrentUserService currentUser,
 		IGameSessionAuthorizationService authorization,
-		INotificationService notifications)
+		INotificationService notifications,
+		IFriendRepository friends)
 	{
 		_repository = repository;
 		_currentUser = currentUser;
 		_authorization = authorization;
 		_notifications = notifications;
+		_friends = friends;
 	}
 
 	public async Task<GameResponse> AddDateOptionAsync(string gameId, AddDateOptionRequest request)
@@ -96,13 +99,21 @@ public class GamePlanningService : IGamePlanningService
 		if (game.Invitations.Any(x => x.User.UserId == request.UserId && x.Status == SessionInvitationStatus.Pending))
 			throw new DomainException("Diese Einladung ist bereits offen.");
 
+		var friendship = await _friends.FindBetweenUsersAsync(_currentUser.UserId, request.UserId);
+		if (friendship?.Status != FriendshipStatus.Accepted)
+			throw new DomainException("Du kannst nur Freunde zu einer Session einladen.");
+
+		var friendDisplayName = friendship.RequesterUserId == request.UserId
+			? friendship.RequesterDisplayName
+			: friendship.ReceiverDisplayName;
+
 		game.Invitations.Add(new SessionInvitation
 		{
 			Id = Guid.NewGuid().ToString("N"),
 			User = new ParticipantInfo
 			{
 				UserId = request.UserId,
-				DisplayName = string.IsNullOrWhiteSpace(request.DisplayName) ? request.UserId : request.DisplayName.Trim()
+				DisplayName = string.IsNullOrWhiteSpace(friendDisplayName) ? request.UserId : friendDisplayName.Trim()
 			},
 			Status = SessionInvitationStatus.Pending,
 			CreatedAtUtc = DateTime.UtcNow

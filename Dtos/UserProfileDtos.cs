@@ -76,6 +76,11 @@ public class UserDiscoverySettingsDto
 	public int Zoom { get; set; } = 10;
 }
 
+public class UserPermissionsResponse
+{
+	public bool IsAdmin { get; set; }
+}
+
 public class UserArmyProfileDto
 {
 	public string SystemKey { get; set; } = default!;

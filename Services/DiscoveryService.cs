@@ -92,11 +92,20 @@ public class DiscoveryService : IDiscoveryService
 		}
 
 		var games = await _games.SearchDiscoveryAsync(fromUtc, toUtc, nearbyLocationIds);
+		var locationIds = games
+			.Select(game => game.LocationId)
+			.Where(id => !string.IsNullOrWhiteSpace(id))
+			.Distinct(StringComparer.OrdinalIgnoreCase)
+			.ToList();
+		var locations = await _locations.GetByIdsAsync(locationIds);
+		var locationsById = locations
+			.Where(location => location.Id != null)
+			.ToDictionary(location => location.Id!, StringComparer.OrdinalIgnoreCase);
 		var result = new List<GameDiscoveryResponse>();
 
 		foreach (var game in games)
 		{
-			var location = await _locations.GetByIdAsync(game.LocationId);
+			locationsById.TryGetValue(game.LocationId, out var location);
 
 			var isHost = game.Host.UserId == _currentUser.UserId;
 			var isParticipant = game.Tables.Any(table =>

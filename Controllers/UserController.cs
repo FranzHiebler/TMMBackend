@@ -14,15 +14,18 @@ public class UsersController : ControllerBase
 	private readonly IUserRepository _repository;
 	private readonly ICurrentUserService _currentUser;
 	private readonly IFriendRepository _friends;
+	private readonly IAdminAuthorizationService _adminAuthorization;
 
 	public UsersController(
 		IUserRepository repository,
 		ICurrentUserService currentUser,
-		IFriendRepository friends)
+		IFriendRepository friends,
+		IAdminAuthorizationService adminAuthorization)
 	{
 		_repository = repository;
 		_currentUser = currentUser;
 		_friends = friends;
+		_adminAuthorization = adminAuthorization;
 	}
 
 	[HttpGet("search")]
@@ -32,7 +35,7 @@ public class UsersController : ControllerBase
 		var currentUserId = _currentUser.UserId;
 
 		return Ok(users
-			.Where(u => !u.HideProfile || u.Id == currentUserId)
+			.Where(u => !u.HideProfile)
 			.Select(u =>
 			{
 				var isOwnProfile = u.Id == currentUserId;
@@ -74,6 +77,15 @@ public class UsersController : ControllerBase
 		}
 
 		return Ok(ToResponse(user));
+	}
+
+	[HttpGet("me/permissions")]
+	public ActionResult<UserPermissionsResponse> GetMyPermissions()
+	{
+		return Ok(new UserPermissionsResponse
+		{
+			IsAdmin = _adminAuthorization.IsCurrentUserAdmin()
+		});
 	}
 
 	[HttpPut("me")]
