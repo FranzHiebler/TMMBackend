@@ -87,7 +87,8 @@ public class SystemsController : ControllerBase
 			Name = system.Name,
 			ShortCode = system.ShortCode,
 			Color = system.Color,
-			MarkerColor = system.MarkerColor
+			MarkerColor = system.MarkerColor,
+			Category = string.IsNullOrWhiteSpace(system.Category) ? "Tabletop" : system.Category
 		};
 	}
 }

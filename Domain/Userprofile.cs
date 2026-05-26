@@ -20,6 +20,12 @@ public class UserProfile
 	[BsonElement("displayName")]
 	public string DisplayName { get; set; } = default!;
 
+	[BsonElement("firstName")]
+	public string? FirstName { get; set; }
+
+	[BsonElement("lastName")]
+	public string? LastName { get; set; }
+
 	[BsonElement("email")]
 	public string? Email { get; set; }
 
@@ -86,6 +92,9 @@ public class UserProfile
 
 	[BsonElement("lookingForGame")]
 	public LookingForGameStatus LookingForGame { get; set; } = new();
+
+	[BsonElement("discoverySettings")]
+	public UserDiscoverySettings DiscoverySettings { get; set; } = new();
 }
 
 [BsonIgnoreExtraElements]
@@ -115,6 +124,37 @@ public class LookingForGameStatus
 
 	[BsonElement("updatedAtUtc")]
 	public DateTime? UpdatedAtUtc { get; set; }
+}
+
+[BsonIgnoreExtraElements]
+public class UserDiscoverySettings
+{
+	[BsonElement("showLocations")]
+	public bool ShowLocations { get; set; } = true;
+
+	[BsonElement("showPlayers")]
+	public bool ShowPlayers { get; set; } = true;
+
+	[BsonElement("showMySessions")]
+	public bool ShowMySessions { get; set; } = true;
+
+	[BsonElement("showPublicSessions")]
+	public bool ShowPublicSessions { get; set; } = true;
+
+	[BsonElement("timeWindowDays")]
+	public int TimeWindowDays { get; set; } = 7;
+
+	[BsonElement("radiusKm")]
+	public int RadiusKm { get; set; } = 80;
+
+	[BsonElement("latitude")]
+	public double? Latitude { get; set; }
+
+	[BsonElement("longitude")]
+	public double? Longitude { get; set; }
+
+	[BsonElement("zoom")]
+	public int Zoom { get; set; } = 10;
 }
 
 [BsonIgnoreExtraElements]

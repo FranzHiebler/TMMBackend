@@ -6,6 +6,8 @@ public class UserProfileResponse
 {
 	public string UserId { get; set; } = default!;
 	public string DisplayName { get; set; } = default!;
+	public string? FirstName { get; set; }
+	public string? LastName { get; set; }
 	public string? Email { get; set; }
 	public string? PhoneNumber { get; set; }
 	public string? StreetAddress { get; set; }
@@ -28,11 +30,14 @@ public class UserProfileResponse
 	public List<string> FavoriteSystemKeys { get; set; } = new();
 	public List<UserArmyProfileDto> Armies { get; set; } = new();
 	public LookingForGameStatusDto LookingForGame { get; set; } = new();
+	public UserDiscoverySettingsDto DiscoverySettings { get; set; } = new();
 }
 
 public class UpdateUserProfileRequest
 {
 	public string DisplayName { get; set; } = default!;
+	public string? FirstName { get; set; }
+	public string? LastName { get; set; }
 	public string? Email { get; set; }
 	public string? PhoneNumber { get; set; }
 	public string? StreetAddress { get; set; }
@@ -55,6 +60,20 @@ public class UpdateUserProfileRequest
 	public List<string>? FavoriteSystemKeys { get; set; } = new();
 	public List<UserArmyProfileDto>? Armies { get; set; } = new();
 	public LookingForGameStatusDto? LookingForGame { get; set; } = new();
+	public UserDiscoverySettingsDto? DiscoverySettings { get; set; }
+}
+
+public class UserDiscoverySettingsDto
+{
+	public bool ShowLocations { get; set; } = true;
+	public bool ShowPlayers { get; set; } = true;
+	public bool ShowMySessions { get; set; } = true;
+	public bool ShowPublicSessions { get; set; } = true;
+	public int TimeWindowDays { get; set; } = 7;
+	public int RadiusKm { get; set; } = 80;
+	public double? Latitude { get; set; }
+	public double? Longitude { get; set; }
+	public int Zoom { get; set; } = 10;
 }
 
 public class UserArmyProfileDto

@@ -45,6 +45,7 @@ builder.Services.AddScoped<IEventSeriesRepository, EventSeriesRepository>();
 builder.Services.AddScoped<IGameService, GameService>();
 builder.Services.AddScoped<IGameAssignmentService, GameAssignmentService>();
 builder.Services.AddScoped<IGameProposalService, GameProposalService>();
+builder.Services.AddScoped<IGamePlanningService, GamePlanningService>();
 builder.Services.AddScoped<IGameSessionAuthorizationService, GameSessionAuthorizationService>();
 builder.Services.AddScoped<IMessageService, MessageService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();

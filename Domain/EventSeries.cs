@@ -45,6 +45,12 @@ public class EventSeries
 	[BsonElement("startHour")]
 	public int StartHour { get; set; } = 18;
 
+	[BsonElement("startDateUtc")]
+	public DateTime? StartDateUtc { get; set; }
+
+	[BsonElement("endDateUtc")]
+	public DateTime? EndDateUtc { get; set; }
+
 	[BsonElement("defaultMaxPlayers")]
 	public int DefaultMaxPlayers { get; set; } = 2;
 

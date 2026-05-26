@@ -7,6 +7,7 @@ public class CreateSystemRequest
 	public string? ShortCode { get; set; }
 	public string? Color { get; set; }
 	public string? MarkerColor { get; set; }
+	public string? Category { get; set; }
 }
 
 public class SystemResponse
@@ -16,4 +17,5 @@ public class SystemResponse
 	public string? ShortCode { get; set; }
 	public string? Color { get; set; }
 	public string? MarkerColor { get; set; }
+	public string Category { get; set; } = "Tabletop";
 }

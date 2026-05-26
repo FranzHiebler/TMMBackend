@@ -19,6 +19,9 @@ public class EventSeriesRepository : IEventSeriesRepository
 
 	public Task CreateAsync(EventSeries series) => _series.InsertOneAsync(series);
 
+	public Task UpdateAsync(EventSeries series) =>
+		_series.ReplaceOneAsync(x => x.Id == series.Id, series);
+
 	public async Task<EventSeries?> GetByIdAsync(string id) =>
 		await _series.Find(x => x.Id == id).FirstOrDefaultAsync();
 

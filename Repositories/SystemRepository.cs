@@ -40,7 +40,8 @@ public class SystemRepository : ISystemRepository
 			Name = NormalizeRequired(request.Name, "Name"),
 			ShortCode = NormalizeOptional(request.ShortCode),
 			Color = NormalizeOptional(request.Color),
-			MarkerColor = NormalizeOptional(request.MarkerColor)
+			MarkerColor = NormalizeOptional(request.MarkerColor),
+			Category = NormalizeCategory(request.Category)
 		};
 
 		await _systems.InsertOneAsync(system);
@@ -57,6 +58,7 @@ public class SystemRepository : ISystemRepository
 		system.ShortCode = NormalizeOptional(request.ShortCode);
 		system.Color = NormalizeOptional(request.Color);
 		system.MarkerColor = NormalizeOptional(request.MarkerColor);
+		system.Category = NormalizeCategory(request.Category);
 
 		await _systems.ReplaceOneAsync(
 			x => x.Key == normalizedKey,
@@ -77,5 +79,13 @@ public class SystemRepository : ISystemRepository
 	private static string? NormalizeOptional(string? value)
 	{
 		return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+	}
+
+	private static string NormalizeCategory(string? value)
+	{
+		var category = NormalizeOptional(value) ?? "Tabletop";
+		return category is "Tabletop" or "Brettspiel" or "Rollenspiel" or "TCG" or "Sonstiges"
+			? category
+			: "Tabletop";
 	}
 }

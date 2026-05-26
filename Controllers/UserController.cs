@@ -29,20 +29,33 @@ public class UsersController : ControllerBase
 	public async Task<IActionResult> Search([FromQuery] string? query)
 	{
 		var users = await _repository.SearchAsync(query);
+		var currentUserId = _currentUser.UserId;
 
-		return Ok(users.Select(u => new
-		{
-			userId = u.Id,
-			displayName = u.DisplayName,
-			email = u.Email,
-			streetAddress = u.HideOnMap ? null : u.StreetAddress,
-			postalCode = u.PostalCode,
-			city = u.City,
-			latitude = u.HideOnMap ? null : u.Latitude,
-			longitude = u.HideOnMap ? null : u.Longitude,
-			favoriteSystemKeys = u.FavoriteSystemKeys ?? new List<string>(),
-			lookingForGame = ToLookingForGameDto(u.LookingForGame ?? new LookingForGameStatus())
-		}));
+		return Ok(users
+			.Where(u => !u.HideProfile || u.Id == currentUserId)
+			.Select(u =>
+			{
+				var isOwnProfile = u.Id == currentUserId;
+				var canSeeCity = CanSee(u.Visibility?.City, false, isOwnProfile);
+				var canSeePostalCode = CanSee(u.Visibility?.PostalCode, false, isOwnProfile);
+				var canUseExactPosition =
+					!u.HideOnMap &&
+					canSeeCity &&
+					CanSee(u.Visibility?.PostalCode, false, isOwnProfile) &&
+					CanSee(u.Visibility?.StreetAddress, false, isOwnProfile);
+
+				return new
+				{
+					userId = u.Id,
+					displayName = u.DisplayName,
+					postalCode = canSeePostalCode ? u.PostalCode : null,
+					city = canSeeCity ? u.City : null,
+					latitude = canUseExactPosition ? u.Latitude : null,
+					longitude = canUseExactPosition ? u.Longitude : null,
+					favoriteSystemKeys = u.FavoriteSystemKeys ?? new List<string>(),
+					lookingForGame = ToLookingForGameDto(u.LookingForGame ?? new LookingForGameStatus())
+				};
+			}));
 	}
 
 	[HttpGet("me")]
@@ -76,6 +89,8 @@ public class UsersController : ControllerBase
 			};
 
 		user.DisplayName = request.DisplayName.Trim();
+		user.FirstName = NormalizeOptional(request.FirstName);
+		user.LastName = NormalizeOptional(request.LastName);
 		user.Email = NormalizeOptional(request.Email);
 		user.PhoneNumber = NormalizeOptional(request.PhoneNumber);
 		user.StreetAddress = NormalizeOptional(request.StreetAddress);
@@ -106,10 +121,31 @@ public class UsersController : ControllerBase
 			})
 			.ToList();
 		user.LookingForGame = ToDomainLookingForGame(request.LookingForGame);
+		if (request.DiscoverySettings != null)
+			user.DiscoverySettings = ToDomainDiscoverySettings(request.DiscoverySettings);
 
 		await _repository.UpsertAsync(user);
 
 		return Ok(ToResponse(user));
+	}
+
+	[HttpPut("me/discovery-settings")]
+	public async Task<ActionResult<UserDiscoverySettingsDto>> UpdateDiscoverySettings(
+		[FromBody] UserDiscoverySettingsDto request)
+	{
+		var user = await _repository.GetByIdAsync(_currentUser.UserId)
+			?? new UserProfile
+			{
+				Id = _currentUser.UserId,
+				DisplayName = _currentUser.DisplayName,
+				CanBeContacted = true
+			};
+
+		user.DiscoverySettings = ToDomainDiscoverySettings(request);
+
+		await _repository.UpsertAsync(user);
+
+		return Ok(ToDiscoverySettingsDto(user.DiscoverySettings));
 	}
 
 	private static void ValidateProfile(UpdateUserProfileRequest request)
@@ -121,6 +157,8 @@ public class UsersController : ControllerBase
 			throw new DomainException("Anzeigename darf maximal 80 Zeichen lang sein.");
 
 		ValidateLength(request.Email, 200, "E-Mail");
+		ValidateLength(request.FirstName, 120, "Vorname");
+		ValidateLength(request.LastName, 120, "Nachname");
 		ValidateLength(request.PhoneNumber, 50, "Telefonnummer");
 		ValidateLength(request.StreetAddress, 200, "Straße / Adresse");
 		ValidateLength(request.PostalCode, 20, "PLZ");
@@ -236,12 +274,48 @@ public class UsersController : ControllerBase
 		};
 	}
 
+	private static UserDiscoverySettings ToDomainDiscoverySettings(UserDiscoverySettingsDto? dto)
+	{
+		dto ??= new UserDiscoverySettingsDto();
+
+		return new UserDiscoverySettings
+		{
+			ShowLocations = dto.ShowLocations,
+			ShowPlayers = dto.ShowPlayers,
+			ShowMySessions = dto.ShowMySessions,
+			ShowPublicSessions = dto.ShowPublicSessions,
+			TimeWindowDays = Math.Clamp(dto.TimeWindowDays, 1, 56),
+			RadiusKm = Math.Clamp(dto.RadiusKm, 10, 200),
+			Latitude = dto.Latitude is >= -90 and <= 90 ? dto.Latitude : null,
+			Longitude = dto.Longitude is >= -180 and <= 180 ? dto.Longitude : null,
+			Zoom = Math.Clamp(dto.Zoom, 3, 18)
+		};
+	}
+
+	private static UserDiscoverySettingsDto ToDiscoverySettingsDto(UserDiscoverySettings settings)
+	{
+		return new UserDiscoverySettingsDto
+		{
+			ShowLocations = settings.ShowLocations,
+			ShowPlayers = settings.ShowPlayers,
+			ShowMySessions = settings.ShowMySessions,
+			ShowPublicSessions = settings.ShowPublicSessions,
+			TimeWindowDays = settings.TimeWindowDays,
+			RadiusKm = settings.RadiusKm,
+			Latitude = settings.Latitude,
+			Longitude = settings.Longitude,
+			Zoom = settings.Zoom
+		};
+	}
+
 	private static UserProfileResponse ToResponse(UserProfile user)
 	{
 		return new UserProfileResponse
 		{
 			UserId = user.Id!,
 			DisplayName = user.DisplayName,
+			FirstName = user.FirstName,
+			LastName = user.LastName,
 			Email = user.Email,
 			PhoneNumber = user.PhoneNumber,
 			StreetAddress = user.StreetAddress,
@@ -267,7 +341,8 @@ public class UsersController : ControllerBase
 				SystemKey = a.SystemKey,
 				ArmyName = a.ArmyName
 			}).ToList(),
-			LookingForGame = ToLookingForGameDto(user.LookingForGame ?? new LookingForGameStatus())
+			LookingForGame = ToLookingForGameDto(user.LookingForGame ?? new LookingForGameStatus()),
+			DiscoverySettings = ToDiscoverySettingsDto(user.DiscoverySettings ?? new UserDiscoverySettings())
 		};
 	}
 	[HttpGet("{userId}/profile")]

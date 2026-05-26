@@ -44,21 +44,31 @@ public class EventSeriesService : IEventSeriesService
 
 		var series = new EventSeries
 		{
-			Title = request.Title.Trim(),
 			Host = new ParticipantInfo { UserId = _currentUser.UserId, DisplayName = _currentUser.DisplayName },
-			LocationId = request.LocationId,
-			LocationSnapshot = new LocationSnapshot { Name = location.Name, City = location.City },
-			SystemKeys = request.SystemKeys.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).Distinct().ToList(),
-			RecurrenceKind = request.RecurrenceKind,
-			DayOfWeek = request.DayOfWeek,
-			TimeLabel = string.IsNullOrWhiteSpace(request.TimeLabel) ? null : request.TimeLabel.Trim(),
-			StartHour = Math.Clamp(request.StartHour, 0, 23),
-			DefaultMaxPlayers = Math.Clamp(request.DefaultMaxPlayers, 1, 20),
-			Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
 			CreatedAtUtc = DateTime.UtcNow
 		};
 
+		Apply(series, request, location);
 		await _repository.CreateAsync(series);
+		return Map(series);
+	}
+
+	public async Task<EventSeriesResponse> UpdateAsync(string id, CreateEventSeriesRequest request)
+	{
+		var series = await _repository.GetByIdAsync(id)
+			?? throw new DomainException("Event-Serie wurde nicht gefunden.");
+		if (series.Host.UserId != _currentUser.UserId)
+			throw new DomainException("Nur der Host kann diese Serie bearbeiten.");
+
+		if (string.IsNullOrWhiteSpace(request.Title))
+			throw new DomainException("Titel ist erforderlich.");
+		var location = await _locations.GetByIdAsync(request.LocationId)
+			?? throw new DomainException("Spielort wurde nicht gefunden.");
+		if (!_authorization.CanCreateGameAtLocation(location))
+			throw new DomainException("Du darfst an diesem Spielort keine Serie verwalten.");
+
+		Apply(series, request, location);
+		await _repository.UpdateAsync(series);
 		return Map(series);
 	}
 
@@ -104,20 +114,44 @@ public class EventSeriesService : IEventSeriesService
 			DayOfWeek = series.DayOfWeek,
 			TimeLabel = series.TimeLabel,
 			StartHour = series.StartHour,
+			StartDateUtc = series.StartDateUtc,
+			EndDateUtc = series.EndDateUtc,
 			DefaultMaxPlayers = series.DefaultMaxPlayers,
 			Description = series.Description,
 			UpcomingStartTimesUtc = Upcoming(series).Take(6).ToList()
 		};
 	}
 
+	private static void Apply(EventSeries series, CreateEventSeriesRequest request, Location location)
+	{
+		if (request.EndDateUtc.HasValue && request.StartDateUtc.HasValue && request.EndDateUtc.Value < request.StartDateUtc.Value)
+			throw new DomainException("Enddatum darf nicht vor dem Startdatum liegen.");
+
+		series.Title = request.Title.Trim();
+		series.LocationId = request.LocationId;
+		series.LocationSnapshot = new LocationSnapshot { Name = location.Name, City = location.City };
+		series.SystemKeys = request.SystemKeys.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).Distinct().ToList();
+		series.RecurrenceKind = request.RecurrenceKind;
+		series.DayOfWeek = request.DayOfWeek;
+		series.TimeLabel = string.IsNullOrWhiteSpace(request.TimeLabel) ? null : request.TimeLabel.Trim();
+		series.StartHour = Math.Clamp(request.StartHour, 0, 23);
+		series.StartDateUtc = request.StartDateUtc;
+		series.EndDateUtc = request.EndDateUtc;
+		series.DefaultMaxPlayers = Math.Clamp(request.DefaultMaxPlayers, 1, 20);
+		series.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+	}
+
 	private static IEnumerable<DateTime> Upcoming(EventSeries series)
 	{
-		var cursor = DateTime.UtcNow.Date.AddHours(series.StartHour);
+		var floor = series.StartDateUtc?.Date ?? DateTime.UtcNow.Date;
+		var cursor = floor.AddHours(series.StartHour);
 		while (cursor.DayOfWeek != series.DayOfWeek || cursor <= DateTime.UtcNow)
 			cursor = cursor.AddDays(1);
 
 		for (var i = 0; i < 12; i++)
 		{
+			if (series.EndDateUtc.HasValue && cursor.Date > series.EndDateUtc.Value.Date)
+				yield break;
 			yield return cursor;
 			cursor = series.RecurrenceKind switch
 			{

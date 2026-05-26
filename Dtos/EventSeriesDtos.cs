@@ -11,6 +11,8 @@ public class CreateEventSeriesRequest
 	public DayOfWeek DayOfWeek { get; set; }
 	public string? TimeLabel { get; set; }
 	public int StartHour { get; set; } = 18;
+	public DateTime? StartDateUtc { get; set; }
+	public DateTime? EndDateUtc { get; set; }
 	public int DefaultMaxPlayers { get; set; } = 2;
 	public string? Description { get; set; }
 }
@@ -27,6 +29,8 @@ public class EventSeriesResponse
 	public DayOfWeek DayOfWeek { get; set; }
 	public string? TimeLabel { get; set; }
 	public int StartHour { get; set; }
+	public DateTime? StartDateUtc { get; set; }
+	public DateTime? EndDateUtc { get; set; }
 	public int DefaultMaxPlayers { get; set; }
 	public string? Description { get; set; }
 	public List<DateTime> UpcomingStartTimesUtc { get; set; } = new();

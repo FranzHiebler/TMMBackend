@@ -27,6 +27,7 @@ public interface IGameService
 	Task<GameResponse> JoinWaitlistAsync(string gameId, JoinWaitlistRequest request);
 	Task<GameResponse> PromoteWaitlistEntryAsync(string gameId, string waitlistEntryId, string tableId);
 	Task<GameResponse> CloseGameAsync(string gameId, CloseGameRequest request);
+	Task<GameResponse> CancelGameAsync(string gameId);
 	Task<PublicGameResponse?> GetPublicAsync(string slugOrId);
 	Task<List<CalendarItemResponse>> GetCalendarAsync();
 }

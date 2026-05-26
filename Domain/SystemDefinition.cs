@@ -24,4 +24,7 @@ public class SystemDefinition
 
 	[BsonElement("markerColor")]
 	public string? MarkerColor { get; set; }
+
+	[BsonElement("category")]
+	public string Category { get; set; } = "Tabletop";
 }
