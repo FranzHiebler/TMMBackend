@@ -12,10 +12,12 @@ public class PublicSessionsController : ControllerBase
 {
 	private const string DefaultOgImagePath = "/share/default-session-og.png";
 	private readonly IGameService _games;
+	private readonly IConfiguration _configuration;
 
-	public PublicSessionsController(IGameService games)
+	public PublicSessionsController(IGameService games, IConfiguration configuration)
 	{
 		_games = games;
+		_configuration = configuration;
 	}
 
 	[HttpGet("s/{slugOrId}")]
@@ -31,7 +33,8 @@ public class PublicSessionsController : ControllerBase
 		var description = WebUtility.HtmlEncode(BuildDescription(game));
 		var encodedUrl = WebUtility.HtmlEncode(url);
 		var encodedImageUrl = WebUtility.HtmlEncode(imageUrl);
-		var apiUrl = $"/api/Games/public/{WebUtility.UrlEncode(slugOrId)}";
+		var detailUrl = BuildFrontendSessionUrl(game.Id);
+		var encodedDetailUrl = WebUtility.HtmlEncode(detailUrl);
 
 		var html = $$"""
 <!doctype html>
@@ -57,13 +60,22 @@ public class PublicSessionsController : ControllerBase
   <main>
     <h1>{{title}}</h1>
     <p>{{description}}</p>
-    <p>&Ouml;ffentliche Session-Details: <a href="{{apiUrl}}">{{apiUrl}}</a></p>
+    <p><a href="{{encodedDetailUrl}}">Session im Tabletop Matchmaker &ouml;ffnen</a></p>
   </main>
 </body>
 </html>
 """;
 
 		return Content(html, "text/html", Encoding.UTF8);
+	}
+
+	private string BuildFrontendSessionUrl(string gameId)
+	{
+		var baseUrl = _configuration["Frontend:BaseUrl"];
+		if (string.IsNullOrWhiteSpace(baseUrl))
+			baseUrl = "http://localhost:5173";
+
+		return $"{baseUrl.TrimEnd('/')}/sessions/{WebUtility.UrlEncode(gameId)}";
 	}
 
 	private string GetShareImageUrl()
