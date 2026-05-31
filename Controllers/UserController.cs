@@ -41,10 +41,17 @@ public class UsersController : ControllerBase
 				var isOwnProfile = u.Id == currentUserId;
 				var canSeeCity = CanSee(u.Visibility?.City, false, isOwnProfile);
 				var canSeePostalCode = CanSee(u.Visibility?.PostalCode, false, isOwnProfile);
-				var canSeeStreetAddress = CanSee(u.Visibility?.StreetAddress, false, isOwnProfile);
-				var canUseExactPosition =
+				var canUseMapPosition =
 					!u.HideOnMap &&
-					(isOwnProfile || (canSeeCity && canSeeStreetAddress));
+					(isOwnProfile || canSeeCity);
+				double? mapLatitude = null;
+				double? mapLongitude = null;
+
+				if (canUseMapPosition && u.Latitude.HasValue && u.Longitude.HasValue)
+				{
+					mapLatitude = isOwnProfile ? u.Latitude : Math.Round(u.Latitude.Value, 2);
+					mapLongitude = isOwnProfile ? u.Longitude : Math.Round(u.Longitude.Value, 2);
+				}
 
 				return new
 				{
@@ -52,8 +59,8 @@ public class UsersController : ControllerBase
 					displayName = u.DisplayName,
 					postalCode = canSeePostalCode ? u.PostalCode : null,
 					city = canSeeCity ? u.City : null,
-					latitude = canUseExactPosition ? u.Latitude : null,
-					longitude = canUseExactPosition ? u.Longitude : null,
+					latitude = mapLatitude,
+					longitude = mapLongitude,
 					favoriteSystemKeys = u.FavoriteSystemKeys ?? new List<string>(),
 					lookingForGame = ToLookingForGameDto(u.LookingForGame ?? new LookingForGameStatus())
 				};
