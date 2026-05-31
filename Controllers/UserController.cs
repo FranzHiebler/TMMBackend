@@ -43,9 +43,7 @@ public class UsersController : ControllerBase
 				var canSeePostalCode = CanSee(u.Visibility?.PostalCode, false, isOwnProfile);
 				var canUseExactPosition =
 					!u.HideOnMap &&
-					canSeeCity &&
-					CanSee(u.Visibility?.PostalCode, false, isOwnProfile) &&
-					CanSee(u.Visibility?.StreetAddress, false, isOwnProfile);
+					(isOwnProfile || canSeeCity);
 
 				return new
 				{
@@ -357,6 +355,7 @@ public class UsersController : ControllerBase
 			DiscoverySettings = ToDiscoverySettingsDto(user.DiscoverySettings ?? new UserDiscoverySettings())
 		};
 	}
+
 	[HttpGet("{userId}/profile")]
 	public async Task<ActionResult<PublicUserProfileResponse>> GetPublicProfile(string userId)
 	{
@@ -401,6 +400,7 @@ public class UsersController : ControllerBase
 			BestSportsPairings = CanSee(user.Visibility?.BestSportsPairings, isFriend, isOwnProfile) ? user.BestSportsPairings : null
 		});
 	}
+
 	private static List<string> BuildHiddenFields(UserProfile user, bool isFriend, bool isOwnProfile)
 	{
 		var hidden = new List<string>();
