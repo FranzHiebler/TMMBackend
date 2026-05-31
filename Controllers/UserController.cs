@@ -41,16 +41,28 @@ public class UsersController : ControllerBase
 				var isOwnProfile = u.Id == currentUserId;
 				var canSeeCity = CanSee(u.Visibility?.City, false, isOwnProfile);
 				var canSeePostalCode = CanSee(u.Visibility?.PostalCode, false, isOwnProfile);
-				var canUseMapPosition =
+				var canSeeStreetAddress = CanSee(u.Visibility?.StreetAddress, false, isOwnProfile);
+				var canShowOnMap =
 					!u.HideOnMap &&
 					(isOwnProfile || canSeeCity);
+				var canUseExactPosition =
+					!u.HideOnMap &&
+					(isOwnProfile || (canSeeCity && canSeeStreetAddress));
 				double? mapLatitude = null;
 				double? mapLongitude = null;
 
-				if (canUseMapPosition && u.Latitude.HasValue && u.Longitude.HasValue)
+				if (canShowOnMap && u.Latitude.HasValue && u.Longitude.HasValue)
 				{
-					mapLatitude = isOwnProfile ? u.Latitude : Math.Round(u.Latitude.Value, 2);
-					mapLongitude = isOwnProfile ? u.Longitude : Math.Round(u.Longitude.Value, 2);
+					if (canUseExactPosition)
+					{
+						mapLatitude = u.Latitude;
+						mapLongitude = u.Longitude;
+					}
+					else
+					{
+						mapLatitude = Math.Round(u.Latitude.Value, 2);
+						mapLongitude = Math.Round(u.Longitude.Value, 2);
+					}
 				}
 
 				return new
