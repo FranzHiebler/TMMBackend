@@ -10,18 +10,15 @@ public class DiscoveryService : IDiscoveryService
 	private readonly ILocationRepository _locations;
 	private readonly IGameRepository _games;
 	private readonly ICurrentUserService _currentUser;
-	private readonly IGameSessionAuthorizationService _authorization;
 
 	public DiscoveryService(
 		ILocationRepository locations,
 		IGameRepository games,
-		ICurrentUserService currentUser,
-		IGameSessionAuthorizationService authorization)
+		ICurrentUserService currentUser)
 	{
 		_locations = locations;
 		_games = games;
 		_currentUser = currentUser;
-		_authorization = authorization;
 	}
 
 	public async Task<List<LocationDiscoveryResponse>> GetLocationsAsync(LocationDiscoveryRequest request)
@@ -116,6 +113,11 @@ public class DiscoveryService : IDiscoveryService
 				.FirstOrDefault(app => app.Player.UserId == _currentUser.UserId);
 
 			var isOwnLocation = location?.Members.Any(member => member.UserId == _currentUser.UserId) ?? false;
+			var canManageLocation = location?.Members.Any(member =>
+				member.UserId == _currentUser.UserId &&
+				(member.Role == LocationRole.Owner ||
+				 member.Role == LocationRole.Admin ||
+				 member.Role == LocationRole.Manager)) ?? false;
 
 			result.Add(new GameDiscoveryResponse
 			{
@@ -133,7 +135,7 @@ public class DiscoveryService : IDiscoveryService
 				IsHost = isHost,
 				IsParticipant = isParticipant,
 				IsOwnLocation = isOwnLocation,
-				CanEdit = isHost || await _authorization.CanManageSessionAsync(game),
+				CanEdit = isHost || canManageLocation,
 				TablesSummary = BuildTablesSummary(game),
 				AvailableSeats = game.Tables.Sum(table => Math.Max(0, table.MaxPlayers - table.AssignedPlayers.Count)),
 				JoinMode = game.JoinMode,

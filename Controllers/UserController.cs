@@ -41,9 +41,10 @@ public class UsersController : ControllerBase
 				var isOwnProfile = u.Id == currentUserId;
 				var canSeeCity = CanSee(u.Visibility?.City, false, isOwnProfile);
 				var canSeePostalCode = CanSee(u.Visibility?.PostalCode, false, isOwnProfile);
+				var canSeeStreetAddress = CanSee(u.Visibility?.StreetAddress, false, isOwnProfile);
 				var canUseExactPosition =
 					!u.HideOnMap &&
-					(isOwnProfile || canSeeCity);
+					(isOwnProfile || (canSeeCity && canSeeStreetAddress));
 
 				return new
 				{
