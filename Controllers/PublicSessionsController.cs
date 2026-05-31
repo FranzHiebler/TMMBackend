@@ -1,6 +1,8 @@
 using System.Net;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
+using TabletopMatchMaker.Domain;
+using TabletopMatchMaker.Dtos;
 using TabletopMatchMaker.Services.Interfaces;
 
 namespace TabletopMatchMaker.Controllers;
@@ -23,10 +25,10 @@ public class PublicSessionsController : ControllerBase
 		if (game == null)
 			return NotFound("Session wurde nicht gefunden.");
 
-		var url = $"{Request.Scheme}://{Request.Host}{Request.Path}";
+		var url = $"{GetPublicOrigin()}{Request.Path}";
 		var imageUrl = GetShareImageUrl();
 		var title = WebUtility.HtmlEncode(game.Title);
-		var description = WebUtility.HtmlEncode($"{game.Location.Name}, {game.Location.City} - {game.TimeLabel ?? game.StartTimeUtc.ToString("g")}");
+		var description = WebUtility.HtmlEncode(BuildDescription(game));
 		var encodedUrl = WebUtility.HtmlEncode(url);
 		var encodedImageUrl = WebUtility.HtmlEncode(imageUrl);
 		var apiUrl = $"/api/Games/public/{WebUtility.UrlEncode(slugOrId)}";
@@ -70,6 +72,45 @@ public class PublicSessionsController : ControllerBase
 		if (!string.IsNullOrWhiteSpace(configuredUrl))
 			return configuredUrl.Trim();
 
-		return $"{Request.Scheme}://{Request.Host}{DefaultOgImagePath}";
+		return $"{GetPublicOrigin()}{DefaultOgImagePath}";
+	}
+
+	private string GetPublicOrigin()
+	{
+		var forwardedProto = Request.Headers["X-Forwarded-Proto"].FirstOrDefault();
+		var forwardedHost = Request.Headers["X-Forwarded-Host"].FirstOrDefault();
+		var scheme = string.IsNullOrWhiteSpace(forwardedProto) ? Request.Scheme : forwardedProto;
+		var host = string.IsNullOrWhiteSpace(forwardedHost) ? Request.Host.Value : forwardedHost;
+
+		return $"{scheme}://{host}";
+	}
+
+	private static string BuildDescription(PublicGameResponse game)
+	{
+		var where = string.Join(", ", new[] { game.Location.Name, game.Location.City }
+			.Where(value => !string.IsNullOrWhiteSpace(value)));
+		var when = BuildTimeLabel(game);
+		var maxPlayers = game.Tables.Sum(table => table.MaxPlayers);
+		var assignedPlayers = game.Tables.Sum(table => table.AssignedPlayers.Count);
+		var seats = maxPlayers > 0
+			? $"{assignedPlayers}/{maxPlayers} Plätze belegt"
+			: "Plätze offen";
+
+		return string.Join(" · ", new[] { where, when, seats }
+			.Where(value => !string.IsNullOrWhiteSpace(value)));
+	}
+
+	private static string BuildTimeLabel(PublicGameResponse game)
+	{
+		if (game.TimingMode == SessionTimingMode.Open)
+			return string.IsNullOrWhiteSpace(game.TimeLabel) ? "Termin offen" : game.TimeLabel;
+
+		if (game.TimingMode == SessionTimingMode.Rough)
+		{
+			var date = game.StartTimeUtc.ToString("ddd., dd.MM.", System.Globalization.CultureInfo.GetCultureInfo("de-DE"));
+			return string.IsNullOrWhiteSpace(game.TimeLabel) ? date : $"{date} {game.TimeLabel}";
+		}
+
+		return game.StartTimeUtc.ToString("ddd., dd.MM. 'um' HH:mm", System.Globalization.CultureInfo.GetCultureInfo("de-DE"));
 	}
 }
