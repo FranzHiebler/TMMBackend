@@ -71,7 +71,10 @@ public class PublicSessionsController : ControllerBase
 
 	private string BuildFrontendSessionUrl(string gameId)
 	{
-		var baseUrl = _configuration["Frontend:BaseUrl"];
+		var baseUrl =
+			_configuration["Frontend:BaseUrl"] ??
+			Environment.GetEnvironmentVariable("Frontend__BaseUrl");
+
 		if (string.IsNullOrWhiteSpace(baseUrl))
 			baseUrl = "http://localhost:5173";
 
