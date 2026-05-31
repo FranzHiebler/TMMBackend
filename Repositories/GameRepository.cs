@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Options;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using TabletopMatchMaker.Domain;
 using TabletopMatchMaker.Dtos;
@@ -30,8 +31,15 @@ public class GameRepository : IGameRepository
 
 	public async Task<GameSession?> GetByPublicSlugOrIdAsync(string slugOrId)
 	{
+		var filter = Builders<GameSession>.Filter.Eq(x => x.PublicSlug, slugOrId);
+
+		if (ObjectId.TryParse(slugOrId, out _))
+		{
+			filter |= Builders<GameSession>.Filter.Eq(x => x.Id, slugOrId);
+		}
+
 		return await _games
-			.Find(x => x.Id == slugOrId || x.PublicSlug == slugOrId)
+			.Find(filter)
 			.FirstOrDefaultAsync();
 	}
 
