@@ -30,13 +30,13 @@ public class PlayRequestService : IPlayRequestService
 	public async Task<List<PlayRequestResponse>> GetOpenAsync()
 	{
 		var requests = await _repository.GetOpenAsync();
-		return requests.Select(Map).ToList();
+		return (await Task.WhenAll(requests.Select(MapAsync))).ToList();
 	}
 
 	public async Task<List<PlayRequestResponse>> GetMineAsync()
 	{
 		var requests = await _repository.GetForUserAsync(_currentUser.UserId);
-		return requests.Select(Map).ToList();
+		return (await Task.WhenAll(requests.Select(MapAsync))).ToList();
 	}
 
 	public async Task<PlayRequestResponse> CreateAsync(CreatePlayRequestRequest request)
@@ -77,7 +77,7 @@ public class PlayRequestService : IPlayRequestService
 			"Dein Spielgesuch ist sichtbar.",
 			"/play-requests");
 
-		return Map(playRequest);
+		return await MapAsync(playRequest);
 	}
 
 	public async Task<GameResponse> ConvertToSessionAsync(string id, ConvertPlayRequestRequest request)
@@ -129,8 +129,10 @@ public class PlayRequestService : IPlayRequestService
 		return playRequest;
 	}
 
-	private PlayRequestResponse Map(PlayRequest request)
+	private async Task<PlayRequestResponse> MapAsync(PlayRequest request)
 	{
+		var (latitude, longitude, precision) = await ResolveMapPositionAsync(request);
+
 		return new PlayRequestResponse
 		{
 			Id = request.Id!,
@@ -139,8 +141,9 @@ public class PlayRequestService : IPlayRequestService
 			LocationId = request.LocationId,
 			LocationName = request.LocationName,
 			City = request.City,
-			Latitude = request.Latitude,
-			Longitude = request.Longitude,
+			Latitude = latitude,
+			Longitude = longitude,
+			LocationPrecision = precision,
 			TimeNote = request.TimeNote,
 			ExactTimeUtc = request.ExactTimeUtc,
 			RadiusKm = request.RadiusKm,
@@ -151,6 +154,31 @@ public class PlayRequestService : IPlayRequestService
 			UpdatedAtUtc = request.UpdatedAtUtc,
 			IsMine = request.Owner.UserId == _currentUser.UserId
 		};
+	}
+
+	private async Task<(double? Latitude, double? Longitude, string Precision)> ResolveMapPositionAsync(PlayRequest request)
+	{
+		if (!request.Latitude.HasValue || !request.Longitude.HasValue)
+			return (null, null, "hidden");
+
+		var isMine = request.Owner.UserId == _currentUser.UserId;
+		if (isMine)
+			return (request.Latitude, request.Longitude, "exact");
+
+		Location? location = null;
+		if (!string.IsNullOrWhiteSpace(request.LocationId))
+			location = await _locations.GetByIdAsync(request.LocationId);
+
+		if (location?.AccessMode == LocationAccessMode.Open)
+			return (request.Latitude, request.Longitude, "exact");
+
+		if (!string.IsNullOrWhiteSpace(request.City))
+			return (
+				Math.Round(request.Latitude.Value, 2),
+				Math.Round(request.Longitude.Value, 2),
+				"approximate");
+
+		return (null, null, "hidden");
 	}
 
 	private static string? NormalizeOptional(string? value) =>

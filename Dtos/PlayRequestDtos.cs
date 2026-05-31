@@ -22,6 +22,7 @@ public class PlayRequestResponse
 	public string? City { get; set; }
 	public double? Latitude { get; set; }
 	public double? Longitude { get; set; }
+	public string LocationPrecision { get; set; } = "hidden";
 	public string? TimeNote { get; set; }
 	public DateTime? ExactTimeUtc { get; set; }
 	public int? RadiusKm { get; set; }
