@@ -50,6 +50,7 @@ public class UsersController : ControllerBase
 					(isOwnProfile || (canSeeCity && canSeeStreetAddress));
 				double? mapLatitude = null;
 				double? mapLongitude = null;
+				var locationPrecision = "hidden";
 
 				if (canShowOnMap && u.Latitude.HasValue && u.Longitude.HasValue)
 				{
@@ -57,11 +58,13 @@ public class UsersController : ControllerBase
 					{
 						mapLatitude = u.Latitude;
 						mapLongitude = u.Longitude;
+						locationPrecision = "exact";
 					}
 					else
 					{
 						mapLatitude = Math.Round(u.Latitude.Value, 2);
 						mapLongitude = Math.Round(u.Longitude.Value, 2);
+						locationPrecision = "approximate";
 					}
 				}
 
@@ -73,6 +76,7 @@ public class UsersController : ControllerBase
 					city = canSeeCity ? u.City : null,
 					latitude = mapLatitude,
 					longitude = mapLongitude,
+					locationPrecision,
 					favoriteSystemKeys = u.FavoriteSystemKeys ?? new List<string>(),
 					lookingForGame = ToLookingForGameDto(u.LookingForGame ?? new LookingForGameStatus())
 				};
