@@ -9,6 +9,7 @@ public class PlayRequestService : IPlayRequestService
 {
 	private readonly IPlayRequestRepository _repository;
 	private readonly ILocationLookupService _locations;
+	private readonly IUserRepository _users;
 	private readonly IGameService _games;
 	private readonly ICurrentUserService _currentUser;
 	private readonly INotificationService _notifications;
@@ -16,12 +17,14 @@ public class PlayRequestService : IPlayRequestService
 	public PlayRequestService(
 		IPlayRequestRepository repository,
 		ILocationLookupService locations,
+		IUserRepository users,
 		IGameService games,
 		ICurrentUserService currentUser,
 		INotificationService notifications)
 	{
 		_repository = repository;
 		_locations = locations;
+		_users = users;
 		_games = games;
 		_currentUser = currentUser;
 		_notifications = notifications;
@@ -131,7 +134,7 @@ public class PlayRequestService : IPlayRequestService
 
 	private async Task<PlayRequestResponse> MapAsync(PlayRequest request)
 	{
-		var (latitude, longitude, precision) = await ResolveMapPositionAsync(request);
+		var mapPosition = await ResolveMapPositionAsync(request);
 
 		return new PlayRequestResponse
 		{
@@ -140,10 +143,10 @@ public class PlayRequestService : IPlayRequestService
 			SystemKey = request.SystemKey,
 			LocationId = request.LocationId,
 			LocationName = request.LocationName,
-			City = request.City,
-			Latitude = latitude,
-			Longitude = longitude,
-			LocationPrecision = precision,
+			City = mapPosition.City,
+			Latitude = mapPosition.Latitude,
+			Longitude = mapPosition.Longitude,
+			LocationPrecision = mapPosition.Precision,
 			TimeNote = request.TimeNote,
 			ExactTimeUtc = request.ExactTimeUtc,
 			RadiusKm = request.RadiusKm,
@@ -156,29 +159,73 @@ public class PlayRequestService : IPlayRequestService
 		};
 	}
 
-	private async Task<(double? Latitude, double? Longitude, string Precision)> ResolveMapPositionAsync(PlayRequest request)
+	private async Task<PlayRequestMapPosition> ResolveMapPositionAsync(PlayRequest request)
 	{
-		if (!request.Latitude.HasValue || !request.Longitude.HasValue)
-			return (null, null, "hidden");
-
 		var isMine = request.Owner.UserId == _currentUser.UserId;
-		if (isMine)
-			return (request.Latitude, request.Longitude, "exact");
 
-		Location? location = null;
 		if (!string.IsNullOrWhiteSpace(request.LocationId))
-			location = await _locations.GetByIdAsync(request.LocationId);
+		{
+			if (!request.Latitude.HasValue || !request.Longitude.HasValue)
+				return PlayRequestMapPosition.Hidden(request.City);
 
-		if (location?.AccessMode == LocationAccessMode.Open)
-			return (request.Latitude, request.Longitude, "exact");
+			if (isMine)
+				return new PlayRequestMapPosition(request.Latitude, request.Longitude, "exact", request.City);
 
-		if (!string.IsNullOrWhiteSpace(request.City))
-			return (
-				Math.Round(request.Latitude.Value, 2),
-				Math.Round(request.Longitude.Value, 2),
-				"approximate");
+			var location = await _locations.GetByIdAsync(request.LocationId);
+			if (location?.AccessMode == LocationAccessMode.Open)
+				return new PlayRequestMapPosition(request.Latitude, request.Longitude, "exact", request.City);
 
-		return (null, null, "hidden");
+			if (!string.IsNullOrWhiteSpace(request.City))
+				return new PlayRequestMapPosition(
+					Math.Round(request.Latitude.Value, 2),
+					Math.Round(request.Longitude.Value, 2),
+					"approximate",
+					request.City);
+
+			return PlayRequestMapPosition.Hidden(request.City);
+		}
+
+		var owner = await _users.GetByIdAsync(request.Owner.UserId);
+		if (owner == null || !owner.Latitude.HasValue || !owner.Longitude.HasValue)
+			return PlayRequestMapPosition.Hidden(request.City);
+
+		var canSeeOwnerCity = CanSee(owner.Visibility?.City, false, isMine);
+		var visibleCity = canSeeOwnerCity ? owner.City : request.City;
+		if (isMine)
+			return new PlayRequestMapPosition(owner.Latitude, owner.Longitude, "exact", visibleCity);
+
+		if (owner.HideOnMap)
+			return PlayRequestMapPosition.Hidden(request.City);
+
+		if (!isMine && !canSeeOwnerCity)
+			return PlayRequestMapPosition.Hidden(request.City);
+
+		return new PlayRequestMapPosition(
+			Math.Round(owner.Latitude.Value, 2),
+			Math.Round(owner.Longitude.Value, 2),
+			"approximate",
+			visibleCity);
+	}
+
+	private static bool CanSee(ProfileFieldVisibility? visibility, bool isFriend, bool isOwnProfile)
+	{
+		if (isOwnProfile) return true;
+
+		return visibility switch
+		{
+			ProfileFieldVisibility.Public => true,
+			ProfileFieldVisibility.FriendsOnly => isFriend,
+			_ => false
+		};
+	}
+
+	private sealed record PlayRequestMapPosition(
+		double? Latitude,
+		double? Longitude,
+		string Precision,
+		string? City)
+	{
+		public static PlayRequestMapPosition Hidden(string? city) => new(null, null, "hidden", city);
 	}
 
 	private static string? NormalizeOptional(string? value) =>
