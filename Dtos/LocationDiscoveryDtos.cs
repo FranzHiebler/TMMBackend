@@ -15,6 +15,7 @@ public class LocationDiscoveryResponse
 	public string? Address { get; set; }
 	public double? Latitude { get; set; }
 	public double? Longitude { get; set; }
+	public string LocationPrecision { get; set; } = "hidden";
 	public bool IsOwnLocation { get; set; }
 	public bool IsOpen { get; set; }
 	public string? Role { get; set; }

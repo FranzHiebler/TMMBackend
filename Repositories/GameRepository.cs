@@ -47,11 +47,14 @@ public class GameRepository : IGameRepository
 	{
 		var f =
 			Builders<GameSession>.Filter.Eq(x => x.Host.UserId, userId) |
-			Builders<GameSession>.Filter.ElemMatch(x => x.Invitations, i => i.User.UserId == userId) |
+			Builders<GameSession>.Filter.ElemMatch(x => x.Invitations, i =>
+				i.User.UserId == userId &&
+				(i.Status == SessionInvitationStatus.Pending || i.Status == SessionInvitationStatus.Accepted)) |
 			Builders<GameSession>.Filter.ElemMatch(x => x.Waitlist, w => w.Player.UserId == userId) |
 			Builders<GameSession>.Filter.ElemMatch(x => x.Tables, t =>
 				t.AssignedPlayers.Any(p => p.UserId == userId) ||
-				t.Applications.Any(a => a.Player.UserId == userId));
+				t.Applications.Any(a => a.Player.UserId == userId &&
+					(a.Status == ApplicationStatus.Pending || a.Status == ApplicationStatus.Accepted)));
 
 		return await _games.Find(f).SortBy(x => x.StartTimeUtc).ToListAsync();
 	}

@@ -50,15 +50,21 @@ public class DiscoveryService : IDiscoveryService
 		{
 			gamesByLocation.TryGetValue(location.Id!, out var games);
 			var member = location.Members.FirstOrDefault(m => m.UserId == _currentUser.UserId);
+			var canUseExactPosition = location.AccessMode == LocationAccessMode.Open || member != null;
+			var latitude = location.Geo?.Coordinates.Latitude;
+			var longitude = location.Geo?.Coordinates.Longitude;
 
 			return new LocationDiscoveryResponse
 			{
 				LocationId = location.Id!,
 				Name = location.Name,
 				City = location.City,
-				Address = location.Address,
-				Latitude = location.Geo?.Coordinates.Latitude,
-				Longitude = location.Geo?.Coordinates.Longitude,
+				Address = canUseExactPosition ? location.Address : null,
+				Latitude = latitude.HasValue ? (canUseExactPosition ? latitude : Math.Round(latitude.Value, 2)) : null,
+				Longitude = longitude.HasValue ? (canUseExactPosition ? longitude : Math.Round(longitude.Value, 2)) : null,
+				LocationPrecision = latitude.HasValue && longitude.HasValue
+					? (canUseExactPosition ? "exact" : "approximate")
+					: "hidden",
 				IsOwnLocation = member != null,
 				IsOpen = location.AccessMode == LocationAccessMode.Open,
 				Role = member?.Role.ToString(),
@@ -118,6 +124,12 @@ public class DiscoveryService : IDiscoveryService
 				(member.Role == LocationRole.Owner ||
 				 member.Role == LocationRole.Admin ||
 				 member.Role == LocationRole.Manager)) ?? false;
+			var canUseExactPosition = location == null ||
+				location.AccessMode == LocationAccessMode.Open ||
+				isOwnLocation ||
+				canManageLocation;
+			var latitude = location?.Geo?.Coordinates.Latitude;
+			var longitude = location?.Geo?.Coordinates.Longitude;
 
 			result.Add(new GameDiscoveryResponse
 			{
@@ -129,8 +141,11 @@ public class DiscoveryService : IDiscoveryService
 				LocationId = game.LocationId,
 				LocationName = location?.Name ?? game.LocationSnapshot.Name,
 				City = location?.City ?? game.LocationSnapshot.City,
-				Latitude = location?.Geo?.Coordinates.Latitude,
-				Longitude = location?.Geo?.Coordinates.Longitude,
+				Latitude = latitude.HasValue ? (canUseExactPosition ? latitude : Math.Round(latitude.Value, 2)) : null,
+				Longitude = longitude.HasValue ? (canUseExactPosition ? longitude : Math.Round(longitude.Value, 2)) : null,
+				LocationPrecision = latitude.HasValue && longitude.HasValue
+					? (canUseExactPosition ? "exact" : "approximate")
+					: "hidden",
 				Status = game.Status,
 				IsHost = isHost,
 				IsParticipant = isParticipant,

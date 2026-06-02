@@ -260,6 +260,8 @@ public class GamePlanningService : IGamePlanningService
 				game.Invitations.Any(x => x.User.UserId == _currentUser.UserId && x.Status == SessionInvitationStatus.Pending) ? "Einladung" :
 				game.Waitlist.Any(x => x.Player.UserId == _currentUser.UserId) ? "Warteliste" :
 				game.Tables.Any(t => t.Applications.Any(a => a.Player.UserId == _currentUser.UserId && a.Status == ApplicationStatus.Pending)) ? "Bewerbung" :
+				game.Tables.Any(t => t.AssignedPlayers.Any(p => p.UserId == _currentUser.UserId)) ? "Teilnahme" :
+				game.Invitations.Any(x => x.User.UserId == _currentUser.UserId && x.Status == SessionInvitationStatus.Accepted) ? "Einladung" :
 				"Teilnahme",
 			StartTimeUtc = game.TimingMode == SessionTimingMode.Open ? null : game.StartTimeUtc,
 			TimingMode = game.TimingMode,

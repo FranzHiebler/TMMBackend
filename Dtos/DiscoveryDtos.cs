@@ -23,6 +23,7 @@ public class GameDiscoveryResponse
 	public string City { get; set; } = default!;
 	public double? Latitude { get; set; }
 	public double? Longitude { get; set; }
+	public string LocationPrecision { get; set; } = "hidden";
 	public GameSessionState Status { get; set; }
 	public bool IsHost { get; set; }
 	public bool IsParticipant { get; set; }
