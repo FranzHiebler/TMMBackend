@@ -122,7 +122,7 @@ public class MessageService : IMessageService
 			NotificationKind.GameSessionMessage,
 			$"Neue Nachricht: {game.Title}",
 			$"{_currentUser.DisplayName}: {TrimPreview(body)}",
-			$"/games?gameId={game.Id}");
+			$"/sessions/{game.Id}");
 
 		return MapMessage(message);
 	}
@@ -157,7 +157,7 @@ public class MessageService : IMessageService
 			NotificationKind.GameTableMessage,
 			$"Neue Tischnachricht: {table.Name}",
 			$"{_currentUser.DisplayName}: {TrimPreview(body)}",
-			$"/games?gameId={game.Id}&tableId={table.TableId}");
+			$"/sessions/{game.Id}");
 
 		return MapMessage(message);
 	}

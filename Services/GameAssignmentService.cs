@@ -126,7 +126,7 @@ public class GameAssignmentService : IGameAssignmentService
 				NotificationKind.ApplicationAccepted,
 				"Bewerbung angenommen",
 				$"Du bist bei \"{game.Title}\" dabei.",
-				$"/games?gameId={game.Id}");
+				$"/sessions/{game.Id}");
 		}
 	}
 
@@ -153,7 +153,7 @@ public class GameAssignmentService : IGameAssignmentService
 			NotificationKind.ApplicationRejected,
 			"Bewerbung abgelehnt",
 			$"Deine Bewerbung für \"{game.Title}\" wurde abgelehnt.",
-			$"/games?gameId={game.Id}");
+			$"/sessions/{game.Id}");
 	}
 
 	public async Task RemovePlayerFromTableAsync(string gameId, string tableId, string userId)
