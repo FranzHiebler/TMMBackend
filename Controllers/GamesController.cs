@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using System.Text;
 using TabletopMatchMaker.Dtos;
 using TabletopMatchMaker.Services.Interfaces;
 
@@ -37,6 +38,23 @@ public class GamesController : ControllerBase
 		return Ok(game);
 	}
 
+	[HttpGet("{id}/calendar.ics")]
+	public async Task<IActionResult> CalendarIcs(string id)
+	{
+		var game = await _service.GetByIdAsync(id);
+
+		if (game == null)
+			return NotFound(new { error = "Game Session wurde nicht gefunden." });
+
+		if (game.TimingMode == Domain.SessionTimingMode.Open)
+			return BadRequest(new { error = "Dieser Spieltermin hat noch kein festes Datum." });
+
+		var ics = BuildCalendarIcs(game, BuildFrontendSessionUrl(game.Id));
+		var fileName = $"{SanitizeFileName(game.Title)}.ics";
+
+		return File(Encoding.UTF8.GetBytes(ics), "text/calendar; charset=utf-8", fileName);
+	}
+
 	[HttpGet("public/{slugOrId}")]
 	public async Task<ActionResult<PublicGameResponse>> GetPublic(string slugOrId)
 	{
@@ -48,6 +66,84 @@ public class GamesController : ControllerBase
 	public async Task<ActionResult<List<CalendarItemResponse>>> Calendar()
 	{
 		return Ok(await _service.GetCalendarAsync());
+	}
+
+	private string BuildFrontendSessionUrl(string gameId)
+	{
+		var baseUrl =
+			HttpContext.RequestServices.GetService<IConfiguration>()?["Frontend:BaseUrl"] ??
+			Environment.GetEnvironmentVariable("Frontend__BaseUrl");
+
+		if (string.IsNullOrWhiteSpace(baseUrl))
+			baseUrl = "http://localhost:5173";
+
+		return $"{baseUrl.TrimEnd('/')}/sessions/{Uri.EscapeDataString(gameId)}";
+	}
+
+	private static string BuildCalendarIcs(GameResponse game, string sessionUrl)
+	{
+		var startUtc = DateTime.SpecifyKind(game.StartTimeUtc, DateTimeKind.Utc);
+		var endUtc = startUtc.AddHours(3);
+		var location = string.Join(", ", new[] { game.Location.Name, game.Location.City }
+			.Where(value => !string.IsNullOrWhiteSpace(value)));
+		var tableSummary = string.Join(" | ", game.Tables.Select(table =>
+		{
+			var systems = table.Systems.Count == 0 ? "System offen" : string.Join(", ", table.Systems);
+			var points = table.Points.HasValue ? $" · {table.Points} Punkte" : "";
+			return $"{table.Name}: {systems}{points}";
+		}));
+		var description = string.Join("\\n", new[]
+		{
+			game.Description,
+			tableSummary,
+			sessionUrl
+		}.Where(value => !string.IsNullOrWhiteSpace(value)));
+		var now = DateTime.UtcNow;
+
+		return string.Join("\r\n", new[]
+		{
+			"BEGIN:VCALENDAR",
+			"VERSION:2.0",
+			"PRODID:-//Tabletop Matchmaker//Spieltermin//DE",
+			"CALSCALE:GREGORIAN",
+			"METHOD:PUBLISH",
+			"BEGIN:VEVENT",
+			$"UID:{EscapeIcsText(game.Id)}@tabletop-matchmaker",
+			$"DTSTAMP:{FormatIcsUtc(now)}",
+			$"DTSTART:{FormatIcsUtc(startUtc)}",
+			$"DTEND:{FormatIcsUtc(endUtc)}",
+			$"SUMMARY:{EscapeIcsText(game.Title)}",
+			$"DESCRIPTION:{EscapeIcsText(description)}",
+			$"LOCATION:{EscapeIcsText(location)}",
+			$"URL:{EscapeIcsText(sessionUrl)}",
+			$"ORGANIZER;CN={EscapeIcsText(game.Host.DisplayName)}:MAILTO:no-reply@tabletop-matchmaker.local",
+			"END:VEVENT",
+			"END:VCALENDAR",
+			""
+		});
+	}
+
+	private static string FormatIcsUtc(DateTime value)
+	{
+		return value.ToUniversalTime().ToString("yyyyMMdd'T'HHmmss'Z'");
+	}
+
+	private static string EscapeIcsText(string? value)
+	{
+		return (value ?? "")
+			.Replace("\\", "\\\\")
+			.Replace(";", "\\;")
+			.Replace(",", "\\,")
+			.Replace("\r\n", "\\n")
+			.Replace("\n", "\\n")
+			.Replace("\r", "\\n");
+	}
+
+	private static string SanitizeFileName(string value)
+	{
+		var invalid = Path.GetInvalidFileNameChars();
+		var cleaned = new string(value.Select(ch => invalid.Contains(ch) ? '-' : ch).ToArray()).Trim();
+		return string.IsNullOrWhiteSpace(cleaned) ? "spieltermin" : cleaned;
 	}
 
 	[HttpGet("search")]
