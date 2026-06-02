@@ -15,17 +15,20 @@ public class UsersController : ControllerBase
 	private readonly ICurrentUserService _currentUser;
 	private readonly IFriendRepository _friends;
 	private readonly IAdminAuthorizationService _adminAuthorization;
+	private readonly IWebHostEnvironment _environment;
 
 	public UsersController(
 		IUserRepository repository,
 		ICurrentUserService currentUser,
 		IFriendRepository friends,
-		IAdminAuthorizationService adminAuthorization)
+		IAdminAuthorizationService adminAuthorization,
+		IWebHostEnvironment environment)
 	{
 		_repository = repository;
 		_currentUser = currentUser;
 		_friends = friends;
 		_adminAuthorization = adminAuthorization;
+		_environment = environment;
 	}
 
 	[HttpGet("search")]
@@ -182,6 +185,47 @@ public class UsersController : ControllerBase
 		return Ok(ToDiscoverySettingsDto(user.DiscoverySettings));
 	}
 
+	[HttpPost("me/profile-image")]
+	public async Task<ActionResult<UserProfileResponse>> UploadProfileImage([FromForm] IFormFile file)
+	{
+		if (file == null || file.Length == 0)
+			throw new DomainException("Bitte wähle ein Bild aus.");
+
+		if (file.Length > 2 * 1024 * 1024)
+			throw new DomainException("Profilbild darf maximal 2 MB groß sein.");
+
+		var extension = GetProfileImageExtension(file.ContentType, file.FileName);
+		var user = await _repository.GetByIdAsync(_currentUser.UserId)
+			?? new UserProfile
+			{
+				Id = _currentUser.UserId,
+				DisplayName = _currentUser.DisplayName,
+				CanBeContacted = true
+			};
+
+		var uploadRoot = Path.Combine(_environment.WebRootPath ?? "wwwroot", "uploads", "profile-images");
+		Directory.CreateDirectory(uploadRoot);
+
+		var safeUserId = SanitizeFileName(_currentUser.UserId);
+		foreach (var existingFile in Directory.GetFiles(uploadRoot, $"{safeUserId}.*"))
+		{
+			System.IO.File.Delete(existingFile);
+		}
+
+		var fileName = $"{safeUserId}{extension}";
+		var filePath = Path.Combine(uploadRoot, fileName);
+
+		await using (var stream = System.IO.File.Create(filePath))
+		{
+			await file.CopyToAsync(stream);
+		}
+
+		user.ProfileImageUrl = $"{GetPublicOrigin()}/uploads/profile-images/{Uri.EscapeDataString(fileName)}";
+		await _repository.UpsertAsync(user);
+
+		return Ok(ToResponse(user));
+	}
+
 	private static void ValidateProfile(UpdateUserProfileRequest request)
 	{
 		if (string.IsNullOrWhiteSpace(request.DisplayName))
@@ -205,6 +249,37 @@ public class UsersController : ControllerBase
 		ValidateLength(request.ProfileImageUrl, 500, "Profilbild");
 		ValidateLength(request.LookingForGame?.TimeNote, 500, "Suchstatus-Notiz");
 		ValidateCoordinates(request.Latitude, request.Longitude);
+	}
+
+	private static string GetProfileImageExtension(string? contentType, string fileName)
+	{
+		var extension = Path.GetExtension(fileName).ToLowerInvariant();
+		var normalizedContentType = contentType?.ToLowerInvariant();
+
+		return (normalizedContentType, extension) switch
+		{
+			("image/jpeg", ".jpg" or ".jpeg") => ".jpg",
+			("image/png", ".png") => ".png",
+			("image/webp", ".webp") => ".webp",
+			_ => throw new DomainException("Bitte lade ein JPG-, PNG- oder WEBP-Bild hoch.")
+		};
+	}
+
+	private static string SanitizeFileName(string value)
+	{
+		var invalid = Path.GetInvalidFileNameChars();
+		var cleaned = new string(value.Select(ch => invalid.Contains(ch) ? '-' : ch).ToArray());
+		return string.IsNullOrWhiteSpace(cleaned) ? Guid.NewGuid().ToString("N") : cleaned;
+	}
+
+	private string GetPublicOrigin()
+	{
+		var forwardedProto = Request.Headers["X-Forwarded-Proto"].FirstOrDefault();
+		var forwardedHost = Request.Headers["X-Forwarded-Host"].FirstOrDefault();
+		var scheme = string.IsNullOrWhiteSpace(forwardedProto) ? Request.Scheme : forwardedProto;
+		var host = string.IsNullOrWhiteSpace(forwardedHost) ? Request.Host.Value : forwardedHost;
+
+		return $"{scheme}://{host}";
 	}
 
 	private static void ValidateLength(string? value, int maxLength, string label)
