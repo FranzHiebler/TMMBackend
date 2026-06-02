@@ -11,5 +11,6 @@ public class CalendarItemResponse
 	public SessionTimingMode? TimingMode { get; set; }
 	public string? TimeLabel { get; set; }
 	public string? LocationName { get; set; }
+	public string? LocationCity { get; set; }
 	public string? Status { get; set; }
 }

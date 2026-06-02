@@ -258,12 +258,14 @@ public class GamePlanningService : IGamePlanningService
 			Title = game.Title,
 			Kind = game.Host.UserId == _currentUser.UserId ? "Host" :
 				game.Invitations.Any(x => x.User.UserId == _currentUser.UserId && x.Status == SessionInvitationStatus.Pending) ? "Einladung" :
+				game.Waitlist.Any(x => x.Player.UserId == _currentUser.UserId) ? "Warteliste" :
 				game.Tables.Any(t => t.Applications.Any(a => a.Player.UserId == _currentUser.UserId && a.Status == ApplicationStatus.Pending)) ? "Bewerbung" :
 				"Teilnahme",
 			StartTimeUtc = game.TimingMode == SessionTimingMode.Open ? null : game.StartTimeUtc,
 			TimingMode = game.TimingMode,
 			TimeLabel = game.TimeLabel,
 			LocationName = game.LocationSnapshot.Name,
+			LocationCity = game.LocationSnapshot.City,
 			Status = game.Status.ToString()
 		}).OrderBy(x => x.StartTimeUtc ?? DateTime.MaxValue).ToList();
 	}
