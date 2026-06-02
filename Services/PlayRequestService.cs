@@ -78,7 +78,7 @@ public class PlayRequestService : IPlayRequestService
 			NotificationKind.PlayRequestCreated,
 			"Spielgesuch erstellt",
 			"Dein Spielgesuch ist sichtbar.",
-			"/play-requests");
+			$"/play-requests?requestId={playRequest.Id}");
 
 		return await MapAsync(playRequest);
 	}
