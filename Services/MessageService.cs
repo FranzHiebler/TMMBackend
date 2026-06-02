@@ -99,7 +99,7 @@ public class MessageService : IMessageService
 	public async Task<List<MessageResponse>> GetGameMessagesAsync(string gameId)
 	{
 		var game = await GetGameOrThrow(gameId);
-		await EnsureCanAccessGameMessagesAsync(game);
+		await EnsureCanReadGameMessagesAsync(game);
 		var messages = await _messages.GetGameMessagesAsync(gameId);
 		return messages.Select(MapMessage).ToList();
 	}
@@ -109,7 +109,7 @@ public class MessageService : IMessageService
 		SendGameSessionMessageRequest request)
 	{
 		var game = await GetGameOrThrow(gameId);
-		await EnsureCanAccessGameMessagesAsync(game);
+		await EnsureCanWriteGameMessagesAsync(game);
 
 		var body = NormalizeBody(request.Body);
 		var message = CreateMessage(MessageKind.GameSession, body);
@@ -225,12 +225,23 @@ public class MessageService : IMessageService
 			?? throw new DomainException("Session nicht gefunden.");
 	}
 
-	private async Task EnsureCanAccessGameMessagesAsync(GameSession game)
+	private async Task EnsureCanReadGameMessagesAsync(GameSession game)
+	{
+		if (!string.IsNullOrWhiteSpace(game.PublicSlug))
+			return;
+
+		await EnsureCanWriteGameMessagesAsync(game);
+	}
+
+	private async Task EnsureCanWriteGameMessagesAsync(GameSession game)
 	{
 		if (game.Host.UserId == _currentUser.UserId)
 			return;
 
 		if (GameSessionRules.IsUserAlreadyAssigned(game, _currentUser.UserId))
+			return;
+
+		if (game.Invitations.Any(i => i.User.UserId == _currentUser.UserId))
 			return;
 
 		if (game.Tables.Any(t => t.Applications.Any(a =>
@@ -354,6 +365,9 @@ public class MessageService : IMessageService
 				a.Status == ApplicationStatus.Pending || a.Status == ApplicationStatus.Accepted))
 				users.Add(application.Player.UserId);
 		}
+
+		foreach (var invitation in game.Invitations)
+			users.Add(invitation.User.UserId);
 
 		return users;
 	}
