@@ -26,7 +26,7 @@ public class PublicSessionsController : ControllerBase
 	{
 		var game = await _games.GetPublicAsync(slugOrId);
 		if (game == null)
-			return NotFound("Session wurde nicht gefunden.");
+			return NotFound("Spieltermin wurde nicht gefunden.");
 
 		var url = $"{GetPublicOrigin()}{Request.Path}";
 		var imageUrl = GetShareImageUrl();

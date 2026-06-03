@@ -33,7 +33,7 @@ public class GamesController : ControllerBase
 		var game = await _service.GetByIdAsync(id);
 
 		if (game == null)
-			return NotFound(new { error = "Game Session wurde nicht gefunden." });
+			return NotFound(new { error = "Spieltermin wurde nicht gefunden." });
 
 		return Ok(game);
 	}
@@ -44,7 +44,7 @@ public class GamesController : ControllerBase
 		var game = await _service.GetByIdAsync(id);
 
 		if (game == null)
-			return NotFound(new { error = "Game Session wurde nicht gefunden." });
+			return NotFound(new { error = "Spieltermin wurde nicht gefunden." });
 
 		if (game.TimingMode == Domain.SessionTimingMode.Open)
 			return BadRequest(new { error = "Dieser Spieltermin hat noch kein festes Datum." });
@@ -59,7 +59,7 @@ public class GamesController : ControllerBase
 	public async Task<ActionResult<PublicGameResponse>> GetPublic(string slugOrId)
 	{
 		var game = await _service.GetPublicAsync(slugOrId);
-		return game == null ? NotFound(new { error = "Session wurde nicht gefunden." }) : Ok(game);
+		return game == null ? NotFound(new { error = "Spieltermin wurde nicht gefunden." }) : Ok(game);
 	}
 
 	[HttpGet("calendar")]

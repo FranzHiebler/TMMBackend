@@ -40,10 +40,10 @@ public class GameService : IGameService
 
 		var location = await _locationService.GetByIdAsync(request.LocationId);
 		if (location == null)
-			throw new DomainException("Location wurde nicht gefunden.");
+			throw new DomainException("Spielort wurde nicht gefunden.");
 
 		if (!_authorization.CanCreateGameAtLocation(location))
-			throw new DomainException("Du darfst an dieser Location keine Game Session erstellen.");
+			throw new DomainException("Du darfst an diesem Spielort keinen Spieltermin erstellen.");
 
 		var gameSession = new GameSession
 		{

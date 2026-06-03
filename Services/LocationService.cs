@@ -267,7 +267,7 @@ public class LocationService : ILocationService
 	private async Task<Location> GetLocationOrThrow(string id)
 	{
 		return await _repository.GetByIdAsync(id)
-			?? throw new KeyNotFoundException("Location wurde nicht gefunden.");
+			?? throw new KeyNotFoundException("Spielort wurde nicht gefunden.");
 	}
 
 	private static LocationJoinRequest GetPendingJoinRequestOrThrow(

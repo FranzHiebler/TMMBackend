@@ -41,6 +41,7 @@ builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IFriendRepository, FriendRepository>();
 builder.Services.AddScoped<IPlayRequestRepository, PlayRequestRepository>();
 builder.Services.AddScoped<IEventSeriesRepository, EventSeriesRepository>();
+builder.Services.AddScoped<IFeedbackRepository, FeedbackRepository>();
 
 builder.Services.AddScoped<IGameService, GameService>();
 builder.Services.AddScoped<IGameAssignmentService, GameAssignmentService>();
@@ -54,6 +55,7 @@ builder.Services.AddScoped<IFriendService, FriendService>();
 builder.Services.AddScoped<IDiscoveryService, DiscoveryService>();
 builder.Services.AddScoped<IPlayRequestService, PlayRequestService>();
 builder.Services.AddScoped<IEventSeriesService, EventSeriesService>();
+builder.Services.AddScoped<IFeedbackService, FeedbackService>();
 builder.Services.AddSingleton<MongoIndexInitializer>();
 
 builder.Services.AddScoped<ILocationService, LocationService>();
