@@ -145,6 +145,7 @@ public class MongoIndexInitializer
 		await feedback.Indexes.CreateManyAsync(new[]
 		{
 			new CreateIndexModel<FeedbackItem>(Builders<FeedbackItem>.IndexKeys.Descending(x => x.CreatedAtUtc)),
+			new CreateIndexModel<FeedbackItem>(Builders<FeedbackItem>.IndexKeys.Ascending(x => x.TicketNumber)),
 			new CreateIndexModel<FeedbackItem>(Builders<FeedbackItem>.IndexKeys.Ascending(x => x.Status)),
 			new CreateIndexModel<FeedbackItem>(Builders<FeedbackItem>.IndexKeys.Ascending(x => x.Type)),
 			new CreateIndexModel<FeedbackItem>(Builders<FeedbackItem>.IndexKeys.Ascending(x => x.UserId))

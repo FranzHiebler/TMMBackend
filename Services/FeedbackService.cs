@@ -30,10 +30,12 @@ public class FeedbackService : IFeedbackService
 	public async Task<FeedbackResponse> CreateAsync(CreateFeedbackRequest request)
 	{
 		var message = NormalizeRequired(request.Message, MaxMessageLength, "Feedback");
+		var ticketNumber = await CreateNextTicketNumberAsync();
 
 		var item = new FeedbackItem
 		{
 			Type = request.Type,
+			TicketNumber = ticketNumber,
 			Message = message,
 			UserId = _currentUser.UserId,
 			DisplayName = _currentUser.DisplayName,
@@ -105,11 +107,35 @@ public class FeedbackService : IFeedbackService
 		return value.Value;
 	}
 
+	private async Task<string> CreateNextTicketNumberAsync()
+	{
+		var items = await _repository.GetAllWithTicketNumbersAsync();
+		var maxNumber = items
+			.Select(item => ParseTicketNumber(item.TicketNumber))
+			.DefaultIfEmpty(0)
+			.Max();
+
+		return $"FB-{maxNumber + 1:0000}";
+	}
+
+	private static int ParseTicketNumber(string? ticketNumber)
+	{
+		if (string.IsNullOrWhiteSpace(ticketNumber))
+			return 0;
+
+		var normalized = ticketNumber.Trim();
+		if (!normalized.StartsWith("FB-", StringComparison.OrdinalIgnoreCase))
+			return 0;
+
+		return int.TryParse(normalized[3..], out var number) ? number : 0;
+	}
+
 	private static FeedbackResponse ToResponse(FeedbackItem item)
 	{
 		return new FeedbackResponse
 		{
 			Id = item.Id ?? "",
+			TicketNumber = item.TicketNumber,
 			Type = item.Type,
 			Message = item.Message,
 			UserId = item.UserId,

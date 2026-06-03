@@ -27,6 +27,17 @@ public class FeedbackRepository : IFeedbackRepository
 		return await _feedback.Find(x => x.Id == id).FirstOrDefaultAsync();
 	}
 
+	public async Task<List<FeedbackItem>> GetAllWithTicketNumbersAsync()
+	{
+		return await _feedback
+			.Find(x => x.TicketNumber != null && x.TicketNumber != "")
+			.Project<FeedbackItem>(
+				Builders<FeedbackItem>.Projection
+					.Include(x => x.Id)
+					.Include(x => x.TicketNumber))
+			.ToListAsync();
+	}
+
 	public async Task<List<FeedbackItem>> GetAdminListAsync(FeedbackStatus? status, FeedbackType? type)
 	{
 		var filter = Builders<FeedbackItem>.Filter.Empty;

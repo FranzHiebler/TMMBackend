@@ -32,6 +32,7 @@ public class UpdateFeedbackAdminRequest
 public class FeedbackResponse
 {
 	public string Id { get; set; } = default!;
+	public string? TicketNumber { get; set; }
 	public FeedbackType Type { get; set; }
 	public string Message { get; set; } = default!;
 	public string UserId { get; set; } = default!;

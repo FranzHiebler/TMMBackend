@@ -28,6 +28,9 @@ public class FeedbackItem
 	[BsonElement("type")]
 	public FeedbackType Type { get; set; }
 
+	[BsonElement("ticketNumber")]
+	public string? TicketNumber { get; set; }
+
 	[BsonElement("message")]
 	public string Message { get; set; } = default!;
 
