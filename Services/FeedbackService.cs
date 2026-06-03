@@ -9,6 +9,7 @@ public class FeedbackService : IFeedbackService
 {
 	private const int MaxMessageLength = 1000;
 	private const int MaxAdminNoteLength = 2000;
+	private const int MaxReporterNameLength = 120;
 	private const int MaxContextLength = 500;
 	private const int MaxUserAgentLength = 600;
 
@@ -36,6 +37,7 @@ public class FeedbackService : IFeedbackService
 			Message = message,
 			UserId = _currentUser.UserId,
 			DisplayName = _currentUser.DisplayName,
+			ReporterName = NormalizeOptional(request.ReporterName, MaxReporterNameLength),
 			PageUrl = NormalizeOptional(request.Context?.PageUrl, MaxContextLength),
 			Pathname = NormalizeOptional(request.Context?.Pathname, MaxContextLength),
 			Search = NormalizeOptional(request.Context?.Search, MaxContextLength),
@@ -112,6 +114,7 @@ public class FeedbackService : IFeedbackService
 			Message = item.Message,
 			UserId = item.UserId,
 			DisplayName = item.DisplayName,
+			ReporterName = item.ReporterName,
 			PageUrl = item.PageUrl,
 			Pathname = item.Pathname,
 			Search = item.Search,

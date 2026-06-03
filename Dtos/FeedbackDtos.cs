@@ -18,6 +18,7 @@ public class FeedbackContextRequest
 public class CreateFeedbackRequest
 {
 	public FeedbackType Type { get; set; }
+	public string? ReporterName { get; set; }
 	public string Message { get; set; } = default!;
 	public FeedbackContextRequest? Context { get; set; }
 }
@@ -35,6 +36,7 @@ public class FeedbackResponse
 	public string Message { get; set; } = default!;
 	public string UserId { get; set; } = default!;
 	public string DisplayName { get; set; } = default!;
+	public string? ReporterName { get; set; }
 	public string? PageUrl { get; set; }
 	public string? Pathname { get; set; }
 	public string? Search { get; set; }

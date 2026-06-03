@@ -37,6 +37,9 @@ public class FeedbackItem
 	[BsonElement("displayName")]
 	public string DisplayName { get; set; } = default!;
 
+	[BsonElement("reporterName")]
+	public string? ReporterName { get; set; }
+
 	[BsonElement("pageUrl")]
 	public string? PageUrl { get; set; }
 
