@@ -81,6 +81,12 @@ public class UserPermissionsResponse
 	public bool IsAdmin { get; set; }
 }
 
+public class TestUserOptionResponse
+{
+	public string UserId { get; set; } = default!;
+	public string DisplayName { get; set; } = default!;
+}
+
 public class UserArmyProfileDto
 {
 	public string SystemKey { get; set; } = default!;

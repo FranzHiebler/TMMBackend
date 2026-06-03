@@ -86,6 +86,22 @@ public class UsersController : ControllerBase
 			}));
 	}
 
+	[HttpGet("test-users")]
+	public async Task<ActionResult<List<TestUserOptionResponse>>> GetTestUsers()
+	{
+		var users = await _repository.SearchAsync(null);
+
+		return Ok(users
+			.Where(u => !u.HideProfile)
+			.Where(u => !string.IsNullOrWhiteSpace(u.Id))
+			.Select(u => new TestUserOptionResponse
+			{
+				UserId = u.Id!,
+				DisplayName = string.IsNullOrWhiteSpace(u.DisplayName) ? "Unbenannter Testnutzer" : u.DisplayName
+			})
+			.ToList());
+	}
+
 	[HttpGet("me")]
 	public async Task<ActionResult<UserProfileResponse>> GetMe()
 	{
