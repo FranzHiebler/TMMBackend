@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.DataProtection;
 using TabletopMatchMaker.Infrastructure;
 using TabletopMatchMaker.Repositories;
 using TabletopMatchMaker.Repositories.Interfaces;
@@ -15,6 +16,21 @@ builder.Services.Configure<AdminSettings>(
 
 builder.Services.Configure<AuthSettings>(
 	builder.Configuration.GetSection("Auth"));
+
+var authSettings = builder.Configuration
+	.GetSection("Auth")
+	.Get<AuthSettings>() ?? new AuthSettings();
+
+var dataProtection = builder.Services
+	.AddDataProtection()
+	.SetApplicationName("TabletopMatchMaker");
+
+if (!string.IsNullOrWhiteSpace(authSettings.DataProtectionKeysPath))
+{
+	var keyDirectory = new DirectoryInfo(authSettings.DataProtectionKeysPath);
+	keyDirectory.Create();
+	dataProtection.PersistKeysToFileSystem(keyDirectory);
+}
 
 var allowedOrigins = builder.Configuration
 	.GetSection("Cors:AllowedOrigins")
