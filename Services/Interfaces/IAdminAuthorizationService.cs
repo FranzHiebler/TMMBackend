@@ -2,6 +2,6 @@
 
 public interface IAdminAuthorizationService
 {
-	bool IsCurrentUserAdmin();
-	void EnsureCurrentUserIsAdmin();
+	Task<bool> IsCurrentUserAdminAsync();
+	Task EnsureCurrentUserIsAdminAsync();
 }

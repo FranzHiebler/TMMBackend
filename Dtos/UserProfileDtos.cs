@@ -23,6 +23,8 @@ public class UserProfileResponse
 	public string? ProfileImageUrl { get; set; }
 	public string? DefaultLocationId { get; set; }
 	public bool CanBeContacted { get; set; }
+	public bool IsSystemAdmin { get; set; }
+	public bool IsDevUser { get; set; }
 	public bool HideProfile { get; set; }
 	public bool HideOnMap { get; set; }
 	public bool HideParticipation { get; set; }
@@ -79,12 +81,15 @@ public class UserDiscoverySettingsDto
 public class UserPermissionsResponse
 {
 	public bool IsAdmin { get; set; }
+	public bool IsSystemAdmin { get; set; }
+	public bool IsDevUser { get; set; }
 }
 
 public class TestUserOptionResponse
 {
 	public string UserId { get; set; } = default!;
 	public string DisplayName { get; set; } = default!;
+	public bool IsDevUser { get; set; }
 }
 
 public class UserArmyProfileDto

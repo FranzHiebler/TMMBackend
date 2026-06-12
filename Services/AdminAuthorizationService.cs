@@ -1,5 +1,6 @@
-﻿using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Options;
 using TabletopMatchMaker.Infrastructure;
+using TabletopMatchMaker.Repositories.Interfaces;
 using TabletopMatchMaker.Services.Interfaces;
 
 namespace TabletopMatchMaker.Services;
@@ -7,24 +8,35 @@ namespace TabletopMatchMaker.Services;
 public class AdminAuthorizationService : IAdminAuthorizationService
 {
 	private readonly ICurrentUserService _currentUser;
+	private readonly IUserRepository _users;
+	private readonly IWebHostEnvironment _environment;
 	private readonly AdminSettings _settings;
 
 	public AdminAuthorizationService(
 		ICurrentUserService currentUser,
+		IUserRepository users,
+		IWebHostEnvironment environment,
 		IOptions<AdminSettings> settings)
 	{
 		_currentUser = currentUser;
+		_users = users;
+		_environment = environment;
 		_settings = settings.Value;
 	}
 
-	public bool IsCurrentUserAdmin()
+	public async Task<bool> IsCurrentUserAdminAsync()
 	{
-		return _settings.UserIds.Contains(_currentUser.UserId, StringComparer.OrdinalIgnoreCase);
+		var profile = await _users.GetByIdAsync(_currentUser.UserId);
+		if (profile?.IsSystemAdmin == true)
+			return true;
+
+		return _environment.IsDevelopment()
+			&& _settings.UserIds.Contains(_currentUser.UserId, StringComparer.OrdinalIgnoreCase);
 	}
 
-	public void EnsureCurrentUserIsAdmin()
+	public async Task EnsureCurrentUserIsAdminAsync()
 	{
-		if (!IsCurrentUserAdmin())
+		if (!await IsCurrentUserAdminAsync())
 			throw new UnauthorizedAccessException("Du darfst diese Aktion nicht ausführen.");
 	}
 }

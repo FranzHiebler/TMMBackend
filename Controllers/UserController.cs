@@ -97,7 +97,8 @@ public class UsersController : ControllerBase
 			.Select(u => new TestUserOptionResponse
 			{
 				UserId = u.Id!,
-				DisplayName = string.IsNullOrWhiteSpace(u.DisplayName) ? "Unbenannter Testnutzer" : u.DisplayName
+				DisplayName = string.IsNullOrWhiteSpace(u.DisplayName) ? "Unbenannter Testnutzer" : u.DisplayName,
+				IsDevUser = u.IsDevUser
 			})
 			.ToList());
 	}
@@ -121,11 +122,16 @@ public class UsersController : ControllerBase
 	}
 
 	[HttpGet("me/permissions")]
-	public ActionResult<UserPermissionsResponse> GetMyPermissions()
+	public async Task<ActionResult<UserPermissionsResponse>> GetMyPermissions()
 	{
+		var user = await _repository.GetByIdAsync(_currentUser.UserId);
+		var isSystemAdmin = await _adminAuthorization.IsCurrentUserAdminAsync();
+
 		return Ok(new UserPermissionsResponse
 		{
-			IsAdmin = _adminAuthorization.IsCurrentUserAdmin()
+			IsAdmin = isSystemAdmin,
+			IsSystemAdmin = isSystemAdmin,
+			IsDevUser = user?.IsDevUser == true
 		});
 	}
 
@@ -456,6 +462,8 @@ public class UsersController : ControllerBase
 			ProfileImageUrl = user.ProfileImageUrl,
 			DefaultLocationId = user.DefaultLocationId,
 			CanBeContacted = user.CanBeContacted,
+			IsSystemAdmin = user.IsSystemAdmin,
+			IsDevUser = user.IsDevUser,
 			HideProfile = user.HideProfile,
 			HideOnMap = user.HideOnMap,
 			HideParticipation = user.HideParticipation,

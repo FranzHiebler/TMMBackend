@@ -1,14 +1,18 @@
-﻿using TabletopMatchMaker.Services.Interfaces;
+using TabletopMatchMaker.Services.Interfaces;
 
 namespace TabletopMatchMaker.Services;
 
 public class CurrentUserService : ICurrentUserService
 {
 	private readonly IHttpContextAccessor _httpContextAccessor;
+	private readonly IWebHostEnvironment _environment;
 
-	public CurrentUserService(IHttpContextAccessor httpContextAccessor)
+	public CurrentUserService(
+		IHttpContextAccessor httpContextAccessor,
+		IWebHostEnvironment environment)
 	{
 		_httpContextAccessor = httpContextAccessor;
+		_environment = environment;
 	}
 
 	public string UserId => GetRequiredHeader("x-user-id");
@@ -17,7 +21,11 @@ public class CurrentUserService : ICurrentUserService
 
 	private string GetRequiredHeader(string name)
 	{
-		// Auth boundary: replace only this adapter when real authentication is introduced.
+		// Temporary auth boundary: test headers are allowed only for local Development.
+		// Real cookie/session auth can replace this adapter without changing callers.
+		if (!_environment.IsDevelopment())
+			throw new UnauthorizedAccessException("Test-Header-Auth ist nur in Development erlaubt.");
+
 		var value = _httpContextAccessor
 			.HttpContext?
 			.Request

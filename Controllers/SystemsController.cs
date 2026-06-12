@@ -32,7 +32,7 @@ public class SystemsController : ControllerBase
 	[HttpPost]
 	public async Task<ActionResult<SystemResponse>> Create([FromBody] CreateSystemRequest request)
 	{
-		_adminAuthorization.EnsureCurrentUserIsAdmin();
+		await _adminAuthorization.EnsureCurrentUserIsAdminAsync();
 		Validate(request);
 
 		var system = await _repository.CreateAsync(request);
@@ -42,7 +42,7 @@ public class SystemsController : ControllerBase
 	[HttpPut("{key}")]
 	public async Task<ActionResult<SystemResponse>> Update(string key, [FromBody] CreateSystemRequest request)
 	{
-		_adminAuthorization.EnsureCurrentUserIsAdmin();
+		await _adminAuthorization.EnsureCurrentUserIsAdminAsync();
 		request.Key = key;
 		Validate(request);
 

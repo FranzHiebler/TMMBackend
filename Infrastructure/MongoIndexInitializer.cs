@@ -113,9 +113,15 @@ public class MongoIndexInitializer
 	{
 		var users = database.GetCollection<UserProfile>("users");
 
-		await users.Indexes.CreateOneAsync(
+		await users.Indexes.CreateManyAsync(new[]
+		{
 			new CreateIndexModel<UserProfile>(
-				Builders<UserProfile>.IndexKeys.Ascending(x => x.DisplayName)));
+				Builders<UserProfile>.IndexKeys.Ascending(x => x.DisplayName)),
+			new CreateIndexModel<UserProfile>(
+				Builders<UserProfile>.IndexKeys.Ascending(x => x.IsSystemAdmin)),
+			new CreateIndexModel<UserProfile>(
+				Builders<UserProfile>.IndexKeys.Ascending(x => x.IsDevUser))
+		});
 	}
 
 	private async Task EnsurePlayRequestIndexesAsync(IMongoDatabase database)

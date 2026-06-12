@@ -59,14 +59,14 @@ public class FeedbackService : IFeedbackService
 
 	public async Task<List<FeedbackResponse>> GetAdminListAsync(FeedbackStatus? status, FeedbackType? type)
 	{
-		_adminAuthorization.EnsureCurrentUserIsAdmin();
+		await _adminAuthorization.EnsureCurrentUserIsAdminAsync();
 		var items = await _repository.GetAdminListAsync(status, type);
 		return items.Select(ToResponse).ToList();
 	}
 
 	public async Task<FeedbackResponse> UpdateAdminAsync(string id, UpdateFeedbackAdminRequest request)
 	{
-		_adminAuthorization.EnsureCurrentUserIsAdmin();
+		await _adminAuthorization.EnsureCurrentUserIsAdminAsync();
 
 		var item = await _repository.GetByIdAsync(id)
 			?? throw new KeyNotFoundException("Feedback wurde nicht gefunden.");

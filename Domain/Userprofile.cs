@@ -72,6 +72,12 @@ public class UserProfile
 	[BsonElement("canBeContacted")]
 	public bool CanBeContacted { get; set; } = true;
 
+	[BsonElement("isSystemAdmin")]
+	public bool IsSystemAdmin { get; set; }
+
+	[BsonElement("isDevUser")]
+	public bool IsDevUser { get; set; }
+
 	[BsonElement("hideProfile")]
 	public bool HideProfile { get; set; }
 
