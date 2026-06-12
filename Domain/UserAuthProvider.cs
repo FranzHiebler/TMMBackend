@@ -8,6 +8,7 @@ public class UserAuthProvider
 {
 	[BsonId]
 	[BsonRepresentation(BsonType.ObjectId)]
+	[BsonIgnoreIfNull]
 	public string? Id { get; set; }
 
 	[BsonElement("userId")]

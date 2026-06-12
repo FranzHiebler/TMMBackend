@@ -53,6 +53,7 @@ public class AuthController : ControllerBase
 		var provider = await _providers.GetByUserAndProviderAsync(user.Id!, GoogleProvider)
 			?? new UserAuthProvider
 			{
+				Id = ObjectId.GenerateNewId().ToString(),
 				UserId = user.Id!,
 				Provider = GoogleProvider,
 				ProviderUserId = googleUser.Sub,

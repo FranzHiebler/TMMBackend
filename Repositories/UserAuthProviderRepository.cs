@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using TabletopMatchMaker.Domain;
 using TabletopMatchMaker.Infrastructure;
@@ -33,9 +34,56 @@ public class UserAuthProviderRepository : IUserAuthProviderRepository
 
 	public async Task UpsertAsync(UserAuthProvider provider)
 	{
-		await _providers.ReplaceOneAsync(
-			x => x.UserId == provider.UserId && x.Provider == provider.Provider,
-			provider,
-			new ReplaceOptions { IsUpsert = true });
+		Normalize(provider);
+
+		try
+		{
+			await _providers.ReplaceOneAsync(
+				x => x.UserId == provider.UserId && x.Provider == provider.Provider,
+				provider,
+				new ReplaceOptions { IsUpsert = true });
+		}
+		catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey)
+		{
+			var existing = await GetByProviderAsync(provider.Provider, provider.ProviderUserId)
+				?? await GetByUserAndProviderAsync(provider.UserId, provider.Provider);
+
+			if (existing == null)
+				throw;
+
+			existing.ProviderUserId = provider.ProviderUserId;
+			existing.Email = provider.Email;
+			existing.LastLoginAtUtc = provider.LastLoginAtUtc;
+			if (existing.LinkedAtUtc == default)
+				existing.LinkedAtUtc = provider.LinkedAtUtc;
+			Normalize(existing);
+
+			await _providers.ReplaceOneAsync(x => x.Id == existing.Id, existing);
+		}
+	}
+
+	private static void Normalize(UserAuthProvider provider)
+	{
+		if (string.IsNullOrWhiteSpace(provider.Id))
+			provider.Id = ObjectId.GenerateNewId().ToString();
+
+		if (string.IsNullOrWhiteSpace(provider.UserId))
+			throw new InvalidOperationException("UserAuthProvider.UserId fehlt.");
+
+		if (string.IsNullOrWhiteSpace(provider.Provider))
+			throw new InvalidOperationException("UserAuthProvider.Provider fehlt.");
+
+		if (string.IsNullOrWhiteSpace(provider.ProviderUserId))
+			throw new InvalidOperationException("UserAuthProvider.ProviderUserId fehlt.");
+
+		if (string.IsNullOrWhiteSpace(provider.Email))
+			throw new InvalidOperationException("UserAuthProvider.Email fehlt.");
+
+		var now = DateTime.UtcNow;
+		if (provider.LinkedAtUtc == default)
+			provider.LinkedAtUtc = now;
+
+		if (provider.LastLoginAtUtc == default)
+			provider.LastLoginAtUtc = now;
 	}
 }
