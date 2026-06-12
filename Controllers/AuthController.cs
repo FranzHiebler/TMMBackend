@@ -80,7 +80,7 @@ public class AuthController : ControllerBase
 		}
 
 		SignIn(user);
-		return Ok(ToAuthResponse(user));
+		return Ok(ToAuthResponse(user, user));
 	}
 
 	[HttpGet("me")]
@@ -90,11 +90,12 @@ public class AuthController : ControllerBase
 		if (session == null)
 			return Unauthorized(new { error = "Nicht angemeldet." });
 
-		var user = await _users.GetByIdAsync(session.EffectiveUserId);
-		if (user == null)
+		var effectiveUser = await _users.GetByIdAsync(session.EffectiveUserId);
+		if (effectiveUser == null)
 			return Unauthorized(new { error = "Session ist ungültig." });
 
-		return Ok(ToAuthResponse(user, session.IsImpersonating));
+		var realUser = await _users.GetByIdAsync(session.RealUserId) ?? effectiveUser;
+		return Ok(ToAuthResponse(effectiveUser, realUser, session.IsImpersonating));
 	}
 
 	[HttpPost("logout")]
@@ -208,16 +209,21 @@ public class AuthController : ControllerBase
 		return googleUser.Email.Split('@')[0];
 	}
 
-	private static AuthUserResponse ToAuthResponse(UserProfile user, bool isImpersonating = false)
+	public static AuthUserResponse ToAuthResponse(UserProfile effectiveUser, UserProfile realUser, bool isImpersonating = false)
 	{
 		return new AuthUserResponse
 		{
-			UserId = user.Id!,
-			DisplayName = user.DisplayName,
-			Email = user.Email,
-			IsSystemAdmin = user.IsSystemAdmin,
-			IsDevUser = user.IsDevUser,
-			IsImpersonating = isImpersonating
+			UserId = effectiveUser.Id!,
+			DisplayName = effectiveUser.DisplayName,
+			Email = effectiveUser.Email,
+			IsSystemAdmin = realUser.IsSystemAdmin,
+			RealUserIsSystemAdmin = realUser.IsSystemAdmin,
+			IsDevUser = effectiveUser.IsDevUser,
+			IsImpersonating = isImpersonating,
+			RealUserId = realUser.Id,
+			RealDisplayName = realUser.DisplayName,
+			EffectiveUserId = effectiveUser.Id,
+			EffectiveDisplayName = effectiveUser.DisplayName
 		};
 	}
 

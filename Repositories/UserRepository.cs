@@ -38,6 +38,14 @@ public class UserRepository : IUserRepository
 			.ToListAsync();
 	}
 
+	public async Task<List<UserProfile>> GetDevUsersAsync()
+	{
+		return await _users
+			.Find(x => x.IsDevUser)
+			.SortBy(x => x.DisplayName)
+			.ToListAsync();
+	}
+
 	public async Task<UserProfile?> GetByIdAsync(string userId)
 	{
 		return await _users.Find(x => x.Id == userId).FirstOrDefaultAsync();

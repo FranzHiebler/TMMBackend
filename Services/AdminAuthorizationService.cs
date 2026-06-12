@@ -10,28 +10,33 @@ public class AdminAuthorizationService : IAdminAuthorizationService
 	private readonly ICurrentUserService _currentUser;
 	private readonly IUserRepository _users;
 	private readonly IWebHostEnvironment _environment;
+	private readonly IAuthSessionService _authSession;
 	private readonly AdminSettings _settings;
 
 	public AdminAuthorizationService(
 		ICurrentUserService currentUser,
 		IUserRepository users,
 		IWebHostEnvironment environment,
+		IAuthSessionService authSession,
 		IOptions<AdminSettings> settings)
 	{
 		_currentUser = currentUser;
 		_users = users;
 		_environment = environment;
+		_authSession = authSession;
 		_settings = settings.Value;
 	}
 
 	public async Task<bool> IsCurrentUserAdminAsync()
 	{
-		var profile = await _users.GetByIdAsync(_currentUser.UserId);
+		var session = _authSession.GetCurrentSession();
+		var adminUserId = session?.RealUserId ?? _currentUser.UserId;
+		var profile = await _users.GetByIdAsync(adminUserId);
 		if (profile?.IsSystemAdmin == true)
 			return true;
 
 		return _environment.IsDevelopment()
-			&& _settings.UserIds.Contains(_currentUser.UserId, StringComparer.OrdinalIgnoreCase);
+			&& _settings.UserIds.Contains(adminUserId, StringComparer.OrdinalIgnoreCase);
 	}
 
 	public async Task EnsureCurrentUserIsAdminAsync()
