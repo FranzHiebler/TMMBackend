@@ -208,7 +208,8 @@ public class UsersController : ControllerBase
 	}
 
 	[HttpPost("me/profile-image")]
-	public async Task<ActionResult<UserProfileResponse>> UploadProfileImage([FromForm] IFormFile file)
+	[Consumes("multipart/form-data")]
+	public async Task<ActionResult<UserProfileResponse>> UploadProfileImage(IFormFile file)
 	{
 		if (file == null || file.Length == 0)
 			throw new DomainException("Bitte wähle ein Bild aus.");
