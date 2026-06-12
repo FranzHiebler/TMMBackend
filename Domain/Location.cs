@@ -37,6 +37,9 @@ public class Location
 
 	[BsonElement("accessMode")]
 	public LocationAccessMode AccessMode { get; set; } = LocationAccessMode.MembersOnly;
+
+	[BsonElement("isDevLocation")]
+	public bool IsDevLocation { get; set; }
 }
 
 [BsonIgnoreExtraElements]

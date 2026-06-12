@@ -39,6 +39,7 @@ public class UsersController : ControllerBase
 
 		return Ok(users
 			.Where(u => !u.HideProfile)
+			.Where(u => _currentUser.CanSeeDevData || !u.IsDevUser)
 			.Select(u =>
 			{
 				var isOwnProfile = u.Id == currentUserId;
@@ -93,6 +94,7 @@ public class UsersController : ControllerBase
 
 		return Ok(users
 			.Where(u => !u.HideProfile)
+			.Where(u => _currentUser.CanSeeDevData || !u.IsDevUser)
 			.Where(u => !string.IsNullOrWhiteSpace(u.Id))
 			.Select(u => new TestUserOptionResponse
 			{
@@ -486,6 +488,9 @@ public class UsersController : ControllerBase
 		var user = await _repository.GetByIdAsync(userId);
 
 		if (user == null)
+			return NotFound(new { error = "Profil wurde nicht gefunden." });
+
+		if (user.IsDevUser && !_currentUser.CanSeeDevData)
 			return NotFound(new { error = "Profil wurde nicht gefunden." });
 
 		var friendship = await _friends.FindBetweenUsersAsync(_currentUser.UserId, userId);

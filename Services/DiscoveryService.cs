@@ -9,15 +9,18 @@ public class DiscoveryService : IDiscoveryService
 {
 	private readonly ILocationRepository _locations;
 	private readonly IGameRepository _games;
+	private readonly IUserRepository _users;
 	private readonly ICurrentUserService _currentUser;
 
 	public DiscoveryService(
 		ILocationRepository locations,
 		IGameRepository games,
+		IUserRepository users,
 		ICurrentUserService currentUser)
 	{
 		_locations = locations;
 		_games = games;
+		_users = users;
 		_currentUser = currentUser;
 	}
 
@@ -32,8 +35,10 @@ public class DiscoveryService : IDiscoveryService
 				radiusInMeters)
 			: await _locations.GetWithGeoAsync();
 
+		var devUserIds = await GetDevUserIdsAsync();
 		var withGeo = locations
 			.Where(location => location.Id != null && location.Geo != null)
+			.Where(location => _currentUser.CanSeeDevData || !DevDataRules.IsDevLocation(location, devUserIds))
 			.ToList();
 
 		var upcomingGames = await _games.SearchUpcomingByLocationIdsAsync(
@@ -41,6 +46,7 @@ public class DiscoveryService : IDiscoveryService
 			withGeo.Select(location => location.Id!).ToList());
 
 		var gamesByLocation = upcomingGames
+			.Where(game => _currentUser.CanSeeDevData || !DevDataRules.IsDevGame(game, devUserIds))
 			.GroupBy(game => game.LocationId)
 			.ToDictionary(
 				group => group.Key,
@@ -94,7 +100,10 @@ public class DiscoveryService : IDiscoveryService
 				return new List<GameDiscoveryResponse>();
 		}
 
-		var games = await _games.SearchDiscoveryAsync(fromUtc, toUtc, nearbyLocationIds);
+		var devUserIds = await GetDevUserIdsAsync();
+		var games = (await _games.SearchDiscoveryAsync(fromUtc, toUtc, nearbyLocationIds))
+			.Where(game => _currentUser.CanSeeDevData || !DevDataRules.IsDevGame(game, devUserIds))
+			.ToList();
 		var locationIds = games
 			.Select(game => game.LocationId)
 			.Where(id => !string.IsNullOrWhiteSpace(id))
@@ -103,12 +112,15 @@ public class DiscoveryService : IDiscoveryService
 		var locations = await _locations.GetByIdsAsync(locationIds);
 		var locationsById = locations
 			.Where(location => location.Id != null)
+			.Where(location => _currentUser.CanSeeDevData || !DevDataRules.IsDevLocation(location, devUserIds))
 			.ToDictionary(location => location.Id!, StringComparer.OrdinalIgnoreCase);
 		var result = new List<GameDiscoveryResponse>();
 
 		foreach (var game in games)
 		{
 			locationsById.TryGetValue(game.LocationId, out var location);
+			if (location == null && !_currentUser.CanSeeDevData)
+				continue;
 
 			var isHost = game.Host.UserId == _currentUser.UserId;
 			var isParticipant = game.Tables.Any(table =>
@@ -159,6 +171,18 @@ public class DiscoveryService : IDiscoveryService
 		}
 
 		return result;
+	}
+
+	private async Task<HashSet<string>> GetDevUserIdsAsync()
+	{
+		if (_currentUser.CanSeeDevData)
+			return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+		var devUsers = await _users.GetDevUsersAsync();
+		return devUsers
+			.Where(user => !string.IsNullOrWhiteSpace(user.Id))
+			.Select(user => user.Id!)
+			.ToHashSet(StringComparer.OrdinalIgnoreCase);
 	}
 
 	private static string BuildTablesSummary(GameSession game)

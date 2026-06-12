@@ -22,6 +22,8 @@ public class CurrentUserService : ICurrentUserService
 
 	public string DisplayName => _authSession.GetCurrentSession()?.DisplayName ?? GetRequiredDevelopmentHeader("x-display-name");
 
+	public bool CanSeeDevData => _authSession.GetCurrentSession()?.IsSystemAdmin == true;
+
 	private string GetRequiredDevelopmentHeader(string name)
 	{
 		// Temporary auth boundary: test headers are allowed only for local Development.

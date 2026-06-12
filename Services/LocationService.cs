@@ -10,13 +10,16 @@ namespace TabletopMatchMaker.Services;
 public class LocationService : ILocationService
 {
 	private readonly ILocationRepository _repository;
+	private readonly IUserRepository _users;
 	private readonly ICurrentUserService _currentUser;
 
 	public LocationService(
 		ILocationRepository repository,
+		IUserRepository users,
 		ICurrentUserService currentUser)
 	{
 		_repository = repository;
+		_users = users;
 		_currentUser = currentUser;
 	}
 
@@ -36,7 +39,11 @@ public class LocationService : ILocationService
 	public async Task<List<LocationOptionResponse>> GetAllAsync()
 	{
 		var locations = await _repository.GetAllAsync();
-		return locations.Select(LocationMapper.ToOptionResponse).ToList();
+		var devUserIds = await GetDevUserIdsAsync();
+		return locations
+			.Where(location => _currentUser.CanSeeDevData || !DevDataRules.IsDevLocation(location, devUserIds))
+			.Select(LocationMapper.ToOptionResponse)
+			.ToList();
 	}
 
 	public async Task<LocationResponse> CreateAsync(CreateLocationRequest request)
@@ -70,8 +77,10 @@ public class LocationService : ILocationService
 	public async Task<List<LocationResponse>> GetMineAsync()
 	{
 		var locations = await _repository.GetForUserAsync(_currentUser.UserId);
+		var devUserIds = await GetDevUserIdsAsync();
 
 		return locations
+			.Where(location => _currentUser.CanSeeDevData || !DevDataRules.IsDevLocation(location, devUserIds))
 			.Select(location => LocationMapper.ToResponse(location, _currentUser.UserId))
 			.ToList();
 	}
@@ -114,8 +123,10 @@ public class LocationService : ILocationService
 			request.Latitude,
 			request.Longitude,
 			request.RadiusInMeters);
+		var devUserIds = await GetDevUserIdsAsync();
 
 		return locations
+			.Where(location => _currentUser.CanSeeDevData || !DevDataRules.IsDevLocation(location, devUserIds))
 			.Where(location => !location.Members.Any(m => m.UserId == _currentUser.UserId))
 			.Where(location => !location.JoinRequests.Any(r =>
 				r.UserId == _currentUser.UserId &&
@@ -266,8 +277,26 @@ public class LocationService : ILocationService
 
 	private async Task<Location> GetLocationOrThrow(string id)
 	{
-		return await _repository.GetByIdAsync(id)
+		var location = await _repository.GetByIdAsync(id)
 			?? throw new KeyNotFoundException("Spielort wurde nicht gefunden.");
+
+		var devUserIds = await GetDevUserIdsAsync();
+		if (!_currentUser.CanSeeDevData && DevDataRules.IsDevLocation(location, devUserIds))
+			throw new KeyNotFoundException("Spielort wurde nicht gefunden.");
+
+		return location;
+	}
+
+	private async Task<HashSet<string>> GetDevUserIdsAsync()
+	{
+		if (_currentUser.CanSeeDevData)
+			return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+		var devUsers = await _users.GetDevUsersAsync();
+		return devUsers
+			.Where(user => !string.IsNullOrWhiteSpace(user.Id))
+			.Select(user => user.Id!)
+			.ToHashSet(StringComparer.OrdinalIgnoreCase);
 	}
 
 	private static LocationJoinRequest GetPendingJoinRequestOrThrow(

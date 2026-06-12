@@ -10,6 +10,7 @@ public class GameService : IGameService
 {
 	private readonly IGameRepository _repository;
 	private readonly ILocationLookupService _locationService;
+	private readonly IUserRepository _users;
 	private readonly ICurrentUserService _currentUser;
 	private readonly IGameSessionAuthorizationService _authorization;
 	private readonly IGameAssignmentService _assignmentService;
@@ -19,6 +20,7 @@ public class GameService : IGameService
 	public GameService(
 		IGameRepository repository,
 		ILocationLookupService locationService,
+		IUserRepository users,
 		ICurrentUserService currentUser,
 		IGameSessionAuthorizationService authorization,
 		IGameAssignmentService assignmentService,
@@ -27,6 +29,7 @@ public class GameService : IGameService
 	{
 		_repository = repository;
 		_locationService = locationService;
+		_users = users;
 		_currentUser = currentUser;
 		_authorization = authorization;
 		_assignmentService = assignmentService;
@@ -89,6 +92,9 @@ public class GameService : IGameService
 	public async Task<GameResponse?> GetByIdAsync(string id)
 	{
 		var gameSession = await _repository.GetByIdAsync(id);
+		if (gameSession != null && await IsHiddenDevGameAsync(gameSession))
+			return null;
+
 		return gameSession == null ? null : GameMapper.ToResponse(gameSession);
 	}
 
@@ -115,6 +121,7 @@ public class GameService : IGameService
 		GameValidator.ValidateSearch(request);
 
 		var games = await _repository.SearchAsync(request);
+		games = await FilterDevGamesAsync(games);
 		return games.Select(GameMapper.ToResponse).ToList();
 	}
 
@@ -135,6 +142,7 @@ public class GameService : IGameService
 			.ToList();
 
 		var games = await _repository.SearchNearbyAsync(request, locationIds);
+		games = await FilterDevGamesAsync(games);
 
 		var distanceByLocationId = nearbyLocations.ToDictionary(
 			x => x.LocationId,
@@ -289,6 +297,9 @@ public class GameService : IGameService
 	public async Task<PublicGameResponse?> GetPublicAsync(string slugOrId)
 	{
 		var game = await _repository.GetByPublicSlugOrIdAsync(slugOrId);
+		if (game != null && await IsHiddenDevGameAsync(game))
+			return null;
+
 		return game == null ? null : GameMapper.ToPublicResponse(game);
 	}
 
@@ -300,5 +311,34 @@ public class GameService : IGameService
 	private static string? NormalizeOptional(string? value)
 	{
 		return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+	}
+
+	private async Task<List<GameSession>> FilterDevGamesAsync(List<GameSession> games)
+	{
+		if (_currentUser.CanSeeDevData || games.Count == 0)
+			return games;
+
+		var devUserIds = await GetDevUserIdsAsync();
+		return games
+			.Where(game => !DevDataRules.IsDevGame(game, devUserIds))
+			.ToList();
+	}
+
+	private async Task<bool> IsHiddenDevGameAsync(GameSession game)
+	{
+		if (_currentUser.CanSeeDevData)
+			return false;
+
+		var devUserIds = await GetDevUserIdsAsync();
+		return DevDataRules.IsDevGame(game, devUserIds);
+	}
+
+	private async Task<HashSet<string>> GetDevUserIdsAsync()
+	{
+		var devUsers = await _users.GetDevUsersAsync();
+		return devUsers
+			.Where(user => !string.IsNullOrWhiteSpace(user.Id))
+			.Select(user => user.Id!)
+			.ToHashSet(StringComparer.OrdinalIgnoreCase);
 	}
 }

@@ -4,5 +4,6 @@
 	{
 		string UserId { get; }
 		string DisplayName { get; }
+		bool CanSeeDevData { get; }
 	}
 }

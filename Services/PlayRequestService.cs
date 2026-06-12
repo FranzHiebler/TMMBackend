@@ -33,6 +33,14 @@ public class PlayRequestService : IPlayRequestService
 	public async Task<List<PlayRequestResponse>> GetOpenAsync()
 	{
 		var requests = await _repository.GetOpenAsync();
+		if (!_currentUser.CanSeeDevData)
+		{
+			var devUserIds = await GetDevUserIdsAsync();
+			requests = requests
+				.Where(request => !devUserIds.Contains(request.Owner.UserId))
+				.ToList();
+		}
+
 		return (await Task.WhenAll(requests.Select(MapAsync))).ToList();
 	}
 
@@ -205,6 +213,15 @@ public class PlayRequestService : IPlayRequestService
 			Math.Round(owner.Longitude.Value, 2),
 			"approximate",
 			visibleCity);
+	}
+
+	private async Task<HashSet<string>> GetDevUserIdsAsync()
+	{
+		var devUsers = await _users.GetDevUsersAsync();
+		return devUsers
+			.Where(user => !string.IsNullOrWhiteSpace(user.Id))
+			.Select(user => user.Id!)
+			.ToHashSet(StringComparer.OrdinalIgnoreCase);
 	}
 
 	private static bool CanSee(ProfileFieldVisibility? visibility, bool isFriend, bool isOwnProfile)
