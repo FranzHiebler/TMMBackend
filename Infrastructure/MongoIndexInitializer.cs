@@ -28,6 +28,7 @@ public class MongoIndexInitializer
 		await EnsurePlayRequestIndexesAsync(database);
 		await EnsureEventSeriesIndexesAsync(database);
 		await EnsureFeedbackIndexesAsync(database);
+		await EnsureUserAuthProviderIndexesAsync(database);
 	}
 
 	private async Task EnsureGameIndexesAsync(IMongoDatabase database)
@@ -155,6 +156,24 @@ public class MongoIndexInitializer
 			new CreateIndexModel<FeedbackItem>(Builders<FeedbackItem>.IndexKeys.Ascending(x => x.Status)),
 			new CreateIndexModel<FeedbackItem>(Builders<FeedbackItem>.IndexKeys.Ascending(x => x.Type)),
 			new CreateIndexModel<FeedbackItem>(Builders<FeedbackItem>.IndexKeys.Ascending(x => x.UserId))
+		});
+	}
+
+	private async Task EnsureUserAuthProviderIndexesAsync(IMongoDatabase database)
+	{
+		var providers = database.GetCollection<UserAuthProvider>("userAuthProviders");
+		await providers.Indexes.CreateManyAsync(new[]
+		{
+			new CreateIndexModel<UserAuthProvider>(
+				Builders<UserAuthProvider>.IndexKeys
+					.Ascending(x => x.Provider)
+					.Ascending(x => x.ProviderUserId),
+				new CreateIndexOptions { Unique = true }),
+			new CreateIndexModel<UserAuthProvider>(
+				Builders<UserAuthProvider>.IndexKeys
+					.Ascending(x => x.UserId)
+					.Ascending(x => x.Provider),
+				new CreateIndexOptions { Unique = true })
 		});
 	}
 }

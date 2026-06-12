@@ -43,6 +43,16 @@ public class UserRepository : IUserRepository
 		return await _users.Find(x => x.Id == userId).FirstOrDefaultAsync();
 	}
 
+	public async Task<UserProfile?> GetByEmailAsync(string email)
+	{
+		var escapedEmail = Regex.Escape(email.Trim());
+		return await _users
+			.Find(Builders<UserProfile>.Filter.Regex(
+				x => x.Email,
+				new BsonRegularExpression($"^{escapedEmail}$", "i")))
+			.FirstOrDefaultAsync();
+	}
+
 	public async Task UpsertAsync(UserProfile user)
 	{
 		await _users.ReplaceOneAsync(

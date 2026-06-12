@@ -13,6 +13,9 @@ builder.Services.Configure<MongoDbSettings>(
 builder.Services.Configure<AdminSettings>(
 	builder.Configuration.GetSection("Admin"));
 
+builder.Services.Configure<AuthSettings>(
+	builder.Configuration.GetSection("Auth"));
+
 var allowedOrigins = builder.Configuration
 	.GetSection("Cors:AllowedOrigins")
 	.Get<string[]>() ?? [
@@ -28,7 +31,8 @@ builder.Services.AddCors(options =>
 		policy
 			.WithOrigins(allowedOrigins)
 			.AllowAnyHeader()
-			.AllowAnyMethod();
+			.AllowAnyMethod()
+			.AllowCredentials();
 	});
 });
 
@@ -42,6 +46,7 @@ builder.Services.AddScoped<IFriendRepository, FriendRepository>();
 builder.Services.AddScoped<IPlayRequestRepository, PlayRequestRepository>();
 builder.Services.AddScoped<IEventSeriesRepository, EventSeriesRepository>();
 builder.Services.AddScoped<IFeedbackRepository, FeedbackRepository>();
+builder.Services.AddScoped<IUserAuthProviderRepository, UserAuthProviderRepository>();
 
 builder.Services.AddScoped<IGameService, GameService>();
 builder.Services.AddScoped<IGameAssignmentService, GameAssignmentService>();
@@ -63,6 +68,8 @@ builder.Services.AddScoped<ILocationLookupService>(sp => sp.GetRequiredService<I
 
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IAdminAuthorizationService, AdminAuthorizationService>();
+builder.Services.AddScoped<IAuthSessionService, AuthSessionService>();
+builder.Services.AddHttpClient();
 
 builder.Services
 	.AddControllers()
@@ -141,6 +148,29 @@ app.UseStaticFiles();
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
 app.UseCors("Frontend");
+
+app.Use(async (context, next) =>
+{
+	var path = context.Request.Path;
+	if (path.StartsWithSegments("/api") && !path.StartsWithSegments("/api/Auth"))
+	{
+		var sessions = context.RequestServices.GetRequiredService<IAuthSessionService>();
+		var environment = context.RequestServices.GetRequiredService<IWebHostEnvironment>();
+		var hasDevelopmentHeaders =
+			environment.IsDevelopment()
+			&& context.Request.Headers.ContainsKey("x-user-id")
+			&& context.Request.Headers.ContainsKey("x-display-name");
+
+		if (sessions.GetCurrentSession() == null && !hasDevelopmentHeaders)
+		{
+			context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+			await context.Response.WriteAsJsonAsync(new { error = "Anmeldung erforderlich." });
+			return;
+		}
+	}
+
+	await next();
+});
 
 app.UseAuthorization();
 
