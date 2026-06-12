@@ -8,21 +8,20 @@ public class UserAuthProvider
 {
 	[BsonId]
 	[BsonRepresentation(BsonType.ObjectId)]
-	[BsonIgnoreIfNull]
-	public string? Id { get; set; }
+	public string Id { get; set; } = ObjectId.GenerateNewId().ToString();
 
 	[BsonElement("userId")]
 	[BsonRepresentation(BsonType.ObjectId)]
-	public string UserId { get; set; } = default!;
+	public string UserId { get; set; } = string.Empty;
 
 	[BsonElement("provider")]
-	public string Provider { get; set; } = default!;
+	public string Provider { get; set; } = string.Empty;
 
 	[BsonElement("providerUserId")]
-	public string ProviderUserId { get; set; } = default!;
+	public string ProviderUserId { get; set; } = string.Empty;
 
 	[BsonElement("email")]
-	public string Email { get; set; } = default!;
+	public string Email { get; set; } = string.Empty;
 
 	[BsonElement("linkedAtUtc")]
 	public DateTime LinkedAtUtc { get; set; }

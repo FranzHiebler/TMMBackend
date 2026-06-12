@@ -53,8 +53,11 @@ public class UserAuthProviderRepository : IUserAuthProviderRepository
 
 	public async Task UpdateLoginAsync(UserAuthProvider provider, string providerUserId, string email, DateTime lastLoginAtUtc)
 	{
-		if (string.IsNullOrWhiteSpace(provider.Id))
-			throw new InvalidOperationException("UserAuthProvider.Id fehlt.");
+		if (string.IsNullOrWhiteSpace(provider.UserId))
+			throw new InvalidOperationException("UserAuthProvider.UserId fehlt.");
+
+		if (string.IsNullOrWhiteSpace(provider.Provider))
+			throw new InvalidOperationException("UserAuthProvider.Provider fehlt.");
 
 		if (string.IsNullOrWhiteSpace(providerUserId))
 			throw new InvalidOperationException("UserAuthProvider.ProviderUserId fehlt.");
@@ -69,7 +72,7 @@ public class UserAuthProviderRepository : IUserAuthProviderRepository
 			.Set(x => x.LinkedAtUtc, linkedAtUtc)
 			.Set(x => x.LastLoginAtUtc, lastLoginAtUtc);
 
-		await _providers.UpdateOneAsync(x => x.Id == provider.Id, update);
+		await _providers.UpdateOneAsync(x => x.UserId == provider.UserId && x.Provider == provider.Provider, update);
 	}
 
 	private static void Normalize(UserAuthProvider provider)
