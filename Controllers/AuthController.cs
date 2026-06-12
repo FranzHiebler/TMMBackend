@@ -48,22 +48,36 @@ public class AuthController : ControllerBase
 			throw new DomainException("Google ID Token fehlt.");
 
 		var googleUser = await ValidateGoogleTokenAsync(request.IdToken);
-		var user = await FindOrCreateUserAsync(googleUser);
 		var now = DateTime.UtcNow;
-		var provider = await _providers.GetByUserAndProviderAsync(user.Id!, GoogleProvider)
-			?? new UserAuthProvider
-			{
-				Id = ObjectId.GenerateNewId().ToString(),
-				UserId = user.Id!,
-				Provider = GoogleProvider,
-				ProviderUserId = googleUser.Sub,
-				LinkedAtUtc = now
-			};
+		var provider = await _providers.GetByProviderAsync(GoogleProvider, googleUser.Sub);
+		var user = provider == null ? null : await _users.GetByIdAsync(provider.UserId);
+		user ??= await FindOrCreateUserAsync(googleUser);
 
-		provider.ProviderUserId = googleUser.Sub;
-		provider.Email = googleUser.Email;
-		provider.LastLoginAtUtc = now;
-		await _providers.UpsertAsync(provider);
+		if (provider != null)
+		{
+			await _providers.UpdateLoginAsync(provider, googleUser.Sub, googleUser.Email, now);
+		}
+		else
+		{
+			var existingUserProvider = await _providers.GetByUserAndProviderAsync(user.Id!, GoogleProvider);
+			if (existingUserProvider != null)
+			{
+				await _providers.UpdateLoginAsync(existingUserProvider, googleUser.Sub, googleUser.Email, now);
+			}
+			else
+			{
+				await _providers.InsertAsync(new UserAuthProvider
+				{
+					Id = ObjectId.GenerateNewId().ToString(),
+					UserId = user.Id!,
+					Provider = GoogleProvider,
+					ProviderUserId = googleUser.Sub,
+					Email = googleUser.Email,
+					LinkedAtUtc = now,
+					LastLoginAtUtc = now
+				});
+			}
+		}
 
 		SignIn(user);
 		return Ok(ToAuthResponse(user));
@@ -121,10 +135,7 @@ public class AuthController : ControllerBase
 
 	private async Task<UserProfile> FindOrCreateUserAsync(GoogleTokenInfo googleUser)
 	{
-		var now = DateTime.UtcNow;
-		var provider = await _providers.GetByProviderAsync(GoogleProvider, googleUser.Sub);
-		var user = provider == null ? null : await _users.GetByIdAsync(provider.UserId);
-		user ??= await _users.GetByEmailAsync(googleUser.Email);
+		var user = await _users.GetByEmailAsync(googleUser.Email);
 		user ??= new UserProfile
 		{
 			Id = ObjectId.GenerateNewId().ToString(),

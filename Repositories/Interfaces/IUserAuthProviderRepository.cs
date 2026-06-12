@@ -6,5 +6,6 @@ public interface IUserAuthProviderRepository
 {
 	Task<UserAuthProvider?> GetByProviderAsync(string provider, string providerUserId);
 	Task<UserAuthProvider?> GetByUserAndProviderAsync(string userId, string provider);
-	Task UpsertAsync(UserAuthProvider provider);
+	Task InsertAsync(UserAuthProvider provider);
+	Task UpdateLoginAsync(UserAuthProvider provider, string providerUserId, string email, DateTime lastLoginAtUtc);
 }

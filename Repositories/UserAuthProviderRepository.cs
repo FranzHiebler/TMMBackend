@@ -32,16 +32,12 @@ public class UserAuthProviderRepository : IUserAuthProviderRepository
 			.FirstOrDefaultAsync();
 	}
 
-	public async Task UpsertAsync(UserAuthProvider provider)
+	public async Task InsertAsync(UserAuthProvider provider)
 	{
 		Normalize(provider);
-
 		try
 		{
-			await _providers.ReplaceOneAsync(
-				x => x.UserId == provider.UserId && x.Provider == provider.Provider,
-				provider,
-				new ReplaceOptions { IsUpsert = true });
+			await _providers.InsertOneAsync(provider);
 		}
 		catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey)
 		{
@@ -51,15 +47,29 @@ public class UserAuthProviderRepository : IUserAuthProviderRepository
 			if (existing == null)
 				throw;
 
-			existing.ProviderUserId = provider.ProviderUserId;
-			existing.Email = provider.Email;
-			existing.LastLoginAtUtc = provider.LastLoginAtUtc;
-			if (existing.LinkedAtUtc == default)
-				existing.LinkedAtUtc = provider.LinkedAtUtc;
-			Normalize(existing);
-
-			await _providers.ReplaceOneAsync(x => x.Id == existing.Id, existing);
+			await UpdateLoginAsync(existing, provider.ProviderUserId, provider.Email, provider.LastLoginAtUtc);
 		}
+	}
+
+	public async Task UpdateLoginAsync(UserAuthProvider provider, string providerUserId, string email, DateTime lastLoginAtUtc)
+	{
+		if (string.IsNullOrWhiteSpace(provider.Id))
+			throw new InvalidOperationException("UserAuthProvider.Id fehlt.");
+
+		if (string.IsNullOrWhiteSpace(providerUserId))
+			throw new InvalidOperationException("UserAuthProvider.ProviderUserId fehlt.");
+
+		if (string.IsNullOrWhiteSpace(email))
+			throw new InvalidOperationException("UserAuthProvider.Email fehlt.");
+
+		var linkedAtUtc = provider.LinkedAtUtc == default ? lastLoginAtUtc : provider.LinkedAtUtc;
+		var update = Builders<UserAuthProvider>.Update
+			.Set(x => x.ProviderUserId, providerUserId)
+			.Set(x => x.Email, email)
+			.Set(x => x.LinkedAtUtc, linkedAtUtc)
+			.Set(x => x.LastLoginAtUtc, lastLoginAtUtc);
+
+		await _providers.UpdateOneAsync(x => x.Id == provider.Id, update);
 	}
 
 	private static void Normalize(UserAuthProvider provider)
